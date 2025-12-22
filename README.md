@@ -1,50 +1,74 @@
-# Welcome to your Expo app 👋
+# UniEats (Mensa App Berlin)
+UniEats ist eine mobile App für Studierende, die ihnen hilft, schnell und einfach die Speisepläne der umliegenden Mensen zu entdecken.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## 👥 Team & Roles
 
-## Get started
+- **Pascal (Product Owner, Developers und Designers)** 🧑‍💻
+- **Dongwoo Kim (Scrum Master, Developers und Designers)** 🧑‍💻
+- **Navid (Developers und Designers)** 🧑‍💻
+- **Viet (Developers und Designers)** 🧑‍💻
 
-1. Install dependencies
 
-   ```bash
-   npm install
-   ```
+## 🛠️ Tech-Stack
 
-2. Start the app
+- **Framework:** React Native mit Expo (Managed Workflow)
+- **Sprache:** TypeScript
+- **Navigation:** React Navigation (Tabs & Stacks)
+- **State Management:** React Context API oder Zustand
+- **API:** [Gregors Mensa API](https://mensa.gregorflachs.de/)
+- **Code-Stil:** ESLint mit Konventionen für funktionale Komponenten und Hooks.
 
-   ```bash
-   npx expo start
-   ```
+## 🎨 Design & Corporate Identity
 
-In the output, you'll find options to open the app in a
+- **Markenname:** UniEats
+- **Primärfarbe:** `#02AA20` (UniEats Grün)
+- **Akzentfarben:** `#000000` (Schwarz), `#FFFFFF` (Reinweiß), `#FFCC00` (Gelb)
+- **Typografie:** Hauptschriftart "Inter", Ausweichschrift "Arial"
+- **UI-Stil:** Modern, clean, mit abgerundeten Ecken und hoher Lesbarkeit (14-20pt).
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🚀 Erste Schritte
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Voraussetzungen
 
-## Get a fresh project
+- [Node.js](https://nodejs.org/) (LTS)
+- [Expo Go App](https://expo.dev/go) auf einem physischen Gerät (iOS oder Android).
 
-When you're ready, run:
+### Installation & Start
 
-```bash
-npm run reset-project
+1. **Abhängigkeiten installieren:**
+    ```bash
+    npm install
+    ```
+2. **App starten:**
+    ```bash
+    npx expo start --clear
+    ```
+3. **App öffnen:**
+   - Expo Go App (QR-Code scannen)
+
+## 🏗️ Projektstruktur
+
+Die Codebasis folgt einer klaren und modularen Struktur, um die Wartbarkeit zu gewährleisten.
+
+```
+my-app_test/
+├── /app/              # Screens und Navigation (Expo Router)
+├── /assets/           # Statische Dateien (Bilder, Schriftarten)
+├── /components/       # Wiederverwendbare UI-Komponenten
+├── /constants/        # Globale Einstellungen (Theme, Farben)
+├── /hooks/            # Wiederverwendbare Logik (React Hooks)
+└── ...
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 👥 Rollenverteilung
 
-## Learn more
+- **Pascal (The Engine):** API-Anbindung, Caching, State Management, Push-Notifications.                                                  │
+- **Dongwoo Kim (The Face):** UI/UX, Theme-System, Navigation-Setup, Splash Screen.                                                            │
+- **Navid Gerig (The Navigator):** Google Maps Integration, Standort-Logik.                                                                    │
+- **Viet (The Brain):** KI-Features (z.B. Meal-Matcher).
 
-To learn more about developing your project with Expo, look at the following resources:
+## 🤝 Code-Konventionen
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- **Benennung:** Alle Komponenten, Variablen und Hooks werden auf **Englisch** benannt.
+- **Commits:** Wir folgen den [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) Spezifikationen (z.B. `feat:`, `fix:`, `refactor:`).
+- **Sicherheit:** API-Keys und andere sensible Daten werden ausschließlich über `.env` Dateien verwaltet und dürfen **niemals** im Code oder auf GitHub erscheinen.
