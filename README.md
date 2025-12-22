@@ -23,7 +23,7 @@ UniEats ist eine mobile App für Studierende, die ihnen hilft, schnell und einfa
 - **Markenname:** UniEats
 - **Primärfarbe:** `#02AA20` (UniEats Grün)
 - **Akzentfarben:** `#000000` (Schwarz), `#FFFFFF` (Reinweiß), `#FFCC00` (Gelb)
-- **Typografie:** Hauptschriftart "Inter", Ausweichschrift "Arial"
+- **Typografie:** Hauptschriftart "Google Sans", Ausweichschrift "Arial"
 - **UI-Stil:** Modern, clean, mit abgerundeten Ecken und hoher Lesbarkeit (14-20pt).
 
 ## 🚀 Erste Schritte
