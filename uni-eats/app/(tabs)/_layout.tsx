@@ -52,12 +52,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="mensa-detail"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
         name="explore"
         options={{
           href: null,
