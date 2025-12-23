@@ -16,8 +16,46 @@ const getApiKey = (): string => {
   return apiKey;
 };
 
+// Öffnungszeiten eines Tages
+export interface BusinessHour {
+  openAt?: string;
+  closeAt?: string;
+  businessHourType?: string;
+}
+
+// Geschäftstag mit Öffnungszeiten
+export interface BusinessDay {
+  day?: string;
+  businesshours?: BusinessHour[];
+}
+
+// Kontaktinformationen
+export interface ContactInfo {
+  phone?: string;
+  email?: string;
+}
+
+// Detail-Bewertung einer Review
+export interface DetailRating {
+  rating?: number;
+  name?: string;
+}
+
+// Review einer Mensa
+export interface CanteenReview {
+  ID?: string;
+  canteenID?: string;
+  userID?: string;
+  averageRating?: number;
+  detailRatings?: DetailRating[];
+  comment?: string;
+  lastUpdated?: string;
+  createdAt?: string;
+}
+
 export interface Canteen {
-  _id: string;
+  _id?: string;
+  ID?: string;
   id: string;
   name: string;
   address?: {
@@ -30,8 +68,13 @@ export interface Canteen {
       longitude?: number;
     };
   };
+  contactInfo?: ContactInfo;
+  businessDays?: BusinessDay[];
+  url?: string;
+  lastUpdated?: string;
   rating?: number;
   reviewCount?: number;
+  canteenReviews?: CanteenReview[];
 }
 
 export interface Meal {
@@ -86,10 +129,35 @@ class MensaApiService {
 
       // Handle different response formats
       if (Array.isArray(data)) {
-        return data.map((item: any) => ({
-          ...item,
-          id: item._id || item.id,
-        }));
+        return data.map((item: any) => {
+          // Normalisiere Geo-Feld: geolocation -> geoLocation (API nutzt lowercase)
+          const geoLocation =
+            item?.address?.geoLocation ??
+            item?.address?.geolocation ??
+            item?.address?.GeoLocation;
+
+          // Rating aus Reviews extrahieren oder Fallback auf direktes rating
+          const reviews = item?.canteenReviews ?? [];
+          const avgRating = reviews.length > 0
+            ? reviews.reduce((sum: number, r: any) => sum + (r.averageRating ?? 0), 0) / reviews.length
+            : item?.rating;
+          const reviewCount = reviews.length ?? item?.reviewCount ?? 0;
+
+          return {
+            ...item,
+            id: item._id || item.id || item.ID,
+            address: item.address
+              ? {
+                  ...item.address,
+                  geoLocation,
+                }
+              : undefined,
+            rating: avgRating,
+            reviewCount,
+            canteenReviews: reviews,
+            businessDays: item.businessDays ?? [],
+          } as Canteen;
+        });
       }
       return [];
     } catch (error) {

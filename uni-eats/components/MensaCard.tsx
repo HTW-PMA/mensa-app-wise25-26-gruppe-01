@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { type Canteen } from '@/services/mensaApi';
+import { type Canteen, type BusinessHour } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
 
 interface MensaCardProps {
@@ -10,20 +10,82 @@ interface MensaCardProps {
   onPress: () => void;
 }
 
+/**
+ * Formatiert die Öffnungszeiten für die Anzeige
+ * Priorität: Mittagstisch > Mensa > Backshop > erste verfügbare
+ */
+const formatHours = (hours?: BusinessHour[]): string => {
+  if (!hours || hours.length === 0) return '–';
+  
+  // Prioritätenliste: Mittagstisch ist am relevantesten für Mensa-Besucher
+  const priority = ['Mittagstisch', 'Mensa', 'Backshop'];
+  
+  let selectedHour: BusinessHour | undefined;
+  for (const type of priority) {
+    selectedHour = hours.find(h => h.businessHourType === type);
+    if (selectedHour) break;
+  }
+  
+  // Fallback: erste verfügbare Öffnungszeit
+  const hour = selectedHour || hours[0];
+  const { openAt, closeAt } = hour;
+  if (!openAt || !closeAt) return '–';
+  return `${openAt}–${closeAt}`;
+};
+
+/**
+ * Ermittelt die heutigen Öffnungszeiten basierend auf dem Wochentag
+ * Unterstützt beide Formate: Abkürzungen (Mo, Di...) und volle Namen (Montag, Dienstag...)
+ */
+const getTodayBusinessHours = (businessDays?: Canteen['businessDays']): string => {
+  if (!businessDays || businessDays.length === 0) return '–';
+  
+  // Mapping: JS getDay() Index -> [Abkürzung, Voller Name]
+  const weekdayMap: Record<number, string[]> = {
+    0: ['So', 'Sonntag'],
+    1: ['Mo', 'Montag'],
+    2: ['Di', 'Dienstag'],
+    3: ['Mi', 'Mittwoch'],
+    4: ['Do', 'Donnerstag'],
+    5: ['Fr', 'Freitag'],
+    6: ['Sa', 'Samstag'],
+  };
+  
+  const todayVariants = weekdayMap[new Date().getDay()];
+  
+  // Suche nach heutigem Tag (beide Formate)
+  const todayEntry = businessDays.find(day => 
+    todayVariants.includes(day.day ?? '')
+  );
+  
+  if (todayEntry) {
+    return formatHours(todayEntry.businesshours);
+  }
+  
+  // Fallback: Zeige ersten verfügbaren Tag
+  return formatHours(businessDays[0]?.businesshours);
+};
+
 export function MensaCard({ canteen, onPress }: MensaCardProps) {
   // Bookmark status (currently resets when the app is closed and reopened)
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // importing rating/review data (default value 0,0, 0)
-  const rating = canteen.rating ? canteen.rating.toFixed(1) : '0.0';
-  const reviewCount = canteen.reviewCount || 0;
+  // Rating und Review-Anzahl aus API-Daten
+  const rating = canteen.rating ? canteen.rating.toFixed(1) : '–';
+  const reviewCount = canteen.reviewCount ?? 0;
 
-  // Dummy data that will later be replaced with APIs and logic
-  const distance = '0.0 km';
-  const duration = '00-00 min';
+  // Öffnungszeiten für heute
+  const openingHours = getTodayBusinessHours(canteen.businessDays);
+
+  // Standort-Info: Bezirk > Stadt > Straße (bis echte Distanzberechnung implementiert ist)
+  const locationInfo =
+    canteen.address?.district ||
+    canteen.address?.city ||
+    canteen.address?.street ||
+    '–';
   
   // Temporary tags for design examples (to be integrated with the Menu API later)
-  const badges = ['Fast Service', 'Vegan', 'Halal'];
+  const badges = ['Fast Service', 'Vegan'];
 
   return (
     <Pressable
@@ -85,14 +147,14 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
           
           <View style={styles.infoItem}>
             <Ionicons name="location-sharp" size={16} color="#666" style={{ transform: [{ translateY: -3.5}, { translateX: 1 }] }} />
-            <Text style={styles.infoText}>{distance}</Text>
+            <Text style={styles.infoText}>{locationInfo}</Text>
           </View>
         </View>
 
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
             <Ionicons name="time-outline" size={16} color="#666" style={{ transform: [{ translateY: -3.5}, { translateX: 1 }] }} />
-            <Text style={styles.infoText}>{duration}</Text>
+            <Text style={styles.infoText}>{openingHours}</Text>
           </View>
         </View>
 
