@@ -1,5 +1,20 @@
 const API_BASE_URL = 'https://mensa.gregorflachs.de';
-const API_KEY = 'YChEnDcDSdQutvSfWoIGqDc9IGBU0OJFldo9QuGOpllpiuUQYzZfoNCo5cQseyK1WRBIpa3IcbznxYuoN94EW1tGcFJ1nZ30aO4hLTV7wILc2o/imAPP7l17KqYLFrjcmYsKkOHi9gET3L9IqT+vSJgDllk9u1f3b4XU7AxQ8GAn24RFl6Khmmk3cdMtBQ2hP/S37BHNqLJngvBr73wrbCALl70HlagYJjDmt5wnjynwgaluLEBxuPgmtqOEizKHz/t5tw67ArxUS3nw5OcySX7XpdpltUxhiyospXfjEmDd+quWGnSECR6DG5cZdYHtteADdxE0dTOt7XwHoHs4ow==';
+
+const getApiKey = (): string => {
+  const apiKey = process.env.EXPO_PUBLIC_MENSA_API_KEY;
+  
+  if (!apiKey) {
+    console.error(
+      '❌ FEHLER: API Key nicht gefunden!\n' +
+      '   Bitte erstelle eine .env Datei im uni-eats Verzeichnis mit:\n' +
+      '   EXPO_PUBLIC_MENSA_API_KEY=dein_api_key\n' +
+      '   Dann starte Expo neu mit: npx expo start --clear'
+    );
+    return '';
+  }
+  
+  return apiKey;
+};
 
 export interface Canteen {
   _id: string;
@@ -58,7 +73,7 @@ class MensaApiService {
 
       const response = await fetch(url, {
         headers: {
-          'X-API-KEY': API_KEY,
+          'X-API-KEY': getApiKey(),
         },
       });
 
@@ -97,7 +112,7 @@ class MensaApiService {
 
       const response = await fetch(`${API_BASE_URL}/api/v1/meal?${params.toString()}`, {
         headers: {
-          'X-API-KEY': API_KEY,
+          'X-API-KEY': getApiKey(),
         },
       });
 
@@ -126,7 +141,7 @@ class MensaApiService {
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/additive`, {
         headers: {
-          'X-API-KEY': API_KEY,
+          'X-API-KEY': getApiKey(),
         },
       });
 
@@ -153,7 +168,7 @@ class MensaApiService {
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/badge`, {
         headers: {
-          'X-API-KEY': API_KEY,
+          'X-API-KEY': getApiKey(),
         },
       });
 

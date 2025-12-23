@@ -1,0 +1,201 @@
+import { StyleSheet, ScrollView, View, Text, ActivityIndicator, Pressable, RefreshControl } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
+import { mensaApi, type Canteen } from '@/services/mensaApi';
+import { MensaCard } from '@/components/MensaCard';
+import { Colors } from '@/constants/theme';
+
+// Filter List Definition
+const FILTERS = ['All', 'Vegetarian', 'Vegan', 'Halal', 'Glutenfrei'];
+
+export function HomeScreen() {
+  const router = useRouter();
+  const [canteens, setCanteens] = useState<Canteen[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+
+  const [activeFilter, setActiveFilter] = useState('All');
+
+  const loadCanteens = async () => {
+    try {
+      const data = await mensaApi.getCanteens({ loadingtype: 'complete' });
+      setCanteens(data);
+    } catch (err) {
+      console.error('Error loading canteens', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCanteens();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadCanteens();
+  }, []);
+
+  return (
+      <View style={styles.container}>
+
+        <View style={styles.header}>
+          <View style={styles.topBar}>
+
+            <Image
+                source={require('@/assets/images/Schriftzug.png')}
+                style={styles.logo}
+                contentFit="cover"
+            />
+
+            <Pressable
+                onPress={() => router.push('/notifications')}
+                style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
+            >
+              <Ionicons name="notifications-outline" size={26} color="#333" />
+              <View style={styles.notificationBadge} />
+            </Pressable>
+          </View>
+
+          {/* Filter */}
+          <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScroll}
+          >
+            {FILTERS.map((filter) => (
+                <Pressable
+                    key={filter}
+                    onPress={() => setActiveFilter(filter)}
+                    style={[
+                      styles.filterItem,
+                      activeFilter === filter && styles.filterItemActive
+                    ]}
+                >
+                  <Text style={[
+                    styles.filterText,
+                    activeFilter === filter && styles.filterTextActive
+                  ]}>
+                    {filter}
+                  </Text>
+                </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
+        <ScrollView
+
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.light.tint} />
+            }
+        >
+          <Text style={styles.subtitle}>📍 Mensas near you</Text>
+
+          {loading && !refreshing ? (
+              <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color={Colors.light.tint} />
+              </View>
+          ) : (
+              <View style={styles.listContainer}>
+                {canteens.map((canteen) => (
+                    <MensaCard
+                        key={canteen.id}
+                        canteen={canteen}
+                        onPress={() => router.push(`/mensa-detail?id=${canteen.id}`)}
+                    />
+                ))}
+              </View>
+          )}
+        </ScrollView>
+      </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  logo: {
+    width: 100,
+    height: 30,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    right: 2,
+    top: 2,
+    width: 8,
+    height: 8,
+    backgroundColor: 'red',
+    borderRadius: 4,
+  },
+  greeting: {
+    paddingHorizontal: 20,
+    fontSize: 22,
+    fontFamily: 'GoogleSans-Bold',
+    color: '#000',
+  },
+  subtitle: {
+    paddingHorizontal: 20,
+    fontSize: 20,
+    fontFamily: 'GoogleSans-Bold',
+    color: '#333',
+    marginTop: 15,
+    marginBottom: 1,
+  },
+  filterScroll: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  filterItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  filterItemActive: {
+    backgroundColor: Colors.light.tint,
+    borderColor: Colors.light.tint,
+  },
+  filterText: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 30,
+  },
+  filterTextActive: {
+    color: '#fff',
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  listContainer: {
+    paddingHorizontal: 16,
+  },
+  centerContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
