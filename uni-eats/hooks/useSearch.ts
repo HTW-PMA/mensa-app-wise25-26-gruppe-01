@@ -59,7 +59,10 @@ export function useSearch(): UseSearchResult {
   }, [searchQuery, allMeals.data, allMensas.data]);
 
   // Debounced Search mit 500ms Verzögerung
-  const debouncedSearch = debounce(performSearch, 500);
+  const debouncedSearch = useCallback(
+    debounce(performSearch, 500),
+    [performSearch]
+  );
 
   useEffect(() => {
     if (searchQuery.length === 0) {

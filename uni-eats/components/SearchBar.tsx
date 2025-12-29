@@ -28,7 +28,7 @@ export function SearchBar({
     <View style={[styles.container, { backgroundColor }]}>
       <Ionicons
         name="search"
-        size={20}
+        size={22}
         color={placeholderColor}
         style={styles.icon}
       />
@@ -37,7 +37,6 @@ export function SearchBar({
           styles.input,
           {
             color: textColor,
-            borderColor: useThemeColor({ light: '#ddd', dark: '#333' }, 'background'),
           },
         ]}
         placeholder={placeholder}
@@ -46,9 +45,11 @@ export function SearchBar({
         onChangeText={onChangeText}
         onFocus={onFocus}
         onBlur={onBlur}
+        autoCapitalize="none"
+        autoCorrect={false}
       />
       {value.length > 0 && (
-        <Pressable onPress={onClear} style={styles.clearButton}>
+        <Pressable onPress={onClear} style={styles.clearButton} hitSlop={10}>
           <Ionicons name="close-circle" size={20} color={placeholderColor} />
         </Pressable>
       )}
@@ -60,23 +61,24 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
     marginHorizontal: 16,
     marginVertical: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 0,
   },
   icon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
     fontSize: 16,
   },
   clearButton: {
-    padding: 8,
+    padding: 4,
+    marginLeft: 8,
   },
 });

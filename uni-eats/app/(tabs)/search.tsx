@@ -1,4 +1,5 @@
 import { StyleSheet, FlatList, Pressable, View, ActivityIndicator, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback } from 'react';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -90,18 +91,27 @@ export default function SearchScreen() {
   const renderRecentSearch = ({ item }: { item: string }) => (
     <Pressable
       style={({ pressed }) => [
-        styles.recentSearchTag,
-        { opacity: pressed ? 0.7 : 1 },
+        styles.recentSearchItem,
+        { 
+          opacity: pressed ? 0.7 : 1,
+          backgroundColor: backgroundColor,
+        },
       ]}
       onPress={() => handleRecentSearchPress(item)}
     >
-      <Ionicons name="search" size={14} color={tintColor} style={{ marginRight: 6 }} />
+      <View style={[styles.recentSearchIconContainer, { backgroundColor: tintColor + '15' }]}>
+        <Ionicons name="search" size={20} color={secondaryTextColor} />
+      </View>
       <ThemedText style={styles.recentSearchText}>{item}</ThemedText>
       <Pressable
-        onPress={() => removeRecentSearch(item)}
-        hitSlop={8}
+        onPress={(e) => {
+          e.stopPropagation();
+          removeRecentSearch(item);
+        }}
+        hitSlop={10}
+        style={styles.deleteButton}
       >
-        <Ionicons name="close" size={14} color={secondaryTextColor} />
+        <Ionicons name="close" size={20} color={secondaryTextColor} />
       </Pressable>
     </Pressable>
   );
@@ -112,13 +122,12 @@ export default function SearchScreen() {
         styles.popularTag,
         {
           opacity: pressed ? 0.8 : 1,
-          borderColor: tintColor,
-          backgroundColor: tintColor + '15', // 15% opacity
+          backgroundColor: backgroundColor === '#f9f9f9' ? '#e8f5e9' : '#1a2e1a',
         },
       ]}
       onPress={() => handlePopularTagPress(item)}
     >
-      <ThemedText style={[styles.popularTagText, { color: tintColor }]}>
+      <ThemedText style={styles.popularTagText}>
         {item}
       </ThemedText>
     </Pressable>
@@ -131,12 +140,14 @@ export default function SearchScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SearchBar
-        value={searchQuery}
-        onChangeText={handleSearch}
-        onClear={handleClearSearch}
-        placeholder="Search for meals or mensas"
-      />
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={handleSearch}
+          onClear={handleClearSearch}
+          placeholder="Search for meals or mensas"
+        />
+      </SafeAreaView>
 
       {showResults ? (
         <FlatList
@@ -185,7 +196,7 @@ export default function SearchScreen() {
                       Recent Searches
                     </ThemedText>
                     <Pressable onPress={clearRecentSearches} hitSlop={10}>
-                      <ThemedText style={[{ color: tintColor }]}>
+                      <ThemedText style={[styles.clearAllText, { color: '#4CAF50' }]}>
                         Clear all
                       </ThemedText>
                     </Pressable>
@@ -206,14 +217,11 @@ export default function SearchScreen() {
                     Popular Searches
                   </ThemedText>
                   <View style={styles.popularTagsContainer}>
-                    <FlatList
-                      data={POPULAR_SEARCHES}
-                      renderItem={renderPopularTag}
-                      keyExtractor={(item) => item}
-                      numColumns={2}
-                      columnWrapperStyle={styles.popularTagsRow}
-                      scrollEnabled={false}
-                    />
+                    {POPULAR_SEARCHES.map((tag) => (
+                      <View key={tag}>
+                        {renderPopularTag({ item: tag })}
+                      </View>
+                    ))}
                   </View>
                 </View>
               )}
@@ -238,6 +246,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  safeArea: {
+    backgroundColor: 'transparent',
+  },
   section: {
     marginVertical: 16,
   },
@@ -249,43 +260,52 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  clearAllText: {
     fontSize: 16,
+    fontWeight: '500',
   },
   recentSearchesContainer: {
-    paddingHorizontal: 8,
-    gap: 8,
+    paddingHorizontal: 16,
   },
-  recentSearchTag: {
+  recentSearchItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    maxWidth: '90%',
+    paddingVertical: 16,
+    paddingHorizontal: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e0e0e0',
+  },
+  recentSearchIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   recentSearchText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
+  },
+  deleteButton: {
+    padding: 4,
   },
   popularTagsContainer: {
-    paddingHorizontal: 8,
-  },
-  popularTagsRow: {
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   popularTag: {
-    flex: 0.48,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    borderRadius: 20,
   },
   popularTagText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
   },
   resultItem: {
