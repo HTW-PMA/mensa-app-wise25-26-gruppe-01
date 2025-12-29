@@ -3,20 +3,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { Colors } from '@/constants/theme';
 import { useMensas } from '@/hooks/useMensas';
 import { type Canteen } from '@/services/mensaApi';
 import { MensaCardCompact } from '@/components/MensaCardCompact';
 
-// expo-maps benötigt ein natives Modul; auf Web laden wir es nicht, um Runtime-Fehler zu vermeiden.
+// expo-maps stellt plattformspezifische Views bereit; wir wählen passend zur Plattform.
 const isWeb = Platform.OS === 'web';
-let MapView: any;
-let Marker: any;
-if (!isWeb) {
-    const ExpoMaps = require('expo-maps') as typeof import('expo-maps');
-    MapView = ExpoMaps.default;
-    Marker = ExpoMaps.Marker;
-}
+const isIOS = Platform.OS === 'ios';
+const MapComponent = isIOS ? AppleMaps.View : GoogleMaps.View;
 
 // --- Helpers ---
 const FALLBACK_COORDS = { latitude: 52.52, longitude: 13.405 }; // Berlin fallback
@@ -48,8 +44,6 @@ const haversineDistanceKm = (
 export default function MapScreen() {
     const router = useRouter();
     const { data: mensas, isLoading } = useMensas();
-
-    const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
@@ -106,47 +100,81 @@ export default function MapScreen() {
         return `${km.toFixed(1)} km`;
     };
 
+    const cameraPosition = useMemo(
+        () => ({ coordinates: initialCenter, zoom: 12 }),
+        [initialCenter],
+    );
+
+    const markers = useMemo(() => {
+        const mensaMarkers = (mensas || [])
+            .map((mensa) => {
+                const coords = toCoords(mensa);
+                if (!coords) return null;
+                return {
+                    id: `mensa:${mensa.id}`,
+                    coordinates: coords,
+                    title: mensa.name,
+                    snippet: formatDistance(mensa),
+                };
+            })
+            .filter(Boolean) as { id: string; coordinates: { latitude: number; longitude: number }; title: string; snippet?: string }[];
+
+        if (isIOS) {
+            const appleMarkers = mensaMarkers.map((marker) => ({
+                id: marker.id,
+                coordinates: marker.coordinates,
+                title: marker.title,
+                systemImage: 'fork.knife',
+            }));
+
+            if (userCoords) {
+                appleMarkers.unshift({
+                    id: 'user',
+                    coordinates: userCoords,
+                    title: 'Du bist hier',
+                    systemImage: 'location.fill',
+                });
+            }
+
+            return appleMarkers;
+        }
+
+        const googleMarkers = mensaMarkers.map((marker) => ({
+            ...marker,
+        }));
+
+        if (userCoords) {
+            googleMarkers.unshift({
+                id: 'user',
+                coordinates: userCoords,
+                title: 'Du bist hier',
+                snippet: 'Aktuelle Position',
+            });
+        }
+
+        return googleMarkers;
+    }, [mensas, userCoords, isIOS]);
+
+    const handleMarkerClick = (marker: { id?: string }) => {
+        const markerId = marker.id;
+        if (!markerId || !markerId.startsWith('mensa:')) return;
+        const mensaId = markerId.replace('mensa:', '');
+        router.push({ pathname: '/mensa-detail', params: { id: mensaId } });
+    };
+
     const renderHeader = () => (
         <View>
             <Text style={styles.title}>Mensa Map</Text>
 
             <View style={styles.mapCard}>
                 <View style={styles.mapContainer}>
-                    <MapView
+                    <MapComponent
                         key={mapKey}
                         style={styles.map}
-                        initialCameraPosition={{
-                            center: initialCenter,
-                            pitch: 0,
-                            heading: 0,
-                            zoom: 12,
-                            altitude: 1000,
-                        }}
-                        googleMapsApiKey={googleMapsApiKey}
-                    >
-                        {userCoords && (
-                            <Marker coordinate={userCoords} title="Du bist hier" description="Aktuelle Position">
-                                <Ionicons name="person" size={22} color={Colors.light.tint} />
-                            </Marker>
-                        )}
-
-                        {(mensas || []).map((mensa) => {
-                            const coords = toCoords(mensa);
-                            if (!coords) return null;
-
-                            return (
-                                <Marker
-                                    key={mensa.id}
-                                    coordinate={coords}
-                                    title={mensa.name}
-                                    description={formatDistance(mensa)}
-                                    onPress={() => router.push({ pathname: '/mensa-detail', params: { id: mensa.id } })}
-                                >
-                                    <Ionicons name="restaurant" size={22} color={Colors.light.tint} />
-                                </Marker>
-                            );
-                        })}
-                    </MapView>
+                        cameraPosition={cameraPosition}
+                        markers={markers}
+                        onMarkerClick={handleMarkerClick}
+                    />
 
                     <View style={styles.legendOverlay}>
                         <Text style={styles.legendTitle}>Map Legend</Text>
@@ -184,12 +212,6 @@ export default function MapScreen() {
                     </View>
                 )}
 
-                {Platform.OS === 'web' && !googleMapsApiKey && (
-                    <View style={styles.infoRow}>
-                        <Ionicons name="warning" size={18} color={Colors.light.tint} />
-                        <Text style={styles.infoText}>Google Maps API Key fehlt. Bitte EXPO_PUBLIC_GOOGLE_MAPS_API_KEY setzen.</Text>
-                    </View>
-                )}
             </View>
 
             <Text style={[styles.title, styles.listTitle]}>All Mensas</Text>
