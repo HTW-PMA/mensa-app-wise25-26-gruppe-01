@@ -140,18 +140,26 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
           {/* Replace with actual image later */}
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
-            style={styles.image}
+            style={[styles.image, isClosed && styles.imageGrayed]}
             contentFit="cover"
             transition={500}
           />
-          {/* Badge display on the image */}
-          <View style={styles.badgeOverlay}>
-            {badges.slice(0, 2).map((badge, index) => (
-              <View key={index} style={styles.badgeContainer}>
-                <Text style={styles.badgeText}>{badge}</Text>
-              </View>
-            ))}
-          </View>
+          {/* Closed overlay when mensa is closed */}
+          {isClosed && (
+            <View style={styles.closedOverlay}>
+              <Text style={styles.closedOverlayText}>Heute geschlossen</Text>
+            </View>
+          )}
+          {/* Badge display on the image - hide when closed */}
+          {!isClosed && (
+            <View style={styles.badgeOverlay}>
+              {badges.slice(0, 2).map((badge, index) => (
+                <View key={index} style={styles.badgeContainer}>
+                  <Text style={styles.badgeText}>{badge}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
 
@@ -194,14 +202,17 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
             </View>
           </View>
 
-          <View style={styles.infoRow}>
-            <View style={styles.infoItem}>
-              <Ionicons name="time-outline" size={16} color={isClosed ? '#E57373' : '#4CAF50'} />
-              <Text style={[styles.infoText, isClosed && styles.closedText]}>
-                {openingHours}
-              </Text>
+          {/* Show opening hours only when open */}
+          {!isClosed && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoItem}>
+                <Ionicons name="time-outline" size={16} color="#4CAF50" />
+                <Text style={styles.infoText}>
+                  {openingHours}
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
 
         </View>
       </View>
@@ -251,6 +262,26 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  imageGrayed: {
+    opacity: 0.4,
+  },
+  closedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closedOverlayText: {
+    color: '#fff',
+    fontSize: 18,
+    fontFamily: 'GoogleSans-Bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   badgeOverlay: {
     position: 'absolute',

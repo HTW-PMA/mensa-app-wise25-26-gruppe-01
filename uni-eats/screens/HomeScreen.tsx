@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { mensaApi, type Canteen } from '@/services/mensaApi';
+import { mensaApi, type Canteen, type BusinessHour } from '@/services/mensaApi';
 import { MensaCard } from '@/components/MensaCard';
 import { Colors } from '@/constants/theme';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
@@ -11,6 +11,36 @@ import { useLocation, calculateDistance } from '@/hooks/useLocation';
 
 // Filter List Definition
 const FILTERS = ['All', 'Vegetarian', 'Vegan', 'Halal', 'Glutenfrei'];
+
+/**
+ * Prüft ob eine Mensa heute geschlossen ist
+ */
+const isCanteenClosed = (businessDays?: Canteen['businessDays']): boolean => {
+  if (!businessDays || businessDays.length === 0) return true;
+  
+  const weekdayMap: Record<number, string[]> = {
+    0: ['So', 'Sonntag'],
+    1: ['Mo', 'Montag'],
+    2: ['Di', 'Dienstag'],
+    3: ['Mi', 'Mittwoch'],
+    4: ['Do', 'Donnerstag'],
+    5: ['Fr', 'Freitag'],
+    6: ['Sa', 'Samstag'],
+  };
+  
+  const todayVariants = weekdayMap[new Date().getDay()];
+  const todayEntry = businessDays.find(day => 
+    todayVariants.includes(day.day ?? '')
+  );
+  
+  if (!todayEntry) return true;
+  
+  const hours = todayEntry.businessHours;
+  if (!hours || hours.length === 0) return true;
+  
+  // Prüfe ob mindestens eine Öffnungszeit vorhanden ist
+  return !hours.some((h: BusinessHour) => h.openAt && h.closeAt);
+};
 
 export function HomeScreen() {
   const router = useRouter();
@@ -47,7 +77,7 @@ export function HomeScreen() {
     loadCanteens();
   }, []);
 
-  // Erweitere Canteens mit Google Ratings und Distanzen, dann sortiere nach Distanz
+  // Erweitere Canteens mit Google Ratings und Distanzen, dann sortiere
   const enrichedCanteens = useMemo(() => {
     let enriched = enrichCanteensWithRatings(canteens);
     
@@ -66,16 +96,24 @@ export function HomeScreen() {
         }
         return canteen;
       });
-      
-      // Nach Distanz sortieren (nächste zuerst)
-      enriched.sort((a, b) => {
-        // Mensen ohne Distanz ans Ende
-        if (a.distance === undefined && b.distance === undefined) return 0;
-        if (a.distance === undefined) return 1;
-        if (b.distance === undefined) return -1;
-        return a.distance - b.distance;
-      });
     }
+    
+    // Sortierung: 1. Offene zuerst, 2. Nach Distanz
+    enriched.sort((a, b) => {
+      const aIsClosed = isCanteenClosed(a.businessDays);
+      const bIsClosed = isCanteenClosed(b.businessDays);
+      
+      // Offene Mensen zuerst
+      if (aIsClosed !== bIsClosed) {
+        return aIsClosed ? 1 : -1;
+      }
+      
+      // Innerhalb der Gruppe nach Distanz sortieren
+      if (a.distance === undefined && b.distance === undefined) return 0;
+      if (a.distance === undefined) return 1;
+      if (b.distance === undefined) return -1;
+      return a.distance - b.distance;
+    });
     
     return enriched;
   }, [canteens, enrichCanteensWithRatings, location]);
