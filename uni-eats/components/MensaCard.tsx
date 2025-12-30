@@ -6,8 +6,13 @@ import { type Canteen, type BusinessHour } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
 import { formatDistance } from '@/hooks/useLocation';
 
+// Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
+interface CanteenWithMeals extends Canteen {
+  hasMealsToday?: boolean;
+}
+
 interface MensaCardProps {
-  canteen: Canteen;
+  canteen: CanteenWithMeals;
   onPress: () => void;
 }
 
@@ -114,7 +119,10 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
       : getMockReviewCount(canteen.id);
 
   // Öffnungszeiten für heute
-  const { hours: openingHours, isClosed } = getTodayBusinessHours(canteen.businessDays);
+  const { hours: openingHours, isClosed: isClosedByHours } = getTodayBusinessHours(canteen.businessDays);
+  
+  // Eine Mensa ist "closed" wenn sie keine Öffnungszeiten hat ODER keine Gerichte heute
+  const isClosed = isClosedByHours || canteen.hasMealsToday === false;
 
   // Distanz anzeigen wenn verfügbar, sonst Bezirk/Stadt
   const distanceText = canteen.distance !== undefined 

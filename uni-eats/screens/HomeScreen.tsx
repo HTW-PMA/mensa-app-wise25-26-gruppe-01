@@ -3,11 +3,16 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { mensaApi, type Canteen, type BusinessHour } from '@/services/mensaApi';
+import { mensaApi, type Canteen, type BusinessHour, type Meal } from '@/services/mensaApi';
 import { MensaCard } from '@/components/MensaCard';
 import { Colors } from '@/constants/theme';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 import { useLocation, calculateDistance } from '@/hooks/useLocation';
+
+// Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
+export interface CanteenWithMeals extends Canteen {
+  hasMealsToday?: boolean;
+}
 
 // Filter List Definition
 const FILTERS = ['All', 'Vegetarian', 'Vegan', 'Halal', 'Glutenfrei'];
@@ -44,7 +49,7 @@ const isCanteenClosed = (businessDays?: Canteen['businessDays']): boolean => {
 
 export function HomeScreen() {
   const router = useRouter();
-  const [canteens, setCanteens] = useState<Canteen[]>([]);
+  const [canteens, setCanteens] = useState<CanteenWithMeals[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -58,8 +63,32 @@ export function HomeScreen() {
 
   const loadCanteens = async () => {
     try {
-      const data = await mensaApi.getCanteens({ loadingtype: 'complete' });
-      setCanteens(data);
+      // Lade Canteens und Menüs parallel
+      const [canteenData, menuResponse] = await Promise.all([
+        mensaApi.getCanteens({ loadingtype: 'complete' }),
+        fetch('https://mensa.gregorflachs.de/api/v1/menue?loadingtype=complete', {
+          headers: { 'X-API-KEY': process.env.EXPO_PUBLIC_MENSA_API_KEY || '' }
+        }).then(res => res.json()).catch(() => [])
+      ]);
+
+      // Erstelle Map mit Canteen-IDs die heute Gerichte haben
+      const today = new Date().toISOString().split('T')[0];
+      const canteensWithMealsToday = new Set<string>();
+      
+      const menus = Array.isArray(menuResponse) ? menuResponse : [];
+      menus.forEach((menu: any) => {
+        if (menu.date === today && menu.meals && menu.meals.length > 0) {
+          canteensWithMealsToday.add(menu.canteenId);
+        }
+      });
+
+      // Erweitere Canteens mit hasMealsToday Info
+      const enrichedData = canteenData.map(canteen => ({
+        ...canteen,
+        hasMealsToday: canteensWithMealsToday.has(canteen.id)
+      }));
+
+      setCanteens(enrichedData);
     } catch (err) {
       console.error('Error loading canteens', err);
     } finally {
@@ -98,12 +127,13 @@ export function HomeScreen() {
       });
     }
     
-    // Sortierung: 1. Offene zuerst, 2. Nach Distanz
+    // Sortierung: 1. Offene mit Gerichten zuerst, 2. Nach Distanz
     enriched.sort((a, b) => {
-      const aIsClosed = isCanteenClosed(a.businessDays);
-      const bIsClosed = isCanteenClosed(b.businessDays);
+      // Eine Mensa gilt als "closed" wenn sie keine Öffnungszeiten hat ODER keine Gerichte heute
+      const aIsClosed = isCanteenClosed(a.businessDays) || a.hasMealsToday === false;
+      const bIsClosed = isCanteenClosed(b.businessDays) || b.hasMealsToday === false;
       
-      // Offene Mensen zuerst
+      // Offene Mensen mit Gerichten zuerst
       if (aIsClosed !== bIsClosed) {
         return aIsClosed ? 1 : -1;
       }
