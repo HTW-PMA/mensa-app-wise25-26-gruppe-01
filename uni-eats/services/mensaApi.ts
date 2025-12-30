@@ -84,14 +84,36 @@ export interface Canteen {
   distance?: number;
 }
 
+export interface MealPrice {
+  priceType: string;
+  price: number;
+}
+
+export interface MealAdditive {
+  id: string;
+  referenceid?: string;
+  text: string;
+}
+
+export interface MealBadge {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export interface Meal {
   id: string;
   name: string;
-  canteenId: string;
+  canteenId?: string;
   category?: string;
-  price?: number;
+  prices?: MealPrice[];
+  additives?: MealAdditive[];
+  badges?: MealBadge[];
+  mealReviews?: any[];
   rating?: number;
   date?: string;
+  co2Bilanz?: number;
+  waterBilanz?: number;
 }
 
 export interface Additive {
