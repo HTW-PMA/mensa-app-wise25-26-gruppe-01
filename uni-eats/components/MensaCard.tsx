@@ -14,8 +14,8 @@ interface MensaCardProps {
  * Formatiert die Öffnungszeiten für die Anzeige
  * Priorität: Mittagstisch > Mensa > Backshop > erste verfügbare
  */
-const formatHours = (hours?: BusinessHour[]): string => {
-  if (!hours || hours.length === 0) return '–';
+const formatHours = (hours?: BusinessHour[]): string | null => {
+  if (!hours || hours.length === 0) return null;
   
   // Prioritätenliste: Mittagstisch ist am relevantesten für Mensa-Besucher
   const priority = ['Mittagstisch', 'Mensa', 'Backshop'];
@@ -29,7 +29,7 @@ const formatHours = (hours?: BusinessHour[]): string => {
   // Fallback: erste verfügbare Öffnungszeit
   const hour = selectedHour || hours[0];
   const { openAt, closeAt } = hour;
-  if (!openAt || !closeAt) return '–';
+  if (!openAt || !closeAt) return null;
   return `${openAt}–${closeAt}`;
 };
 
@@ -37,8 +37,10 @@ const formatHours = (hours?: BusinessHour[]): string => {
  * Ermittelt die heutigen Öffnungszeiten basierend auf dem Wochentag
  * Unterstützt beide Formate: Abkürzungen (Mo, Di...) und volle Namen (Montag, Dienstag...)
  */
-const getTodayBusinessHours = (businessDays?: Canteen['businessDays']): string => {
-  if (!businessDays || businessDays.length === 0) return '–';
+const getTodayBusinessHours = (businessDays?: Canteen['businessDays']): { hours: string; isClosed: boolean } => {
+  if (!businessDays || businessDays.length === 0) {
+    return { hours: 'Keine Zeiten verfügbar', isClosed: true };
+  }
   
   // Mapping: JS getDay() Index -> [Abkürzung, Voller Name]
   const weekdayMap: Record<number, string[]> = {
@@ -51,7 +53,8 @@ const getTodayBusinessHours = (businessDays?: Canteen['businessDays']): string =
     6: ['Sa', 'Samstag'],
   };
   
-  const todayVariants = weekdayMap[new Date().getDay()];
+  const todayIndex = new Date().getDay();
+  const todayVariants = weekdayMap[todayIndex];
   
   // Suche nach heutigem Tag (beide Formate)
   const todayEntry = businessDays.find(day => 
@@ -59,11 +62,23 @@ const getTodayBusinessHours = (businessDays?: Canteen['businessDays']): string =
   );
   
   if (todayEntry) {
-    return formatHours(todayEntry.businessHours);
+    const hours = formatHours(todayEntry.businessHours);
+    if (hours) {
+      return { hours, isClosed: false };
+    }
+    // Heute existiert im Plan, aber keine Öffnungszeiten = geschlossen
+    return { hours: 'Heute geschlossen', isClosed: true };
   }
   
-  // Fallback: Zeige ersten verfügbaren Tag
-  return formatHours(businessDays[0]?.businessHours);
+  // Fallback: Zeige ersten Tag mit Öffnungszeiten
+  for (const day of businessDays) {
+    const hours = formatHours(day.businessHours);
+    if (hours) {
+      return { hours: `${day.day}: ${hours}`, isClosed: true };
+    }
+  }
+  
+  return { hours: 'Keine Zeiten verfügbar', isClosed: true };
 };
 
 export function MensaCard({ canteen, onPress }: MensaCardProps) {
@@ -90,7 +105,7 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
     : getMockReviewCount(canteen.id);
 
   // Öffnungszeiten für heute
-  const openingHours = getTodayBusinessHours(canteen.businessDays);
+  const { hours: openingHours, isClosed } = getTodayBusinessHours(canteen.businessDays);
 
   // Standort-Info: Bezirk > Stadt > Straße (bis echte Distanzberechnung implementiert ist)
   const locationInfo =
@@ -167,8 +182,10 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
 
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
-              <Ionicons name="time-outline" size={16} color="#666" />
-              <Text style={styles.infoText}>{openingHours}</Text>
+              <Ionicons name="time-outline" size={16} color={isClosed ? '#E57373' : '#4CAF50'} />
+              <Text style={[styles.infoText, isClosed && styles.closedText]}>
+                {openingHours}
+              </Text>
             </View>
           </View>
 
@@ -287,6 +304,9 @@ const styles = StyleSheet.create({
     color: '#666',
     lineHeight: 20,
     includeFontPadding: false
+  },
+  closedText: {
+    color: '#E57373',
   },
   ratingText: {
     fontFamily: 'GoogleSans-Bold',
