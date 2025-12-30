@@ -178,10 +178,19 @@ export default function MensaDetailScreen() {
         <View style={styles.heroContainer}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?q=80&w=800&auto=format&fit=crop' }}
-            style={styles.heroImage}
+            style={[styles.heroImage, meals.length === 0 && styles.heroImageClosed]}
             contentFit="cover"
             transition={500}
           />
+          {/* Closed Overlay when no meals available */}
+          {meals.length === 0 && (
+            <View style={styles.closedOverlay}>
+              <View style={styles.closedBadge}>
+                <Ionicons name="close-circle" size={20} color="#fff" />
+                <Text style={styles.closedBadgeText}>Closed Today</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Mensa Info */}
@@ -221,65 +230,84 @@ export default function MensaDetailScreen() {
           </View>
         </View>
 
-        {/* Category Filter */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryScroll}
-          style={styles.categoryContainer}
-        >
-          {categories.map((category) => (
-            <Pressable
-              key={category}
-              onPress={() => setSelectedCategory(category)}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category && styles.categoryChipActive
-              ]}
+        {/* Show Closed state or meal list */}
+        {meals.length === 0 ? (
+          /* Closed State - No meals available today */
+          <View style={styles.closedState}>
+            <View style={styles.closedIconContainer}>
+              <Ionicons name="time-outline" size={64} color="#E57373" />
+            </View>
+            <Text style={styles.closedTitle}>Closed Today</Text>
+            <Text style={styles.closedSubtitle}>
+              This canteen has no dishes available for today.
+            </Text>
+            <Text style={styles.closedHint}>
+              Check back tomorrow or try another canteen nearby.
+            </Text>
+          </View>
+        ) : (
+          /* Category Filter - only show when meals available */
+          <>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryScroll}
+              style={styles.categoryContainer}
             >
-              <Text style={[
-                styles.categoryText,
-                selectedCategory === category && styles.categoryTextActive
-              ]}>
-                {getCategoryTitle(category)}
+              {categories.map((category) => (
+                <Pressable
+                  key={category}
+                  onPress={() => setSelectedCategory(category)}
+                  style={[
+                    styles.categoryChip,
+                    selectedCategory === category && styles.categoryChipActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.categoryText,
+                    selectedCategory === category && styles.categoryTextActive
+                  ]}>
+                    {getCategoryTitle(category)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* Category Title */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {getCategoryTitle(selectedCategory)}
               </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        {/* Category Title */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {getCategoryTitle(selectedCategory)}
-          </Text>
-          <Text style={styles.sectionCount}>
-            {filteredMeals.length} items
-          </Text>
-        </View>
-
-        {/* Meal List */}
-        <View style={styles.mealList}>
-          {filteredMeals.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="restaurant-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyText}>No dishes available</Text>
-              <Text style={styles.emptySubtext}>
-                Try selecting a different category
+              <Text style={styles.sectionCount}>
+                {filteredMeals.length} items
               </Text>
             </View>
-          ) : (
-            filteredMeals.map((meal) => (
-              <MealCard
-                key={meal.id}
-                meal={meal}
-                onPress={() => {
-                  // TODO: Navigate to meal detail
-                  console.log('Meal pressed:', meal.name);
-                }}
-              />
-            ))
-          )}
-        </View>
+
+            {/* Meal List */}
+            <View style={styles.mealList}>
+              {filteredMeals.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="restaurant-outline" size={48} color="#ccc" />
+                  <Text style={styles.emptyText}>No dishes in this category</Text>
+                  <Text style={styles.emptySubtext}>
+                    Try selecting a different category
+                  </Text>
+                </View>
+              ) : (
+                filteredMeals.map((meal) => (
+                  <MealCard
+                    key={meal.id}
+                    meal={meal}
+                    onPress={() => {
+                      // TODO: Navigate to meal detail
+                      console.log('Meal pressed:', meal.name);
+                    }}
+                  />
+                ))
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -479,5 +507,63 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
     color: '#999',
+  },
+  
+  // Closed State
+  heroImageClosed: {
+    opacity: 0.5,
+  },
+  closedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E57373',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  closedBadgeText: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 14,
+    color: '#fff',
+    marginLeft: 6,
+  },
+  closedState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  closedIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FFEBEE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  closedTitle: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 22,
+    color: '#E57373',
+    marginBottom: 8,
+  },
+  closedSubtitle: {
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  closedHint: {
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
   },
 });
