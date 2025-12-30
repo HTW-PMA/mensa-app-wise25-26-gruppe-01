@@ -211,20 +211,6 @@ export default function MapScreen() {
                     onMapClick={() => setSelectedMarkerId(null)}
                 />
 
-                <View style={styles.legendOverlay}>
-                    <Text style={styles.legendTitle}>Map Legend</Text>
-                    <View style={styles.legendRow}>
-                        <Text style={{ fontSize: 12 }}>🟢</Text>
-                        <Text style={styles.legendText}>Mensa Location</Text>
-                    </View>
-                    {userCoords && (
-                        <View style={styles.legendRow}>
-                            <Text style={{ fontSize: 12 }}>🔵</Text>
-                            <Text style={styles.legendText}>Dein Standort</Text>
-                        </View>
-                    )}
-                </View>
-
                 {/* Info Overlays */}
                 <View style={styles.overlayContainer}>
                     {requestingLocation && (
@@ -270,39 +256,6 @@ const styles = StyleSheet.create({
     },
     map: {
         flex: 1,
-    },
-    legendOverlay: {
-        position: 'absolute',
-        top: 60,
-        right: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-        elevation: 4,
-        zIndex: 10,
-    },
-    legendTitle: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 12,
-        color: '#333',
-        marginBottom: 4,
-    },
-    legendRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginVertical: 1,
-    },
-    legendText: {
-        fontFamily: 'GoogleSans-Regular',
-        fontSize: 11,
-        color: '#555',
-        includeFontPadding: false,
     },
     overlayContainer: {
         position: 'absolute',
