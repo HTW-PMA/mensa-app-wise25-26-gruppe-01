@@ -14,10 +14,10 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { mensaApi, type Canteen, type Meal } from '@/services/mensaApi';
+import { mensaApi, type Canteen, type Meal, type BusinessHour } from '@/services/mensaApi';
 import { MealCard } from '@/components/MealCard';
 import { Colors } from '@/constants/theme';
-import { formatDistance } from '@/hooks/useLocation';
+import { useLocation, calculateDistance, formatDistance } from '@/hooks/useLocation';
 
 // Kategorie-Definitionen mit deutschen/englischen Namen
 const CATEGORY_MAP: Record<string, string> = {
@@ -35,6 +35,9 @@ export default function MensaDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  
+  // Standort Hook für Live-Distanz
+  const { location } = useLocation();
   
   // State
   const [canteen, setCanteen] = useState<Canteen | null>(null);
@@ -113,6 +116,64 @@ export default function MensaDetailScreen() {
   };
 
   const { rating, count: reviewCount } = getRating();
+
+  // Berechne Distanz basierend auf Live-Standort
+  const getDistance = (): string => {
+    if (!location || !canteen?.address?.geoLocation) {
+      return canteen?.address?.district || '–';
+    }
+    const geoLoc = canteen.address.geoLocation;
+    if (!geoLoc.latitude || !geoLoc.longitude) {
+      return canteen.address?.district || '–';
+    }
+    const distance = calculateDistance(
+      location.latitude,
+      location.longitude,
+      geoLoc.latitude,
+      geoLoc.longitude
+    );
+    return formatDistance(distance);
+  };
+
+  // Öffnungszeiten für heute ermitteln
+  const getTodayOpeningHours = (): string => {
+    if (!canteen?.businessDays || canteen.businessDays.length === 0) {
+      return 'Keine Zeiten';
+    }
+    
+    const weekdayMap: Record<number, string[]> = {
+      0: ['So', 'Sonntag'],
+      1: ['Mo', 'Montag'],
+      2: ['Di', 'Dienstag'],
+      3: ['Mi', 'Mittwoch'],
+      4: ['Do', 'Donnerstag'],
+      5: ['Fr', 'Freitag'],
+      6: ['Sa', 'Samstag'],
+    };
+    
+    const todayVariants = weekdayMap[new Date().getDay()];
+    const todayEntry = canteen.businessDays.find(day => 
+      todayVariants.includes(day.day ?? '')
+    );
+    
+    if (!todayEntry || !todayEntry.businessHours || todayEntry.businessHours.length === 0) {
+      return 'Closed';
+    }
+    
+    // Priorität: Mittagstisch > Mensa > erste verfügbare
+    const priority = ['Mittagstisch', 'Mensa', 'Backshop'];
+    let selectedHour: BusinessHour | undefined;
+    for (const type of priority) {
+      selectedHour = todayEntry.businessHours.find((h: BusinessHour) => h.businessHourType === type);
+      if (selectedHour) break;
+    }
+    const hour = selectedHour || todayEntry.businessHours[0];
+    
+    if (!hour.openAt || !hour.closeAt) {
+      return 'Closed';
+    }
+    return `${hour.openAt}–${hour.closeAt}`;
+  };
 
   // Kategorie-Titel für Anzeige
   const getCategoryTitle = (cat: string): string => {
@@ -209,23 +270,18 @@ export default function MensaDetailScreen() {
 
             <Text style={styles.metaSeparator}>•</Text>
 
-            {/* Distance */}
+            {/* Distance - Live location based */}
             <View style={styles.metaItem}>
               <Ionicons name="location-sharp" size={16} color={Colors.light.tint} />
-              <Text style={styles.metaText}>
-                {canteen.distance !== undefined 
-                  ? formatDistance(canteen.distance)
-                  : canteen.address?.district || '–'
-                }
-              </Text>
+              <Text style={styles.metaText}>{getDistance()}</Text>
             </View>
 
             <Text style={styles.metaSeparator}>•</Text>
 
-            {/* Wait Time */}
+            {/* Opening Hours */}
             <View style={styles.metaItem}>
               <Ionicons name="time-outline" size={16} color="#666" />
-              <Text style={styles.metaText}>15-25 min</Text>
+              <Text style={styles.metaText}>{getTodayOpeningHours()}</Text>
             </View>
           </View>
         </View>
