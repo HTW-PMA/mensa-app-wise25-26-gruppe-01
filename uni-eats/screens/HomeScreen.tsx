@@ -1,11 +1,12 @@
 import { StyleSheet, ScrollView, View, Text, ActivityIndicator, Pressable, RefreshControl } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { mensaApi, type Canteen } from '@/services/mensaApi';
 import { MensaCard } from '@/components/MensaCard';
 import { Colors } from '@/constants/theme';
+import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 
 // Filter List Definition
 const FILTERS = ['All', 'Vegetarian', 'Vegan', 'Halal', 'Glutenfrei'];
@@ -16,6 +17,8 @@ export function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Google Ratings Hook
+  const { enrichCanteensWithRatings } = useGoogleRatings(canteens);
 
   const [activeFilter, setActiveFilter] = useState('All');
 
@@ -39,6 +42,11 @@ export function HomeScreen() {
     setRefreshing(true);
     loadCanteens();
   }, []);
+
+  // Erweitere Canteens mit Google Ratings
+  const enrichedCanteens = useMemo(() => {
+    return enrichCanteensWithRatings(canteens);
+  }, [canteens, enrichCanteensWithRatings]);
 
   return (
       <View style={styles.container}>
@@ -102,7 +110,7 @@ export function HomeScreen() {
               </View>
           ) : (
               <View style={styles.listContainer}>
-                {canteens.map((canteen) => (
+                {enrichedCanteens.map((canteen) => (
                     <MensaCard
                         key={canteen.id}
                         canteen={canteen}

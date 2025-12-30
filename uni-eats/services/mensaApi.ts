@@ -76,6 +76,10 @@ export interface Canteen {
   rating?: number;
   reviewCount?: number;
   canteenReviews?: CanteenReview[];
+  // Google Places Rating Data
+  googleRating?: number;
+  googleReviewCount?: number;
+  googlePlaceId?: string;
 }
 
 export interface Meal {

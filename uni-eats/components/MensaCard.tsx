@@ -89,20 +89,28 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
   // Generiere konsistenten Mock-Wert basierend auf Mensa-ID für Demos
   const getMockRating = (id: string): number => {
     const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return 3.5 + (hash % 20) / 10; // Ergibt Werte zwischen 3.5 und 5.4
+    return 3.5 + (hash % 15) / 10; // Ergibt Werte zwischen 3.5 und 4.9
   };
   const getMockReviewCount = (id: string): number => {
     const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return 50 + (hash % 200); // Ergibt Werte zwischen 50 und 249
   };
 
+  // Nutze Google Places Rating falls verfügbar, sonst API-Rating, sonst Mock
   const hasRealRating = canteen.rating !== undefined && canteen.rating !== null;
-  const rating = hasRealRating 
-    ? canteen.rating!.toFixed(1) 
-    : getMockRating(canteen.id).toFixed(1);
-  const reviewCount = canteen.reviewCount && canteen.reviewCount > 0 
-    ? canteen.reviewCount 
-    : getMockReviewCount(canteen.id);
+  const hasGoogleRating = canteen.googleRating !== undefined && canteen.googleRating !== null;
+  const displayRating = hasGoogleRating 
+    ? canteen.googleRating!
+    : hasRealRating 
+      ? canteen.rating!
+      : getMockRating(canteen.id);
+  const rating = Math.min(displayRating, 5.0).toFixed(1); // Maximal 5.0 Sterne
+  
+  const reviewCount = canteen.googleReviewCount && canteen.googleReviewCount > 0
+    ? canteen.googleReviewCount
+    : canteen.reviewCount && canteen.reviewCount > 0 
+      ? canteen.reviewCount 
+      : getMockReviewCount(canteen.id);
 
   // Öffnungszeiten für heute
   const { hours: openingHours, isClosed } = getTodayBusinessHours(canteen.businessDays);
