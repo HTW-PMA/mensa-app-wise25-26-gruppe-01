@@ -18,6 +18,7 @@ import { mensaApi, type Canteen, type Meal, type BusinessHour } from '@/services
 import { MealCard } from '@/components/MealCard';
 import { Colors } from '@/constants/theme';
 import { useLocation, calculateDistance, formatDistance } from '@/hooks/useLocation';
+import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 
 // Kategorie-Definitionen mit deutschen/englischen Namen
 const CATEGORY_MAP: Record<string, string> = {
@@ -46,6 +47,16 @@ export default function MensaDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
+
+  // Google Ratings Hook - um echte Google Places Ratings zu holen
+  const { enrichCanteensWithRatings } = useGoogleRatings(canteen ? [canteen] : []);
+  
+  // Canteen mit Google Rating anreichern
+  const enrichedCanteen = useMemo(() => {
+    if (!canteen) return null;
+    const enriched = enrichCanteensWithRatings([canteen]);
+    return enriched[0] || canteen;
+  }, [canteen, enrichCanteensWithRatings]);
 
   // Daten laden
   const loadData = async () => {
@@ -93,18 +104,18 @@ export default function MensaDetailScreen() {
     return meals.filter(m => m.category === selectedCategory);
   }, [meals, selectedCategory]);
 
-  // Rating-Anzeige
+  // Rating-Anzeige - nutzt enrichedCanteen mit Google Places Daten
   const getRating = (): { rating: string; count: number } => {
-    if (canteen?.googleRating) {
+    if (enrichedCanteen?.googleRating) {
       return { 
-        rating: canteen.googleRating.toFixed(1), 
-        count: canteen.googleReviewCount || 0 
+        rating: enrichedCanteen.googleRating.toFixed(1), 
+        count: enrichedCanteen.googleReviewCount || 0 
       };
     }
-    if (canteen?.rating) {
+    if (enrichedCanteen?.rating) {
       return { 
-        rating: canteen.rating.toFixed(1), 
-        count: canteen.reviewCount || 0 
+        rating: enrichedCanteen.rating.toFixed(1), 
+        count: enrichedCanteen.reviewCount || 0 
       };
     }
     // Mock fallback
@@ -119,12 +130,12 @@ export default function MensaDetailScreen() {
 
   // Berechne Distanz basierend auf Live-Standort
   const getDistance = (): string => {
-    if (!location || !canteen?.address?.geoLocation) {
-      return canteen?.address?.district || '–';
+    if (!location || !enrichedCanteen?.address?.geoLocation) {
+      return enrichedCanteen?.address?.district || '–';
     }
-    const geoLoc = canteen.address.geoLocation;
+    const geoLoc = enrichedCanteen.address.geoLocation;
     if (!geoLoc.latitude || !geoLoc.longitude) {
-      return canteen.address?.district || '–';
+      return enrichedCanteen.address?.district || '–';
     }
     const distance = calculateDistance(
       location.latitude,
@@ -137,7 +148,7 @@ export default function MensaDetailScreen() {
 
   // Öffnungszeiten für heute ermitteln
   const getTodayOpeningHours = (): string => {
-    if (!canteen?.businessDays || canteen.businessDays.length === 0) {
+    if (!enrichedCanteen?.businessDays || enrichedCanteen.businessDays.length === 0) {
       return 'Keine Zeiten';
     }
     
@@ -152,7 +163,7 @@ export default function MensaDetailScreen() {
     };
     
     const todayVariants = weekdayMap[new Date().getDay()];
-    const todayEntry = canteen.businessDays.find(day => 
+    const todayEntry = enrichedCanteen.businessDays.find(day => 
       todayVariants.includes(day.day ?? '')
     );
     
@@ -218,7 +229,7 @@ export default function MensaDetailScreen() {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {canteen.name}
+          {enrichedCanteen.name}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -256,7 +267,7 @@ export default function MensaDetailScreen() {
 
         {/* Mensa Info */}
         <View style={styles.infoContainer}>
-          <Text style={styles.mensaName}>{canteen.name}</Text>
+          <Text style={styles.mensaName}>{enrichedCanteen.name}</Text>
           
           <View style={styles.metaRow}>
             {/* Rating */}
