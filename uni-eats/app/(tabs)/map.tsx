@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, ActivityIndicator, FlatList, Platform } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator, Platform } from 'react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,6 @@ import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { Colors } from '@/constants/theme';
 import { useMensas } from '@/hooks/useMensas';
 import { type Canteen } from '@/services/mensaApi';
-import { MensaCardCompact } from '@/components/MensaCardCompact';
 
 // expo-maps stellt plattformspezifische Views bereit; wir wählen passend zur Plattform.
 const isWeb = Platform.OS === 'web';
@@ -48,6 +47,8 @@ export default function MapScreen() {
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
     const [requestingLocation, setRequestingLocation] = useState(true);
+
+    const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -115,9 +116,10 @@ export default function MapScreen() {
                     coordinates: coords,
                     title: mensa.name,
                     snippet: formatDistance(mensa),
+                    color: '#02AA20', // UniEats Green
                 };
             })
-            .filter(Boolean) as { id: string; coordinates: { latitude: number; longitude: number }; title: string; snippet?: string }[];
+            .filter(Boolean) as any[];
 
         if (isIOS) {
             const appleMarkers = mensaMarkers.map((marker) => ({
@@ -125,6 +127,7 @@ export default function MapScreen() {
                 coordinates: marker.coordinates,
                 title: marker.title,
                 systemImage: 'fork.knife',
+                color: '#02AA20',
             }));
 
             if (userCoords) {
@@ -133,6 +136,7 @@ export default function MapScreen() {
                     coordinates: userCoords,
                     title: 'Du bist hier',
                     systemImage: 'location.fill',
+                    color: '#007AFF',
                 });
             }
 
@@ -149,6 +153,7 @@ export default function MapScreen() {
                 coordinates: userCoords,
                 title: 'Du bist hier',
                 snippet: 'Aktuelle Position',
+                color: '#007AFF',
             });
         }
 
@@ -157,79 +162,23 @@ export default function MapScreen() {
 
     const handleMarkerClick = (marker: { id?: string }) => {
         const markerId = marker.id;
-        if (!markerId || !markerId.startsWith('mensa:')) return;
-        const mensaId = markerId.replace('mensa:', '');
-        router.push({ pathname: '/mensa-detail', params: { id: mensaId } });
+
+        // Wenn kein Marker oder kein Mensa-Marker, Auswahl aufheben
+        if (!markerId || !markerId.startsWith('mensa:')) {
+            setSelectedMarkerId(null);
+            return;
+        }
+
+        // Bei erneutem Klick auf den gleichen Marker -> Detailansicht öffnen
+        if (selectedMarkerId === markerId) {
+            const mensaId = markerId.replace('mensa:', '');
+            router.push({ pathname: '/mensa-detail', params: { id: mensaId } });
+            setSelectedMarkerId(null);
+        } else {
+            // Erster Klick -> Marker als ausgewählt setzen (Callout wird angezeigt)
+            setSelectedMarkerId(markerId);
+        }
     };
-
-    const renderHeader = () => (
-        <View>
-            <Text style={styles.title}>Mensa Map</Text>
-
-            <View style={styles.mapCard}>
-                <View style={styles.mapContainer}>
-                    <MapComponent
-                        key={mapKey}
-                        style={styles.map}
-                        cameraPosition={cameraPosition}
-                        markers={markers}
-                        onMarkerClick={handleMarkerClick}
-                    />
-
-                    <View style={styles.legendOverlay}>
-                        <Text style={styles.legendTitle}>Map Legend</Text>
-                        <View style={styles.legendRow}>
-                            <Text style={{ fontSize: 12 }}>🟢</Text>
-                            <Text style={styles.legendText}>Mensa Location</Text>
-                        </View>
-                        {userCoords && (
-                            <View style={styles.legendRow}>
-                                <Text style={{ fontSize: 12 }}>🔵</Text>
-                                <Text style={styles.legendText}>Dein Standort</Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-
-                {requestingLocation && (
-                    <View style={styles.infoRow}>
-                        <ActivityIndicator size="small" color={Colors.light.tint} />
-                        <Text style={styles.infoText}>Standort wird geladen…</Text>
-                    </View>
-                )}
-
-                {locationError === 'LOCATION_DENIED' && (
-                    <View style={styles.infoRow}>
-                        <Ionicons name="warning" size={18} color={Colors.light.tint} />
-                        <Text style={styles.infoText}>Standortzugriff verweigert. Zeige Berlin als Startpunkt.</Text>
-                    </View>
-                )}
-
-                {locationError === 'LOCATION_ERROR' && (
-                    <View style={styles.infoRow}>
-                        <Ionicons name="warning" size={18} color={Colors.light.tint} />
-                        <Text style={styles.infoText}>Standort konnte nicht geladen werden. Nutze Fallback.</Text>
-                    </View>
-                )}
-
-            </View>
-
-            <Text style={[styles.title, styles.listTitle]}>All Mensas</Text>
-        </View>
-    );
-
-    const renderItem = ({ item, index }: { item: Canteen; index: number }) => (
-        <View style={styles.cardWrapper}>
-            <MensaCardCompact
-                canteen={item}
-                distance={formatDistance(item)}
-                onPress={() => router.push({ pathname: '/mensa-detail', params: { id: item.id } })}
-            />
-            <View style={styles.rankBadge}>
-                <Text style={styles.rankText}>{index + 1}</Text>
-            </View>
-        </View>
-    );
 
     if (isWeb) {
         return (
@@ -252,14 +201,54 @@ export default function MapScreen() {
 
     return (
         <View style={styles.container}>
-            <FlatList
-                data={mensas || []}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderItem}
-                ListHeaderComponent={renderHeader}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            />
+            <View style={styles.mapContainer}>
+                <MapComponent
+                    key={mapKey}
+                    style={styles.map}
+                    cameraPosition={cameraPosition}
+                    markers={markers}
+                    onMarkerClick={handleMarkerClick}
+                    onMapClick={() => setSelectedMarkerId(null)}
+                />
+
+                <View style={styles.legendOverlay}>
+                    <Text style={styles.legendTitle}>Map Legend</Text>
+                    <View style={styles.legendRow}>
+                        <Text style={{ fontSize: 12 }}>🟢</Text>
+                        <Text style={styles.legendText}>Mensa Location</Text>
+                    </View>
+                    {userCoords && (
+                        <View style={styles.legendRow}>
+                            <Text style={{ fontSize: 12 }}>🔵</Text>
+                            <Text style={styles.legendText}>Dein Standort</Text>
+                        </View>
+                    )}
+                </View>
+
+                {/* Info Overlays */}
+                <View style={styles.overlayContainer}>
+                    {requestingLocation && (
+                        <View style={styles.infoRow}>
+                            <ActivityIndicator size="small" color={Colors.light.tint} />
+                            <Text style={styles.infoText}>Standort wird geladen…</Text>
+                        </View>
+                    )}
+
+                    {locationError === 'LOCATION_DENIED' && (
+                        <View style={styles.infoRow}>
+                            <Ionicons name="warning" size={18} color={Colors.light.tint} />
+                            <Text style={styles.infoText}>Standortzugriff verweigert. Zeige Berlin als Startpunkt.</Text>
+                        </View>
+                    )}
+
+                    {locationError === 'LOCATION_ERROR' && (
+                        <View style={styles.infoRow}>
+                            <Ionicons name="warning" size={18} color={Colors.light.tint} />
+                            <Text style={styles.infoText}>Standort konnte nicht geladen werden. Nutze Fallback.</Text>
+                        </View>
+                    )}
+                </View>
+            </View>
         </View>
     );
 }
@@ -274,37 +263,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    scrollContent: {
-        paddingBottom: 20,
-    },
-    title: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 24,
-        marginTop: 60,
-        marginLeft: 20,
-        marginBottom: 20,
-        color: '#000',
-    },
-    listTitle: {
-        marginTop: 30,
-        marginBottom: 10,
-    },
-    mapCard: {
-        marginHorizontal: 20,
-        borderRadius: 20,
-        backgroundColor: '#fff',
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#eee',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
-    },
     mapContainer: {
-        height: 320,
-        width: '100%',
+        flex: 1,
         backgroundColor: '#f0f0f0',
         position: 'relative',
     },
@@ -313,28 +273,30 @@ const styles = StyleSheet.create({
     },
     legendOverlay: {
         position: 'absolute',
-        bottom: 10,
-        left: 10,
+        top: 60,
+        right: 20,
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
         shadowRadius: 4,
-        elevation: 2,
+        elevation: 4,
+        zIndex: 10,
     },
     legendTitle: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: 12,
         color: '#333',
-        marginBottom: 2,
+        marginBottom: 4,
     },
     legendRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+        marginVertical: 1,
     },
     legendText: {
         fontFamily: 'GoogleSans-Regular',
@@ -342,49 +304,32 @@ const styles = StyleSheet.create({
         color: '#555',
         includeFontPadding: false,
     },
+    overlayContainer: {
+        position: 'absolute',
+        bottom: 20,
+        left: 20,
+        right: 20,
+        gap: 10,
+    },
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
         paddingVertical: 10,
         paddingHorizontal: 12,
-        borderTopWidth: 1,
-        borderColor: '#f0f0f0',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
     },
     infoText: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: 13,
         color: '#444',
         flex: 1,
-    },
-    cardWrapper: {
-        position: 'relative',
-        marginHorizontal: 20,
-        marginBottom: 12,
-    },
-    rankBadge: {
-        position: 'absolute',
-        top: -6, 
-        left: -6,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: Colors.light.tint,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
-        borderWidth: 2,
-        borderColor: '#fff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 4,
-    },
-    rankText: {
-        color: '#fff',
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 14,
     },
 });
 
