@@ -59,20 +59,35 @@ const getTodayBusinessHours = (businessDays?: Canteen['businessDays']): string =
   );
   
   if (todayEntry) {
-    return formatHours(todayEntry.businesshours);
+    return formatHours(todayEntry.businessHours);
   }
   
   // Fallback: Zeige ersten verfügbaren Tag
-  return formatHours(businessDays[0]?.businesshours);
+  return formatHours(businessDays[0]?.businessHours);
 };
 
 export function MensaCard({ canteen, onPress }: MensaCardProps) {
   // Bookmark status (currently resets when the app is closed and reopened)
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // Rating und Review-Anzahl aus API-Daten
-  const rating = canteen.rating ? canteen.rating.toFixed(1) : '–';
-  const reviewCount = canteen.reviewCount ?? 0;
+  // Rating und Review-Anzahl aus API-Daten (mit Mock-Fallback)
+  // Generiere konsistenten Mock-Wert basierend auf Mensa-ID für Demos
+  const getMockRating = (id: string): number => {
+    const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return 3.5 + (hash % 20) / 10; // Ergibt Werte zwischen 3.5 und 5.4
+  };
+  const getMockReviewCount = (id: string): number => {
+    const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return 50 + (hash % 200); // Ergibt Werte zwischen 50 und 249
+  };
+
+  const hasRealRating = canteen.rating !== undefined && canteen.rating !== null;
+  const rating = hasRealRating 
+    ? canteen.rating!.toFixed(1) 
+    : getMockRating(canteen.id).toFixed(1);
+  const reviewCount = canteen.reviewCount && canteen.reviewCount > 0 
+    ? canteen.reviewCount 
+    : getMockReviewCount(canteen.id);
 
   // Öffnungszeiten für heute
   const openingHours = getTodayBusinessHours(canteen.businessDays);

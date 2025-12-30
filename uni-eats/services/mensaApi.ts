@@ -26,7 +26,8 @@ export interface BusinessHour {
 // Geschäftstag mit Öffnungszeiten
 export interface BusinessDay {
   day?: string;
-  businesshours?: BusinessHour[];
+  businessHours?: BusinessHour[];  // API uses CamelCase
+  businesshours?: BusinessHour[];  // Legacy fallback
 }
 
 // Kontaktinformationen
@@ -137,11 +138,11 @@ class MensaApiService {
             item?.address?.GeoLocation;
 
           // Rating aus Reviews extrahieren oder Fallback auf direktes rating
-          const reviews = item?.canteenReviews ?? [];
+          const reviews = item?.canteenReviewData ?? [];
           const avgRating = reviews.length > 0
             ? reviews.reduce((sum: number, r: any) => sum + (r.averageRating ?? 0), 0) / reviews.length
             : item?.rating;
-          const reviewCount = reviews.length ?? item?.reviewCount ?? 0;
+          const reviewCount = reviews.length > 0 ? reviews.length : (item?.reviewCount ?? 0);
 
           return {
             ...item,
@@ -155,6 +156,7 @@ class MensaApiService {
             rating: avgRating,
             reviewCount,
             canteenReviews: reviews,
+            canteenReviewData: reviews,
             businessDays: item.businessDays ?? [],
           } as Canteen;
         });
