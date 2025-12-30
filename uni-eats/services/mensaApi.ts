@@ -80,6 +80,8 @@ export interface Canteen {
   googleRating?: number;
   googleReviewCount?: number;
   googlePlaceId?: string;
+  // Berechnete Distanz zum Benutzer (in km)
+  distance?: number;
 }
 
 export interface Meal {

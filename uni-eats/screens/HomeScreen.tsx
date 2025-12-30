@@ -7,6 +7,7 @@ import { mensaApi, type Canteen } from '@/services/mensaApi';
 import { MensaCard } from '@/components/MensaCard';
 import { Colors } from '@/constants/theme';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
+import { useLocation, calculateDistance } from '@/hooks/useLocation';
 
 // Filter List Definition
 const FILTERS = ['All', 'Vegetarian', 'Vegan', 'Halal', 'Glutenfrei'];
@@ -16,6 +17,9 @@ export function HomeScreen() {
   const [canteens, setCanteens] = useState<Canteen[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Standort Hook
+  const { location, loading: locationLoading } = useLocation();
 
   // Google Ratings Hook
   const { enrichCanteensWithRatings } = useGoogleRatings(canteens);
@@ -43,10 +47,38 @@ export function HomeScreen() {
     loadCanteens();
   }, []);
 
-  // Erweitere Canteens mit Google Ratings
+  // Erweitere Canteens mit Google Ratings und Distanzen, dann sortiere nach Distanz
   const enrichedCanteens = useMemo(() => {
-    return enrichCanteensWithRatings(canteens);
-  }, [canteens, enrichCanteensWithRatings]);
+    let enriched = enrichCanteensWithRatings(canteens);
+    
+    // Distanz berechnen wenn Standort verfügbar
+    if (location) {
+      enriched = enriched.map(canteen => {
+        const geoLoc = canteen.address?.geoLocation;
+        if (geoLoc?.latitude && geoLoc?.longitude) {
+          const distance = calculateDistance(
+            location.latitude,
+            location.longitude,
+            geoLoc.latitude,
+            geoLoc.longitude
+          );
+          return { ...canteen, distance };
+        }
+        return canteen;
+      });
+      
+      // Nach Distanz sortieren (nächste zuerst)
+      enriched.sort((a, b) => {
+        // Mensen ohne Distanz ans Ende
+        if (a.distance === undefined && b.distance === undefined) return 0;
+        if (a.distance === undefined) return 1;
+        if (b.distance === undefined) return -1;
+        return a.distance - b.distance;
+      });
+    }
+    
+    return enriched;
+  }, [canteens, enrichCanteensWithRatings, location]);
 
   return (
       <View style={styles.container}>

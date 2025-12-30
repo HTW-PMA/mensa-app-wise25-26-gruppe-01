@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { type Canteen, type BusinessHour } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
+import { formatDistance } from '@/hooks/useLocation';
 
 interface MensaCardProps {
   canteen: Canteen;
@@ -115,8 +116,11 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
   // Öffnungszeiten für heute
   const { hours: openingHours, isClosed } = getTodayBusinessHours(canteen.businessDays);
 
-  // Standort-Info: Bezirk > Stadt > Straße (bis echte Distanzberechnung implementiert ist)
-  const locationInfo =
+  // Distanz anzeigen wenn verfügbar, sonst Bezirk/Stadt
+  const distanceText = canteen.distance !== undefined 
+    ? formatDistance(canteen.distance)
+    : null;
+  const locationFallback =
     canteen.address?.district ||
     canteen.address?.city ||
     canteen.address?.street ||
@@ -183,8 +187,10 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
             <Text style={styles.separator}>•</Text>
 
             <View style={styles.infoItem}>
-              <Ionicons name="location-sharp" size={16} color="#666" />
-              <Text style={styles.infoText} numberOfLines={1}> {locationInfo} </Text>
+              <Ionicons name="location-sharp" size={16} color={distanceText ? Colors.light.tint : "#666"} />
+              <Text style={[styles.infoText, distanceText && styles.distanceText]} numberOfLines={1}>
+                {distanceText || locationFallback}
+              </Text>
             </View>
           </View>
 
@@ -315,6 +321,10 @@ const styles = StyleSheet.create({
   },
   closedText: {
     color: '#E57373',
+  },
+  distanceText: {
+    fontFamily: 'GoogleSans-Bold',
+    color: Colors.light.tint,
   },
   ratingText: {
     fontFamily: 'GoogleSans-Bold',
