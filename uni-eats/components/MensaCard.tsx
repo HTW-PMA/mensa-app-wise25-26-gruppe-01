@@ -147,7 +147,7 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
           {/* Closed overlay when mensa is closed */}
           {isClosed && (
             <View style={styles.closedOverlay}>
-              <Text style={styles.closedOverlayText}>Heute geschlossen</Text>
+              <Text style={styles.closedOverlayText}>Closed</Text>
             </View>
           )}
           {/* Badge display on the image - hide when closed */}
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'GoogleSans-Bold',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
   badgeOverlay: {
     position: 'absolute',
