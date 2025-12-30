@@ -203,32 +203,107 @@ class MensaApiService {
   }): Promise<Meal[]> {
     try {
       const params = new URLSearchParams();
+      params.append('loadingtype', filters?.loadingtype || 'complete');
 
-      if (filters?.canteenId) params.append('canteenid', filters.canteenId);
-      if (filters?.date) params.append('date', filters.date);
-      if (filters?.loadingtype) params.append('loadingtype', filters.loadingtype);
-
-      const response = await fetch(`${API_BASE_URL}/api/v1/meal?${params.toString()}`, {
+      // Step 1: Get menus with meal assignments per canteen and date
+      const menuResponse = await fetch(`${API_BASE_URL}/api/v1/menue?${params.toString()}`, {
         headers: {
           'X-API-KEY': getApiKey(),
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+      if (!menuResponse.ok) {
+        throw new Error(`API Error: ${menuResponse.status}`);
       }
 
-      const data = await response.json();
+      const menuData = await menuResponse.json();
       
-      if (Array.isArray(data)) {
-        return data;
-      } else if (data.meals && Array.isArray(data.meals)) {
-        return data.meals;
-      } else if (data.data && Array.isArray(data.data)) {
-        return data.data;
+      // The menue endpoint returns { menue: [ { date, canteenId, meals: [...] }, ... ] }
+      let menus: any[] = [];
+      if (menuData.menue && Array.isArray(menuData.menue)) {
+        menus = menuData.menue;
+      } else if (Array.isArray(menuData)) {
+        menus = menuData;
       }
 
-      return [];
+      // Filter by canteenId if provided
+      if (filters?.canteenId) {
+        menus = menus.filter((menu: any) => menu.canteenId === filters.canteenId);
+      }
+
+      // Filter by date if provided (use today's date if not specified)
+      if (filters?.date) {
+        menus = menus.filter((menu: any) => menu.date === filters.date);
+      } else {
+        // Default to today's date
+        const today = new Date().toISOString().split('T')[0];
+        menus = menus.filter((menu: any) => menu.date === today);
+      }
+
+      // Collect all meal IDs from filtered menus
+      const mealIdsFromMenu = new Set<string>();
+      const mealCanteenMap = new Map<string, { canteenId: string; date: string }>();
+      
+      for (const menu of menus) {
+        if (menu.meals && Array.isArray(menu.meals)) {
+          for (const meal of menu.meals) {
+            const mealId = meal.id || meal._id;
+            if (mealId) {
+              mealIdsFromMenu.add(mealId);
+              mealCanteenMap.set(mealId, { canteenId: menu.canteenId, date: menu.date });
+            }
+          }
+        }
+      }
+
+      if (mealIdsFromMenu.size === 0) {
+        return [];
+      }
+
+      // Step 2: Get full meal details from /meal endpoint
+      const mealResponse = await fetch(`${API_BASE_URL}/api/v1/meal?loadingtype=complete`, {
+        headers: {
+          'X-API-KEY': getApiKey(),
+        },
+      });
+
+      if (!mealResponse.ok) {
+        throw new Error(`API Error: ${mealResponse.status}`);
+      }
+
+      const mealData = await mealResponse.json();
+      
+      // Extract meals array
+      let allMealsRaw: any[] = [];
+      if (mealData.meals && Array.isArray(mealData.meals)) {
+        allMealsRaw = mealData.meals;
+      } else if (Array.isArray(mealData)) {
+        allMealsRaw = mealData;
+      }
+
+      // Filter to only meals that are in our menu and add canteen info
+      const meals: Meal[] = [];
+      for (const meal of allMealsRaw) {
+        const mealId = meal.id || meal._id;
+        if (mealIdsFromMenu.has(mealId)) {
+          const menuInfo = mealCanteenMap.get(mealId);
+          meals.push({
+            id: mealId,
+            name: meal.name,
+            canteenId: menuInfo?.canteenId,
+            category: meal.category,
+            prices: meal.prices,
+            additives: meal.additives,
+            badges: meal.badges,
+            mealReviews: meal.mealReviews,
+            date: menuInfo?.date,
+            co2Bilanz: meal.co2Bilanz,
+            waterBilanz: meal.waterBilanz,
+          });
+        }
+      }
+
+      return meals;
     } catch (error) {
       console.error('Error fetching meals:', error);
       throw error;
