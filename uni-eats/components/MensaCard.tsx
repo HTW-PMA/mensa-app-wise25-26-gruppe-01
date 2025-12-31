@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { type Canteen, type BusinessHour } from '@/services/mensaApi';
 import { Colors, Fonts } from '@/constants/theme';
 import { formatDistance } from '@/hooks/useLocation';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 // Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
 interface CanteenWithMeals extends Canteen {
@@ -137,12 +138,22 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
   // Temporary tags for design examples (to be integrated with the Menu API later)
   const badges = ['Fast Service', 'Vegan'];
 
+  const backgroundColor = useThemeColor({ light: '#fff', dark: '#1c1c1e' }, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const subTextColor = useThemeColor({ light: '#666', dark: '#9BA1A6' }, 'icon');
+  const iconColor = useThemeColor({}, 'icon');
+  const borderColor = useThemeColor({ light: '#f0f0f0', dark: '#333' }, 'border');
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.container, 
+        { backgroundColor },
+        pressed && styles.pressed
+      ]}
       onPress={onPress}
     >
-      <View style={styles.cardContent}>
+      <View style={[styles.cardContent, { backgroundColor, borderColor }]}>
 
         <View style={styles.imageContainer}>
           {/* Replace with actual image later */}
@@ -174,7 +185,7 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
         <View style={styles.contentContainer}>
 
           <View style={styles.headerRow}>
-            <Text style={styles.name} numberOfLines={1}>
+            <Text style={[styles.name, { color: textColor }]} numberOfLines={1}>
               {canteen.name}
             </Text>
             <Pressable
@@ -187,7 +198,7 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
               <Ionicons
                 name={isFavorite ? "heart" : "heart-outline"}
                 size={24}
-                color={isFavorite ? Colors.light.tint : "#333"}
+                color={isFavorite ? Colors.light.tint : iconColor}
               />
             </Pressable>
           </View>
@@ -196,15 +207,15 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
             <View style={styles.infoItem}>
               <Ionicons name="star" size={16} color="#FFCC00" />
               <Text style={styles.infoText}>
-                <Text style={styles.ratingText}>{rating}</Text> ({reviewCount})
+                <Text style={[styles.ratingText, { color: textColor }]}>{rating}</Text> ({reviewCount})
               </Text>
             </View>
 
             <Text style={styles.separator}>•</Text>
 
             <View style={styles.infoItem}>
-              <Ionicons name="location-sharp" size={16} color={distanceText ? Colors.light.tint : "#666"} />
-              <Text style={[styles.infoText, distanceText && styles.distanceText]} numberOfLines={1}>
+              <Ionicons name="location-sharp" size={16} color={distanceText ? Colors.light.tint : subTextColor} />
+              <Text style={[styles.infoText, { color: subTextColor }, distanceText && styles.distanceText]} numberOfLines={1}>
                 {distanceText || locationFallback}
               </Text>
             </View>
@@ -215,7 +226,7 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <Ionicons name="time-outline" size={16} color="#4CAF50" />
-                <Text style={styles.infoText}>
+                <Text style={[styles.infoText, { color: subTextColor }]}>
                   {openingHours}
                 </Text>
               </View>
@@ -230,7 +241,6 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
     borderRadius: 20,
     marginBottom: 15,
 
@@ -312,28 +322,28 @@ const styles = StyleSheet.create({
       fontFamily: Fonts.bold,
       includeFontPadding: false,
     },
-    contentContainer: {
-      padding: 12,
-      paddingVertical: 14,
-      backgroundColor: '#fff',
-      gap: 6,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 2,
-    },
-    name: {
-      fontFamily: Fonts.bold,
-      fontSize: 20,
-      color: Colors.light.text,
-      flex: 1,
-      marginRight: 8,
-      lineHeight: 26,
-      includeFontPadding: false,
-      textAlignVertical: 'center',
-    },
+      contentContainer: {
+        padding: 12,
+        paddingVertical: 14,
+        gap: 6,
+      },
+    
+      headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 2,
+      },
+      name: {
+        fontFamily: Fonts.bold,
+        fontSize: 20,
+        flex: 1,
+        marginRight: 8,
+        lineHeight: 26,
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+      },
+    
     infoRow: {
       flexDirection: 'row',
       alignItems: 'center',
