@@ -6,7 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { SearchBar } from '@/components/SearchBar';
 import { useSearch } from '@/hooks/useSearch';
 import { POPULAR_SEARCHES, SearchResult } from '@/utils/searchHelpers';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -213,9 +213,11 @@ export default function SearchScreen() {
 
               {showPopularSection && (
                 <View style={styles.section}>
-                  <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                    Popular Searches
-                  </ThemedText>
+                  <View style={styles.popularSectionHeader}>
+                    <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                      Popular Searches
+                    </ThemedText>
+                  </View>
                   <View style={styles.popularTagsContainer}>
                     {POPULAR_SEARCHES.map((tag) => (
                       <View key={tag}>
@@ -259,13 +261,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
   },
+  popularSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
   },
   clearAllText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: Fonts.regular,
   },
   recentSearchesContainer: {
     paddingHorizontal: 16,
@@ -289,6 +298,7 @@ const styles = StyleSheet.create({
   recentSearchText: {
     flex: 1,
     fontSize: 16,
+    fontFamily: Fonts.regular,
   },
   deleteButton: {
     padding: 4,
@@ -300,13 +310,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   popularTag: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 15,
     borderRadius: 20,
   },
   popularTagText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: Fonts.regular,
   },
   resultItem: {
     flexDirection: 'row',
@@ -324,11 +334,12 @@ const styles = StyleSheet.create({
   },
   resultTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: Fonts.bold,
   },
   resultSubtitle: {
     fontSize: 12,
     marginTop: 4,
+    fontFamily: Fonts.regular,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -338,11 +349,12 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 12,
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: Fonts.bold,
   },
   emptySubtext: {
     marginTop: 6,
     fontSize: 14,
+    fontFamily: Fonts.regular,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -364,5 +376,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#d32f2f',
+    fontFamily: Fonts.regular,
   },
 });

@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { type Canteen, type BusinessHour } from '@/services/mensaApi';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { formatDistance } from '@/hooks/useLocation';
 
 // Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
@@ -284,92 +284,93 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closedOverlayText: {
-    color: '#fff',
-    fontSize: 18,
-    fontFamily: 'GoogleSans-Bold',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  badgeOverlay: {
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
-    flexDirection: 'row',
-    gap: 6,
-  },
-  badgeContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontFamily: 'GoogleSans-Bold',
-    includeFontPadding: false,
-  },
-  contentContainer: {
-    padding: 12,
-    paddingVertical: 14,
-    backgroundColor: '#fff',
-    gap: 6,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  name: {
-    fontFamily: 'GoogleSans-Bold',
-    fontSize: 20,
-    color: Colors.light.text,
-    flex: 1,
-    marginRight: 8,
-    lineHeight: 26,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  separator: {
-    marginHorizontal: 6,
-    color: '#ccc',
-    fontSize: 12,
-    includeFontPadding: false,
-
-  },
-  infoText: {
-    fontFamily: 'GoogleSans-Regular',
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    includeFontPadding: false
-  },
-  closedText: {
-    color: '#E57373',
-  },
-  distanceText: {
-    fontFamily: 'GoogleSans-Bold',
-    color: Colors.light.tint,
-  },
-  ratingText: {
-    fontFamily: 'GoogleSans-Bold',
-    color: '#333',
-    fontSize: 14,
-    lineHeight: 20,
-    includeFontPadding: false,
-  },
-});
+    closedOverlayText: {
+      color: '#fff',
+      fontSize: 18,
+      fontFamily: Fonts.bold,
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+    },
+    badgeOverlay: {
+      position: 'absolute',
+      bottom: 10,
+      left: 10,
+      flexDirection: 'row',
+      gap: 6,
+    },
+    badgeContainer: {
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    badgeText: {
+      color: '#fff',
+      fontSize: 10,
+      fontFamily: Fonts.bold,
+      includeFontPadding: false,
+    },
+    contentContainer: {
+      padding: 12,
+      paddingVertical: 14,
+      backgroundColor: '#fff',
+      gap: 6,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 2,
+    },
+    name: {
+      fontFamily: Fonts.bold,
+      fontSize: 20,
+      color: Colors.light.text,
+      flex: 1,
+      marginRight: 8,
+      lineHeight: 26,
+      includeFontPadding: false,
+      textAlignVertical: 'center',
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+  
+    },
+    infoItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    separator: {
+      marginHorizontal: 6,
+      color: '#ccc',
+      fontSize: 12,
+      includeFontPadding: false,
+  
+    },
+    infoText: {
+      fontFamily: Fonts.regular,
+      fontSize: 14,
+      color: '#666',
+      lineHeight: 20,
+      includeFontPadding: false
+    },
+    closedText: {
+      color: '#E57373',
+    },
+    distanceText: {
+      fontFamily: Fonts.bold,
+      color: Colors.light.tint,
+    },
+    ratingText: {
+      fontFamily: Fonts.bold,
+      color: '#333',
+      fontSize: 14,
+      lineHeight: 20,
+      includeFontPadding: false,
+    },
+  });
+  

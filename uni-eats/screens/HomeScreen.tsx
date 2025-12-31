@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { mensaApi, type Canteen, type BusinessHour, type Meal } from '@/services/mensaApi';
 import { MensaCard } from '@/components/MensaCard';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 import { useLocation, calculateDistance } from '@/hooks/useLocation';
 
@@ -259,13 +259,13 @@ const styles = StyleSheet.create({
   greeting: {
     paddingHorizontal: 20,
     fontSize: 22,
-    fontFamily: 'GoogleSans-Bold',
+    fontFamily: Fonts.bold,
     color: '#000',
   },
   subtitle: {
     paddingHorizontal: 20,
     fontSize: 20,
-    fontFamily: 'GoogleSans-Bold',
+    fontFamily: Fonts.bold,
     color: '#333',
     marginTop: 15,
     marginBottom: 1,
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.light.tint,
   },
   filterText: {
-    fontFamily: 'GoogleSans-Bold',
+    fontFamily: Fonts.bold,
     fontSize: 14,
     color: '#666',
     lineHeight: 30,

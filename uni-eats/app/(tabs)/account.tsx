@@ -14,7 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AccountMenuItem } from '@/components/AccountMenuItem';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { storage } from '@/utils/storage';
 
 interface UserProfile {
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: 'white',
   },
   userInfo: {
@@ -315,12 +315,12 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 22,
-    fontWeight: '600',
+    fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
-    fontWeight: '400',
+    fontFamily: Fonts.regular,
   },
   editButton: {
     paddingHorizontal: 16,
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     color: Colors.light.tint,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Fonts.bold,
   },
 
   // Menu Section Styles
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   signOutButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.bold,
   },
 
   // Footer Styles
@@ -369,6 +369,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    fontWeight: '400',
+    fontFamily: Fonts.regular,
   },
 });

@@ -3,7 +3,7 @@ import { StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ThemedText } from './themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 
 interface AccountMenuItemProps {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -79,12 +79,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    fontWeight: '400',
+    fontFamily: Fonts.regular,
   },
   chevron: {
     marginLeft: 8,
