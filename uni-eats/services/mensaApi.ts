@@ -1,5 +1,26 @@
 const API_BASE_URL = 'https://mensa.gregorflachs.de';
 
+// Fallback-Koordinaten für Mensen mit fehlenden geoLocation-Daten
+// Nutzt Substring-Matching für Flexibilität
+const CANTEEN_FALLBACK_COORDINATES: Array<{ 
+  namePattern: string; 
+  coordinates: { latitude: number; longitude: number } 
+}> = [
+  { namePattern: 'HTW Wilhelminenhof', coordinates: { latitude: 52.45868, longitude: 13.52883 } },
+  { namePattern: 'Alt Friedrichsfelde', coordinates: { latitude: 52.48915, longitude: 13.46788 } },
+  { namePattern: 'Oase Adlershof', coordinates: { latitude: 52.45730, longitude: 13.57615 } },
+  { namePattern: 'ASH Berlin', coordinates: { latitude: 52.51965, longitude: 13.40535 } },
+];
+
+const getFallbackCoordinates = (canteenName: string): { latitude: number; longitude: number } | null => {
+  for (const { namePattern, coordinates } of CANTEEN_FALLBACK_COORDINATES) {
+    if (canteenName.includes(namePattern)) {
+      return coordinates;
+    }
+  }
+  return null;
+};
+
 const getApiKey = (): string => {
   const apiKey = process.env.EXPO_PUBLIC_MENSA_API_KEY;
   
@@ -160,10 +181,19 @@ class MensaApiService {
       if (Array.isArray(data)) {
         return data.map((item: any) => {
           // Normalisiere Geo-Feld: geolocation -> geoLocation (API nutzt lowercase)
-          const geoLocation =
+          let geoLocation =
             item?.address?.geoLocation ??
             item?.address?.geolocation ??
             item?.address?.GeoLocation;
+
+          // Fallback: Verwende hintergelegte Koordinaten wenn geoLocation fehlt oder unvollständig
+          if (!geoLocation || !geoLocation.latitude || !geoLocation.longitude) {
+            const fallbackCoords = getFallbackCoordinates(item?.name || '');
+            if (fallbackCoords) {
+              geoLocation = fallbackCoords;
+              console.log(`📍 Using fallback coordinates for: ${item?.name}`);
+            }
+          }
 
           // Rating aus Reviews extrahieren oder Fallback auf direktes rating
           const reviews = item?.canteenReviewData ?? [];
