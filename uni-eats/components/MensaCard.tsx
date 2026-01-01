@@ -6,6 +6,7 @@ import { type Canteen, type BusinessHour } from '@/services/mensaApi';
 import { Colors, Fonts } from '@/constants/theme';
 import { formatDistance } from '@/hooks/useLocation';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { getCanteenLogo } from '@/utils/getCanteenLogo';
 
 // Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
 interface CanteenWithMeals extends Canteen {
@@ -156,12 +157,11 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
       <View style={[styles.cardContent, { backgroundColor, borderColor }]}>
 
         <View style={styles.imageContainer}>
-          {/* Replace with actual image later */}
           <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
+            source={getCanteenLogo(canteen.name)}
             style={[styles.image, isClosed && styles.imageGrayed]}
-            contentFit="cover"
-            transition={500}
+            contentFit="contain"
+            transition={300}
           />
           {/* Closed overlay when mensa is closed */}
           {isClosed && (
