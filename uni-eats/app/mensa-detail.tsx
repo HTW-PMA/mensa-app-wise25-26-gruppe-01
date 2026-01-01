@@ -219,8 +219,8 @@ export default function MensaDetailScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Sticky Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      {/* Sticky Header - UniEats Logo centered with Back Button */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable 
           style={styles.backButton} 
           onPress={() => router.back()}
@@ -228,10 +228,15 @@ export default function MensaDetailScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#333" />
         </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {enrichedCanteen.name}
-        </Text>
-        <View style={styles.headerSpacer} />
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/images/Schriftzug_rmbg.png')}
+            style={styles.headerLogo}
+            contentFit="contain"
+            contentPosition="center"
+          />
+        </View>
+        <View style={styles.backButtonSpacer} />
       </View>
 
       <ScrollView
@@ -422,26 +427,36 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   backButton: {
+    position: 'absolute',
+    left: 16,
     padding: 8,
-    marginLeft: -8,
-  },
-  headerTitle: {
-    flex: 1,
-    fontFamily: 'GoogleSans-Bold',
-    fontSize: 18,
-    color: '#333',
-    textAlign: 'center',
-    marginHorizontal: 8,
-  },
-  headerSpacer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 40,
     width: 40,
+  },
+  logoContainer: {
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerLogo: {
+    height: '100%',
+    width: 120,
+  },
+  backButtonSpacer: {
+    width: 40,
+    position: 'absolute',
+    right: 16,
   },
   
   // ScrollView
