@@ -1,6 +1,7 @@
 import { StyleSheet, FlatList, Pressable, View, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback } from 'react';
+import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SearchBar } from '@/components/SearchBar';
@@ -11,6 +12,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function SearchScreen() {
+  const router = useRouter();
   const {
     searchQuery,
     setSearchQuery,
@@ -39,7 +41,15 @@ export default function SearchScreen() {
 
   const handleSelectResult = (result: SearchResult) => {
     addRecentSearch(searchQuery);
-    // Hier könnten Navigation oder andere Aktionen folgen
+    
+    // Navigate to the appropriate screen based on result type
+    if (result.type === 'mensa') {
+      router.push(`/mensa-detail?id=${result.id}`);
+    } else if (result.type === 'meal') {
+      // You can navigate to a meal detail if you have that screen
+      // For now, navigate to the canteen that has this meal
+      router.push(`/mensa-detail?id=${result.canteenId}`);
+    }
   };
 
   const handlePopularTagPress = (tag: string) => {
