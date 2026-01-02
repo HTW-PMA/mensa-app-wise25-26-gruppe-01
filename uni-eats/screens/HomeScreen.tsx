@@ -5,9 +5,10 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { mensaApi, type Canteen, type BusinessHour, type Meal } from '@/services/mensaApi';
 import { MensaCard } from '@/components/MensaCard';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 import { useLocation, calculateDistance } from '@/hooks/useLocation';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 // Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
 export interface CanteenWithMeals extends Canteen {
@@ -60,6 +61,12 @@ export function HomeScreen() {
   const { enrichCanteensWithRatings } = useGoogleRatings(canteens);
 
   const [activeFilter, setActiveFilter] = useState('All');
+
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const iconColor = useThemeColor({}, 'icon');
+  const filterBg = useThemeColor({ light: '#f5f5f5', dark: '#1c1c1e' }, 'background');
+  const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#333' }, 'border');
 
   const loadCanteens = async () => {
     try {
@@ -114,12 +121,16 @@ export function HomeScreen() {
     if (location) {
       enriched = enriched.map(canteen => {
         const geoLoc = canteen.address?.geoLocation;
-        if (geoLoc?.latitude && geoLoc?.longitude) {
+        // Robuste Prüfung: Stelle sicher dass latitude/longitude valide Zahlen sind
+        const lat = typeof geoLoc?.latitude === 'number' ? geoLoc.latitude : parseFloat(geoLoc?.latitude);
+        const lon = typeof geoLoc?.longitude === 'number' ? geoLoc.longitude : parseFloat(geoLoc?.longitude);
+        
+        if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
           const distance = calculateDistance(
             location.latitude,
             location.longitude,
-            geoLoc.latitude,
-            geoLoc.longitude
+            lat,
+            lon
           );
           return { ...canteen, distance };
         }
@@ -149,22 +160,30 @@ export function HomeScreen() {
   }, [canteens, enrichCanteensWithRatings, location]);
 
   return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor }]}>
 
-        <View style={styles.header}>
-          <View style={styles.topBar}>
+                <View style={[styles.header, { backgroundColor, borderColor }]}>
 
-            <Image
-                source={require('@/assets/images/Schriftzug.png')}
-                style={styles.logo}
-                contentFit="cover"
-            />
+                  <View style={styles.topBar}>
 
-            <Pressable
-                onPress={() => router.push('/notifications')}
-                style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
-            >
-              <Ionicons name="notifications-outline" size={26} color="#333" />
+                                <View style={styles.logoContainer}>
+
+                                  <Image
+                                      source={require('@/assets/images/Schriftzug_rmbg.png')}
+                                      style={styles.logo}
+                                      contentFit="contain"
+                                      contentPosition="left"
+                                  />
+                                </View>
+
+                    <Pressable
+
+                        onPress={() => router.push('/notifications')}
+
+                        style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}>
+
+        
+              <Ionicons name="notifications-outline" size={26} color={iconColor} />
               <View style={styles.notificationBadge} />
             </Pressable>
           </View>
@@ -181,12 +200,15 @@ export function HomeScreen() {
                     onPress={() => setActiveFilter(filter)}
                     style={[
                       styles.filterItem,
-                      activeFilter === filter && styles.filterItemActive
+                      { 
+                        backgroundColor: activeFilter === filter ? Colors.light.tint : filterBg,
+                        borderColor: activeFilter === filter ? Colors.light.tint : borderColor
+                      }
                     ]}
                 >
                   <Text style={[
                     styles.filterText,
-                    activeFilter === filter && styles.filterTextActive
+                    { color: activeFilter === filter ? '#fff' : textColor }
                   ]}>
                     {filter}
                   </Text>
@@ -202,7 +224,7 @@ export function HomeScreen() {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.light.tint} />
             }
         >
-          <Text style={styles.subtitle}>📍 Mensas near you</Text>
+          <Text style={[styles.subtitle, { color: textColor }]}>📍 Mensas near you</Text>
 
           {loading && !refreshing ? (
               <View style={styles.centerContainer}>
@@ -243,10 +265,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 15,
   },
-  logo: {
-    width: 100,
-    height: 30,
+  logoContainer: {
+    flex: 1,
+    alignItems: 'flex-start',
   },
+  logo: {
+    width: 200,
+    height: 50,
+    marginTop: -20,
+    marginBottom: -20,
+    marginLeft: -8, // Pull it slightly left if the image has padding
+  },
+
   notificationBadge: {
     position: 'absolute',
     right: 2,
@@ -259,13 +289,13 @@ const styles = StyleSheet.create({
   greeting: {
     paddingHorizontal: 20,
     fontSize: 22,
-    fontFamily: 'GoogleSans-Bold',
+    fontFamily: Fonts.bold,
     color: '#000',
   },
   subtitle: {
     paddingHorizontal: 20,
     fontSize: 20,
-    fontFamily: 'GoogleSans-Bold',
+    fontFamily: Fonts.bold,
     color: '#333',
     marginTop: 15,
     marginBottom: 1,
@@ -287,7 +317,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.light.tint,
   },
   filterText: {
-    fontFamily: 'GoogleSans-Bold',
+    fontFamily: Fonts.bold,
     fontSize: 14,
     color: '#666',
     lineHeight: 30,

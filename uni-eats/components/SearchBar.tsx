@@ -1,7 +1,7 @@
 import { StyleSheet, TextInput, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     marginHorizontal: 16,
-    marginVertical: 12,
+    marginVertical: 20,
     borderWidth: 0,
   },
   icon: {
@@ -76,6 +76,10 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     paddingHorizontal: 0,
     fontSize: 16,
+    fontFamily: Fonts.regular,
+
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   clearButton: {
     padding: 4,
