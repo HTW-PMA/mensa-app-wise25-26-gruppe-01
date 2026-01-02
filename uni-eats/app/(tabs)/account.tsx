@@ -99,8 +99,7 @@ export default function AccountScreen() {
   };
 
   const handleHelp = () => {
-    // TODO: Navigiere zu FAQ/Support-Seite
-    Alert.alert('Help & Support', 'FAQ/Support-Seite wird noch implementiert');
+    router.push('/help');
   };
 
   const handleSettings = () => {
