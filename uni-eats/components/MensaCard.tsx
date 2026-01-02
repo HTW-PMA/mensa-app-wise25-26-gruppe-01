@@ -7,6 +7,7 @@ import { Colors, Fonts } from '@/constants/theme';
 import { formatDistance } from '@/hooks/useLocation';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { getCanteenLogo } from '@/utils/getCanteenLogo';
+import { useFavoritesContext } from '@/contexts/FavoritesContext';
 
 // Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
 interface CanteenWithMeals extends Canteen {
@@ -90,8 +91,11 @@ const getTodayBusinessHours = (businessDays?: Canteen['businessDays']): { hours:
 };
 
 export function MensaCard({ canteen, onPress }: MensaCardProps) {
-  // Bookmark status (currently resets when the app is closed and reopened)
-  const [isFavorite, setIsFavorite] = useState(false);
+  // Nutze FavoritesContext statt lokalem State für Persistenz
+  const { isFavoriteCanteen, toggleFavoriteCanteen } = useFavoritesContext();
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+
+  const canteenIsFavorited = isFavoriteCanteen(canteen.id);
 
   // Rating und Review-Anzahl aus API-Daten (mit Mock-Fallback)
   // Generiere konsistenten Mock-Wert basierend auf Mensa-ID für Demos
@@ -102,6 +106,21 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
   const getMockReviewCount = (id: string): number => {
     const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return 50 + (hash % 200); // Ergibt Werte zwischen 50 und 249
+  };
+
+  /**
+   * Handler für Like-Button Toggle
+   * Speichert Favoriten persistent im FavoritesContext/AsyncStorage
+   */
+  const handleToggleFavorite = async () => {
+    try {
+      setIsTogglingFavorite(true);
+      await toggleFavoriteCanteen(canteen.id);
+    } catch (error) {
+      console.error('Error toggling favorite canteen:', error);
+    } finally {
+      setIsTogglingFavorite(false);
+    }
   };
 
   // Nutze Google Places Rating falls verfügbar, sonst API-Rating, sonst Mock
@@ -191,14 +210,16 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
             <Pressable
               onPress={(e) => {
                 e.stopPropagation(); // Prevent card clicks and toggle only hearts
-                setIsFavorite(!isFavorite);
+                handleToggleFavorite();
               }}
               hitSlop={10}
+              disabled={isTogglingFavorite}
             >
               <Ionicons
-                name={isFavorite ? "heart" : "heart-outline"}
+                name={canteenIsFavorited ? "heart" : "heart-outline"}
                 size={24}
-                color={isFavorite ? Colors.light.tint : iconColor}
+                color={canteenIsFavorited ? Colors.light.tint : iconColor}
+                style={{ opacity: canteenIsFavorited ? 1 : 0.6 }}
               />
             </Pressable>
           </View>

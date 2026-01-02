@@ -33,15 +33,15 @@ export default function AccountScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { favoriteMealIds, favoriteCanteenId } = useFavoritesContext();
+  const { favoriteMealIds, favoriteCanteenIds } = useFavoritesContext();
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Berechne Favoriten-Anzahl aus Context
+  // Berechne Favoriten-Anzahl aus Context (Multi-Canteen Support)
   const favoritesCount = {
     meals: favoriteMealIds.length,
-    mensas: favoriteCanteenId ? 1 : 0,
+    mensas: favoriteCanteenIds.length,
   };
 
   // Lade Benutzerdaten beim Start
@@ -206,7 +206,7 @@ export default function AccountScreen() {
           <AccountMenuItem
             icon="favorite-outline"
             title="My Favorites"
-            subtitle={`${favoritesCount.meals} meals, ${favoritesCount.mensas} mensa`}
+            subtitle={`${favoritesCount.meals} meals, ${favoritesCount.mensas} ${favoritesCount.mensas === 1 ? 'mensa' : 'mensas'}`}
             onPress={handleFavorites}
             showDivider={true}
           />

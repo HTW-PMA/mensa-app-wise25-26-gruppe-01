@@ -24,7 +24,7 @@ export default function FavoritesScreen() {
   const isDark = colorScheme === 'dark';
   
   const {
-    favoriteCanteen,
+    favoriteCanteens,
     favoriteMeals,
     isLoading,
     isRefreshing,
@@ -37,13 +37,11 @@ export default function FavoritesScreen() {
   const backgroundColor = isDark ? Colors.dark.background : Colors.light.background;
   const sectionTitleColor = isDark ? Colors.dark.text : '#333';
 
-  const handleCanteenPress = () => {
-    if (favoriteCanteen) {
-      router.push({
-        pathname: '/mensa-detail',
-        params: { id: favoriteCanteen.id },
-      });
-    }
+  const handleCanteenPress = (canteenId: string) => {
+    router.push({
+      pathname: '/mensa-detail',
+      params: { id: canteenId },
+    });
   };
 
   const handleMealPress = (mealId: string) => {
@@ -68,7 +66,7 @@ export default function FavoritesScreen() {
     );
   }
 
-  const hasFavorites = favoriteCanteen || favoriteMeals.length > 0;
+  const hasFavorites = favoriteCanteens.length > 0 || favoriteMeals.length > 0;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
@@ -112,40 +110,39 @@ export default function FavoritesScreen() {
           </View>
         ) : (
           <>
-            {/* Favorite Mensa Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="star-outline" size={20} color={sectionTitleColor} />
-                <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-                  Favorite Mensa
-                </ThemedText>
-              </View>
-              
-              {favoriteCanteen ? (
-                <FavoriteCanteenCard
-                  canteen={favoriteCanteen}
-                  onPress={handleCanteenPress}
-                  onRemove={removeFavoriteCanteen}
-                />
-              ) : (
-                <View style={styles.emptySection}>
-                  <ThemedText style={styles.emptySectionText}>
-                    Keine favorisierte Mensa
+            {/* Favorite Mensas Section (Multi-Canteen Support) */}
+            {favoriteCanteens.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="star-outline" size={20} color={sectionTitleColor} />
+                  <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+                    Favorite Mensas ({favoriteCanteens.length})
                   </ThemedText>
                 </View>
-              )}
-            </View>
+                
+                <View style={styles.canteensList}>
+                  {favoriteCanteens.map((canteen) => (
+                    <FavoriteCanteenCard
+                      key={canteen.id}
+                      canteen={canteen}
+                      onPress={() => handleCanteenPress(canteen.id)}
+                      onRemove={() => removeFavoriteCanteen(canteen.id)}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
 
             {/* Favorite Meals Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="heart-outline" size={20} color={sectionTitleColor} />
-                <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-                  Favorite Meals ({favoriteMeals.length})
-                </ThemedText>
-              </View>
-              
-              {favoriteMeals.length > 0 ? (
+            {favoriteMeals.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="heart-outline" size={20} color={sectionTitleColor} />
+                  <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+                    Favorite Meals ({favoriteMeals.length})
+                  </ThemedText>
+                </View>
+                
                 <View style={styles.mealsList}>
                   {favoriteMeals.map((meal) => (
                     <FavoriteMealCard
@@ -156,14 +153,8 @@ export default function FavoritesScreen() {
                     />
                   ))}
                 </View>
-              ) : (
-                <View style={styles.emptySection}>
-                  <ThemedText style={styles.emptySectionText}>
-                    Keine favorisierten Gerichte
-                  </ThemedText>
-                </View>
-              )}
-            </View>
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -275,6 +266,10 @@ const styles = StyleSheet.create({
   emptySectionText: {
     fontSize: 14,
     color: '#999',
+  },
+  canteensList: {
+    gap: 12,
+    paddingHorizontal: 16,
   },
   mealsList: {
     gap: 0,

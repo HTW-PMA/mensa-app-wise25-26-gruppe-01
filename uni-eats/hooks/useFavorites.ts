@@ -4,24 +4,25 @@ import { mensaApi, Canteen, Meal } from '@/services/mensaApi';
 import { useLocation, calculateDistance } from '@/hooks/useLocation';
 
 interface UseFavoritesResult {
-  favoriteCanteen: Canteen | null;
+  favoriteCanteens: Canteen[];
   favoriteMeals: Meal[];
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  removeFavoriteCanteen: () => Promise<void>;
+  removeFavoriteCanteen: (canteenId: string) => Promise<void>;
   removeFavoriteMeal: (mealId: string) => Promise<void>;
   favoriteMealIds: string[];
-  favoriteCanteenId: string | null;
+  favoriteCanteenIds: string[];
 }
 
 /**
  * Hook zum Laden und Verwalten von Favoriten-Daten
+ * Unterstützt Multi-Canteen Favoriten (Array von Mensas)
  */
 export function useFavorites(): UseFavoritesResult {
   const { 
-    favoriteCanteenId, 
+    favoriteCanteenIds,
     favoriteMealIds, 
     isLoading: contextLoading,
     removeFavoriteCanteen: contextRemoveCanteen,
@@ -30,7 +31,7 @@ export function useFavorites(): UseFavoritesResult {
   
   const { location } = useLocation();
   
-  const [favoriteCanteen, setFavoriteCanteen] = useState<Canteen | null>(null);
+  const [favoriteCanteens, setFavoriteCanteens] = useState<Canteen[]>([]);
   const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -47,30 +48,30 @@ export function useFavorites(): UseFavoritesResult {
     setError(null);
 
     try {
-      // Lade favorisierte Mensa
-      if (favoriteCanteenId) {
+      // Lade alle favorisierten Mensas (Multi-Canteen Support)
+      if (favoriteCanteenIds.length > 0) {
         const canteens = await mensaApi.getCanteens({ loadingtype: 'complete' });
-        const canteen = canteens.find(c => c.id === favoriteCanteenId);
+        const favCanteens = canteens.filter(c => favoriteCanteenIds.includes(c.id));
         
-        if (canteen) {
-          // Berechne Distanz wenn Location verfügbar
-          if (location && canteen.address?.geoLocation) {
-            const { latitude, longitude } = canteen.address.geoLocation;
-            if (latitude && longitude) {
-              canteen.distance = calculateDistance(
-                location.latitude,
-                location.longitude,
-                latitude,
-                longitude
-              );
+        // Berechne Distanzen wenn Location verfügbar
+        if (location) {
+          favCanteens.forEach(canteen => {
+            if (canteen.address?.geoLocation) {
+              const { latitude, longitude } = canteen.address.geoLocation;
+              if (latitude && longitude) {
+                canteen.distance = calculateDistance(
+                  location.latitude,
+                  location.longitude,
+                  latitude,
+                  longitude
+                );
+              }
             }
-          }
-          setFavoriteCanteen(canteen);
-        } else {
-          setFavoriteCanteen(null);
+          });
         }
+        setFavoriteCanteens(favCanteens);
       } else {
-        setFavoriteCanteen(null);
+        setFavoriteCanteens([]);
       }
 
       // Lade favorisierte Gerichte
@@ -117,7 +118,7 @@ export function useFavorites(): UseFavoritesResult {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [favoriteCanteenId, favoriteMealIds, location, contextLoading]);
+  }, [favoriteCanteenIds, favoriteMealIds, location, contextLoading]);
 
   // Initiale Ladung
   useEffect(() => {
@@ -128,9 +129,9 @@ export function useFavorites(): UseFavoritesResult {
     await loadFavoriteData(true);
   };
 
-  const removeFavoriteCanteen = async () => {
-    await contextRemoveCanteen();
-    setFavoriteCanteen(null);
+  const removeFavoriteCanteen = async (canteenId: string) => {
+    await contextRemoveCanteen(canteenId);
+    setFavoriteCanteens(prev => prev.filter(c => c.id !== canteenId));
   };
 
   const removeFavoriteMeal = async (mealId: string) => {
@@ -139,7 +140,7 @@ export function useFavorites(): UseFavoritesResult {
   };
 
   return {
-    favoriteCanteen,
+    favoriteCanteens,
     favoriteMeals,
     isLoading: isLoading || contextLoading,
     isRefreshing,
@@ -148,7 +149,7 @@ export function useFavorites(): UseFavoritesResult {
     removeFavoriteCanteen,
     removeFavoriteMeal,
     favoriteMealIds,
-    favoriteCanteenId,
+    favoriteCanteenIds,
   };
 }
 
