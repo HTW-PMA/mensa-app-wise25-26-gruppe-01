@@ -121,12 +121,16 @@ export function HomeScreen() {
     if (location) {
       enriched = enriched.map(canteen => {
         const geoLoc = canteen.address?.geoLocation;
-        if (geoLoc?.latitude && geoLoc?.longitude) {
+        // Robuste Prüfung: Stelle sicher dass latitude/longitude valide Zahlen sind
+        const lat = typeof geoLoc?.latitude === 'number' ? geoLoc.latitude : parseFloat(geoLoc?.latitude);
+        const lon = typeof geoLoc?.longitude === 'number' ? geoLoc.longitude : parseFloat(geoLoc?.longitude);
+        
+        if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
           const distance = calculateDistance(
             location.latitude,
             location.longitude,
-            geoLoc.latitude,
-            geoLoc.longitude
+            lat,
+            lon
           );
           return { ...canteen, distance };
         }

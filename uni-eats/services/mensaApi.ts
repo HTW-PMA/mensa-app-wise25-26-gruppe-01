@@ -7,7 +7,7 @@ const CANTEEN_FALLBACK_COORDINATES: Array<{
   coordinates: { latitude: number; longitude: number } 
 }> = [
   { namePattern: 'HTW Wilhelminenhof', coordinates: { latitude: 52.45868, longitude: 13.52883 } },
-  { namePattern: 'Alt Friedrichsfelde', coordinates: { latitude: 52.48915, longitude: 13.46788 } },
+  { namePattern: 'Alt-Friedrichsfelde', coordinates: { latitude: 52.48915, longitude: 13.46788 } },
   { namePattern: 'Oase Adlershof', coordinates: { latitude: 52.45730, longitude: 13.57615 } },
   { namePattern: 'ASH Berlin', coordinates: { latitude: 52.51965, longitude: 13.40535 } },
 ];
@@ -186,8 +186,21 @@ class MensaApiService {
             item?.address?.geolocation ??
             item?.address?.GeoLocation;
 
+          // Konvertiere Koordinaten zu Zahlen (API gibt manchmal Strings zurück)
+          if (geoLocation) {
+            const lat = parseFloat(geoLocation.latitude);
+            const lon = parseFloat(geoLocation.longitude);
+            // Nur gültig wenn beide Werte valide Zahlen und sinnvolle Koordinaten sind
+            if (!isNaN(lat) && !isNaN(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && lat !== 0 && lon !== 0) {
+              geoLocation = { latitude: lat, longitude: lon };
+            } else {
+              // Ungültige Koordinaten -> als fehlend behandeln
+              geoLocation = null;
+            }
+          }
+
           // Fallback: Verwende hintergelegte Koordinaten wenn geoLocation fehlt oder unvollständig
-          if (!geoLocation || !geoLocation.latitude || !geoLocation.longitude) {
+          if (!geoLocation) {
             const fallbackCoords = getFallbackCoordinates(item?.name || '');
             if (fallbackCoords) {
               geoLocation = fallbackCoords;
