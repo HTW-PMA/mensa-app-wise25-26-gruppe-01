@@ -5,8 +5,10 @@ import 'react-native-reanimated';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { queryClient } from '@/config/queryClient';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -38,22 +40,34 @@ export default function RootLayout() {
     }
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <Stack>
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen
-                        name="mensa-detail"
-                        options={{
-                            title: 'Mensa Details',
-                            headerShown: true,
-                            presentation: 'card',
-                        }}
-                    />
-                    <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-                </Stack>
-                <StatusBar style="auto" />
-            </ThemeProvider>
-        </QueryClientProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <QueryClientProvider client={queryClient}>
+                <FavoritesProvider>
+                    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                        <Stack>
+                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                            <Stack.Screen
+                                name="mensa-detail"
+                                options={{
+                                    title: 'Mensa Details',
+                                    headerShown: true,
+                                    presentation: 'card',
+                                }}
+                            />
+                            <Stack.Screen
+                                name="favorites"
+                                options={{
+                                    title: 'My Favorites',
+                                    headerShown: false,
+                                    presentation: 'card',
+                                }}
+                            />
+                            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+                        </Stack>
+                        <StatusBar style="auto" />
+                    </ThemeProvider>
+                </FavoritesProvider>
+            </QueryClientProvider>
+        </GestureHandlerRootView>
     );
 }

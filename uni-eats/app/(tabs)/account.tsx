@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AccountMenuItem } from '@/components/AccountMenuItem';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { storage } from '@/utils/storage';
+import { useFavoritesContext } from '@/contexts/FavoritesContext';
 
 interface UserProfile {
   name: string;
@@ -28,17 +30,23 @@ const APP_VERSION = '1.0.0';
 
 export default function AccountScreen() {
   const navigation = useNavigation();
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { favoriteMealIds, favoriteCanteenId } = useFavoritesContext();
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [favoritesCount, setFavoritesCount] = useState({ meals: 0, mensas: 0 });
+
+  // Berechne Favoriten-Anzahl aus Context
+  const favoritesCount = {
+    meals: favoriteMealIds.length,
+    mensas: favoriteCanteenId ? 1 : 0,
+  };
 
   // Lade Benutzerdaten beim Start
   useEffect(() => {
     loadUserProfile();
-    loadFavoritesCount();
   }, []);
 
   const loadUserProfile = async () => {
@@ -67,16 +75,6 @@ export default function AccountScreen() {
     }
   };
 
-  const loadFavoritesCount = async () => {
-    try {
-      // Hier können echte Daten aus der API geladen werden
-      // Für Demo-Zwecke verwenden wir statische Werte
-      setFavoritesCount({ meals: 2, mensas: 1 });
-    } catch (error) {
-      console.error('Error loading favorites count:', error);
-    }
-  };
-
   const getInitials = (name: string): string => {
     return name
       .split(' ')
@@ -92,8 +90,7 @@ export default function AccountScreen() {
   };
 
   const handleFavorites = () => {
-    // TODO: Navigiere zu Favoriten-Liste
-    Alert.alert('My Favorites', 'Favoriten-Seite wird noch implementiert');
+    router.push('/favorites');
   };
 
   const handleProfile = () => {
