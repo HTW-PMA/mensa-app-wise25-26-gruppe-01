@@ -40,7 +40,6 @@ export default function RootLayout() {
     }
 
     return (
-<<<<<<< HEAD
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
                 <FavoritesProvider>
@@ -70,23 +69,5 @@ export default function RootLayout() {
                 </FavoritesProvider>
             </QueryClientProvider>
         </GestureHandlerRootView>
-=======
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <Stack>
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen
-                        name="mensa-detail"
-                        options={{
-                            headerShown: false,
-                            presentation: 'card',
-                        }}
-                    />
-                    <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-                </Stack>
-                <StatusBar style="auto" />
-            </ThemeProvider>
-        </QueryClientProvider>
->>>>>>> 0f2d495058b723bf0aaaa485a7ec9c94c29f8778
     );
 }
