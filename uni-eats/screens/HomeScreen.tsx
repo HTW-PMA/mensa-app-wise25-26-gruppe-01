@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     height: 50,
     marginTop: -20,
     marginBottom: -20,
-    marginLeft: -8, // Pull it slightly left if the image has padding
+    marginLeft: -8,
   },
 
   notificationBadge: {
