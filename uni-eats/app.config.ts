@@ -16,10 +16,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
-      foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
-      monochromeImage: "./assets/images/android-icon-monochrome.png"
+      backgroundColor: "#02AA20",
+      foregroundImage: "./assets/images/icon.png",
     },
     config: {
       googleMaps: {
@@ -42,9 +40,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#02AA20",
         dark: {
-          backgroundColor: "#000000"
+          backgroundColor: "#02AA20"
         }
       }
     ],
