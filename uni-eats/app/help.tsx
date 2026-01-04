@@ -134,6 +134,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    marginTop: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingTop: 18,
   },
   sectionTitle: {
     fontSize: 18,
@@ -170,11 +171,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   faqContainer: {
+    marginTop: 2,
     borderTopWidth: 1,
     borderRadius: 8,
     overflow: 'hidden',
   },
   contactContainer: {
-    paddingTop: 8,
+
   },
 });

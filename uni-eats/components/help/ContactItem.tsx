@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontFamily: Fonts.regular,
-    marginBottom: 2,
+    lineHeight: 12,
   },
   value: {
     fontSize: 16,

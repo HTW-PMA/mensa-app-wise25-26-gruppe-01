@@ -284,6 +284,7 @@ const styles = StyleSheet.create({
 
   // Header Section Styles
   headerSection: {
+    marginTop: 18,
     paddingHorizontal: 16,
     paddingVertical: 28,
     borderBottomWidth: 0.5,
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
 
   // Menu Section Styles
   menuSection: {
-    marginTop: 20,
+    marginTop: 1,
   },
 
   // Sign Out Section Styles
