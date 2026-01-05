@@ -135,7 +135,7 @@ export default function AiChefScreen() {
 
   return (
       <ThemedView style={[styles.root, { backgroundColor: bg }]}>
-        <SafeAreaView style={styles.flex}>
+        <SafeAreaView style={styles.flex} edges={['top', 'left', 'right']}>
           <KeyboardAvoidingView
               style={styles.flex}
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -161,10 +161,13 @@ export default function AiChefScreen() {
             {/* Content */}
             <ScrollView
                 ref={scrollRef}
-                contentContainerStyle={styles.content}
+                contentContainerStyle={[
+                  styles.content,
+                  { paddingBottom: 80 } // Höhe der BottomBar + SafeArea
+                ]}
                 keyboardShouldPersistTaps="handled"
             >
-              {messages.map((m) =>
+            {messages.map((m) =>
                   m.kind === 'intro' ? (
                       <View key={m.id} style={styles.rowLeft}>
                         <View style={[styles.smallBadge, { backgroundColor: badgeBg }]}>
@@ -263,7 +266,6 @@ export default function AiChefScreen() {
                 </View>
               </View>
 
-              <View style={{ height: 100 }} />
             </ScrollView>
 
             {/* Bottom input */}
