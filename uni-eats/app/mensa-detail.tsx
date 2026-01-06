@@ -48,37 +48,50 @@ export default function MensaDetailScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
 
-  // Google Ratings Hook - um echte Google Places Ratings zu holen
+  // Google Ratings Hook - lädt Ratings im Hintergrund während Meals angezeigt werden
   const { enrichCanteensWithRatings } = useGoogleRatings(canteen ? [canteen] : []);
   
-  // Canteen mit Google Rating anreichern
+  // Anreichere Canteen mit Google Ratings
   const enrichedCanteen = useMemo(() => {
     if (!canteen) return null;
-    const enriched = enrichCanteensWithRatings([canteen]);
-    return enriched[0] || canteen;
+    const enriched = enrichCanteensWithRatings([canteen])[0] || canteen;
+    return enriched;
   }, [canteen, enrichCanteensWithRatings]);
 
   // Daten laden
   const loadData = async () => {
     if (!id) return;
     
+    const startTime = Date.now();
+    const logStep = (step: string) => {
+      const elapsed = Date.now() - startTime;
+      console.log(`⏱️  MensaDetail [${elapsed}ms]: ${step}`);
+    };
+
     try {
+      logStep('START loading mensa detail');
       setError(null);
       
-      // Parallel laden
-      const [canteensData, mealsData] = await Promise.all([
-        mensaApi.getCanteens({ loadingtype: 'complete' }),
+      // Lade Meals und Canteen parallel für bessere Performance
+      logStep('Calling getMeals and getCanteen in parallel...');
+      const [mealsData, canteenData] = await Promise.all([
         mensaApi.getMeals({ canteenId: id, loadingtype: 'complete' }),
+        mensaApi.getCanteen(id),
       ]);
       
-      const foundCanteen = canteensData.find(c => c.id === id);
-      setCanteen(foundCanteen || null);
+      logStep(`Meals loaded: ${mealsData.length} items`);
+      logStep(`Canteen loaded: ${canteenData?.name || 'NOT FOUND'} | canteenData: ${JSON.stringify(canteenData)}`);
+      
       setMeals(mealsData);
+      console.log('📢 Setting canteen:', canteenData);
+      setCanteen(canteenData);
+      setLoading(false);
     } catch (err) {
       console.error('Error loading mensa details:', err);
+      logStep('ERROR occurred');
       setError('Fehler beim Laden der Daten');
-    } finally {
       setLoading(false);
+    } finally {
       setRefreshing(false);
     }
   };
@@ -90,7 +103,7 @@ export default function MensaDetailScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData();
-  }, [id]);
+  }, []);
 
   // Kategorien aus Meals extrahieren
   const categories = useMemo(() => {
@@ -104,26 +117,29 @@ export default function MensaDetailScreen() {
     return meals.filter(m => m.category === selectedCategory);
   }, [meals, selectedCategory]);
 
-  // Rating-Anzeige - nutzt enrichedCanteen mit Google Places Daten
+  // Rating-Anzeige
   const getRating = (): { rating: string; count: number } => {
+    console.log('🔍 getRating called, enrichedCanteen:', enrichedCanteen);
+    if (!enrichedCanteen) {
+      console.log('⚠️  enrichedCanteen is null, returning fallback');
+      return { rating: '–', count: 0 };
+    }
     if (enrichedCanteen?.googleRating) {
+      console.log('✅ Using googleRating:', enrichedCanteen.googleRating);
       return { 
         rating: enrichedCanteen.googleRating.toFixed(1), 
         count: enrichedCanteen.googleReviewCount || 0 
       };
     }
     if (enrichedCanteen?.rating) {
+      console.log('✅ Using rating:', enrichedCanteen.rating);
       return { 
         rating: enrichedCanteen.rating.toFixed(1), 
         count: enrichedCanteen.reviewCount || 0 
       };
     }
-    // Mock fallback
-    const hash = (id || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return { 
-      rating: (3.5 + (hash % 15) / 10).toFixed(1), 
-      count: 50 + (hash % 200) 
-    };
+    console.log('⚠️  No rating found, returning fallback');
+    return { rating: '–', count: 0 };
   };
 
   const { rating, count: reviewCount } = getRating();
@@ -255,12 +271,12 @@ export default function MensaDetailScreen() {
         <View style={styles.heroContainer}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?q=80&w=800&auto=format&fit=crop' }}
-            style={[styles.heroImage, meals.length === 0 && styles.heroImageClosed]}
+            style={[styles.heroImage, !loading && meals.length === 0 && styles.heroImageClosed]}
             contentFit="cover"
             transition={500}
           />
-          {/* Closed Overlay when no meals available */}
-          {meals.length === 0 && (
+          {/* Closed Overlay when no meals available (nicht während loading) */}
+          {!loading && meals.length === 0 && (
             <View style={styles.closedOverlay}>
               <View style={styles.closedBadge}>
                 <Ionicons name="close-circle" size={20} color="#fff" />
@@ -270,9 +286,9 @@ export default function MensaDetailScreen() {
           )}
         </View>
 
-        {/* Mensa Info */}
+        {/* Mensa Info - IMMER anzeigen */}
         <View style={styles.infoContainer}>
-          <Text style={styles.mensaName}>{enrichedCanteen.name}</Text>
+          <Text style={styles.mensaName}>{enrichedCanteen?.name || 'Loading...'}</Text>
           
           <View style={styles.metaRow}>
             {/* Rating */}
@@ -284,26 +300,36 @@ export default function MensaDetailScreen() {
               </Text>
             </View>
 
-            <Text style={styles.metaSeparator}>•</Text>
+            {enrichedCanteen && (
+              <>
+                <Text style={styles.metaSeparator}>•</Text>
 
-            {/* Distance - Live location based */}
-            <View style={styles.metaItem}>
-              <Ionicons name="location-sharp" size={16} color={Colors.light.tint} />
-              <Text style={styles.metaText}>{getDistance()}</Text>
-            </View>
+                {/* Distance - Live location based */}
+                <View style={styles.metaItem}>
+                  <Ionicons name="location-sharp" size={16} color={Colors.light.tint} />
+                  <Text style={styles.metaText}>{getDistance()}</Text>
+                </View>
 
-            <Text style={styles.metaSeparator}>•</Text>
+                <Text style={styles.metaSeparator}>•</Text>
 
-            {/* Opening Hours */}
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={16} color="#666" />
-              <Text style={styles.metaText}>{getTodayOpeningHours()}</Text>
-            </View>
+                {/* Opening Hours */}
+                <View style={styles.metaItem}>
+                  <Ionicons name="time-outline" size={16} color="#666" />
+                  <Text style={styles.metaText}>{getTodayOpeningHours()}</Text>
+                </View>
+              </>
+            )}
           </View>
         </View>
 
         {/* Show Closed state or meal list */}
-        {meals.length === 0 ? (
+        {loading ? (
+          /* Loading State */
+          <View style={styles.closedState}>
+            <ActivityIndicator size="large" color={Colors.light.tint} />
+            <Text style={styles.closedTitle}>Loading Dishes...</Text>
+          </View>
+        ) : meals.length === 0 ? (
           /* Closed State - No meals available today */
           <View style={styles.closedState}>
             <View style={styles.closedIconContainer}>
@@ -429,10 +455,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    minHeight: 56,
   },
   backButton: {
     position: 'absolute',
@@ -440,11 +467,11 @@ const styles = StyleSheet.create({
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    height: 40,
-    width: 40,
+    height: 44,
+    width: 44,
   },
   logoContainer: {
-    height: 40,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     flex: 1,

@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { type Meal } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
 
@@ -57,36 +57,39 @@ const getMealCalories = (meal: Meal): string => {
 };
 
 /**
- * Generiert eine Bild-URL für das Meal
+ * Generiert eine Bild-URL für das Meal - mit besserer Performance
  */
 const getMealImage = (meal: Meal): string => {
   const category = meal.category?.toLowerCase() || 'food';
-  const searchTerms = {
-    'salate': 'salad,fresh',
-    'suppen': 'soup,bowl',
-    'pasta': 'pasta,italian',
-    'hauptgerichte': 'main,dish,dinner',
-    'desserts': 'dessert,sweet',
-    'beilagen': 'sides,vegetables',
+  
+  // Nutze einen Color-basierten Placeholder statt mehrerer Unsplash-Requests
+  // Das ist deutlich schneller und spart Bandbreite
+  const colorMap: Record<string, string> = {
+    'salate': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=160&h=160&fit=crop',
+    'suppen': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=160&h=160&fit=crop',
+    'pasta': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=160&h=160&fit=crop',
+    'hauptgerichte': 'https://images.unsplash.com/photo-1567521464027-f127ff144326?w=160&h=160&fit=crop',
+    'desserts': 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=160&h=160&fit=crop',
+    'beilagen': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=160&h=160&fit=crop',
   };
   
-  const term = searchTerms[category as keyof typeof searchTerms] || 'food,meal';
-  return `https://source.unsplash.com/featured/160x160/?${term}`;
+  return colorMap[category] || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=160&h=160&fit=crop';
 };
 
-export function MealCard({ meal, onPress }: MealCardProps) {
+export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   
-  const price = getStudentPrice(meal.prices);
-  const description = getMealDescription(meal);
-  const calories = getMealCalories(meal);
-  const imageUrl = getMealImage(meal);
+  // Memoize alle Werte um unnötige Berechnungen zu vermeiden
+  const price = useMemo(() => getStudentPrice(meal.prices), [meal.prices]);
+  const description = useMemo(() => getMealDescription(meal), [meal.name]);
+  const calories = useMemo(() => getMealCalories(meal), [meal.id, meal.co2Bilanz]);
+  const imageUrl = useMemo(() => getMealImage(meal), [meal.category]);
   
   // Badges aus API-Daten
-  const badges = meal.badges?.slice(0, 3).map(b => b.name) || [];
+  const badges = useMemo(() => meal.badges?.slice(0, 3).map(b => b.name) || [], [meal.badges]);
   
   // Prüfe ob Allergene vorhanden
-  const hasAllergens = meal.additives && meal.additives.length > 0;
+  const hasAllergens = useMemo(() => meal.additives && meal.additives.length > 0, [meal.additives]);
 
   return (
     <Pressable
@@ -157,7 +160,7 @@ export function MealCard({ meal, onPress }: MealCardProps) {
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

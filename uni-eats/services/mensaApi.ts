@@ -239,16 +239,50 @@ class MensaApiService {
     }
   }
 
+  /**
+   * Schnell eine einzelne Mensa mit Basis-Details laden
+   */
+  async getCanteen(id: string): Promise<Canteen | null> {
+    const startTime = Date.now();
+    const logStep = (step: string) => {
+      const elapsed = Date.now() - startTime;
+      console.log(`⏱️  [${elapsed}ms] getCanteen: ${step}`);
+    };
+
+    try {
+      logStep('START');
+      // Lade alle Mensen mit lazy loading (schneller)
+      logStep('Calling getCanteens with lazy loading...');
+      const canteens = await this.getCanteens({ loadingtype: 'lazy' });
+      logStep(`Received ${canteens.length} canteens`);
+      const result = canteens.find(c => c.id === id) || null;
+      logStep(`Found canteen: ${result ? result.name : 'NOT FOUND'}`);
+      return result;
+    } catch (error) {
+      console.error('💥 Error loading single canteen:', error);
+      return null;
+    }
+  }
+
   async getMeals(filters?: {
     canteenId?: string;
     date?: string;
     loadingtype?: 'lazy' | 'complete';
   }): Promise<Meal[]> {
+    const startTime = Date.now();
+    const logStep = (step: string) => {
+      const elapsed = Date.now() - startTime;
+      console.log(`⏱️  [${elapsed}ms] ${step}`);
+    };
+
     try {
+      logStep('getMeals START');
       const params = new URLSearchParams();
       params.append('loadingtype', filters?.loadingtype || 'complete');
 
       // Step 1: Get menus with meal assignments per canteen and date
+      // Die Menue-API enthält bereits die Meal-Details!
+      logStep('Calling menue API...');
       const menuResponse = await fetch(`${API_BASE_URL}/api/v1/menue?${params.toString()}`, {
         headers: {
           'X-API-KEY': getApiKey(),
@@ -259,7 +293,9 @@ class MensaApiService {
         throw new Error(`API Error: ${menuResponse.status}`);
       }
 
+      logStep('Menue API response received');
       const menuData = await menuResponse.json();
+      logStep('Menue JSON parsed');
       
       // The menue endpoint returns { menue: [ { date, canteenId, meals: [...] }, ... ] }
       let menus: any[] = [];
@@ -283,69 +319,35 @@ class MensaApiService {
         menus = menus.filter((menu: any) => menu.date === today);
       }
 
-      // Collect all meal IDs from filtered menus
-      const mealIdsFromMenu = new Set<string>();
-      const mealCanteenMap = new Map<string, { canteenId: string; date: string }>();
-      
+      logStep(`Filtered menus: ${menus.length} found for canteen ${filters?.canteenId}`);
+
+      // OPTIMIERUNG: Nutze Meal-Daten direkt aus der Menue-API
+      // Keine separate /meal API Abfrage nötig!
+      const meals: Meal[] = [];
       for (const menu of menus) {
         if (menu.meals && Array.isArray(menu.meals)) {
-          for (const meal of menu.meals) {
-            const mealId = meal.id || meal._id;
+          for (const mealData of menu.meals) {
+            const mealId = mealData.id || mealData._id;
             if (mealId) {
-              mealIdsFromMenu.add(mealId);
-              mealCanteenMap.set(mealId, { canteenId: menu.canteenId, date: menu.date });
+              meals.push({
+                id: mealId,
+                name: mealData.name,
+                canteenId: menu.canteenId,
+                category: mealData.category,
+                prices: mealData.prices,
+                additives: mealData.additives,
+                badges: mealData.badges,
+                mealReviews: mealData.mealReviews,
+                date: menu.date,
+                co2Bilanz: mealData.co2Bilanz,
+                waterBilanz: mealData.waterBilanz,
+              });
             }
           }
         }
       }
 
-      if (mealIdsFromMenu.size === 0) {
-        return [];
-      }
-
-      // Step 2: Get full meal details from /meal endpoint
-      const mealResponse = await fetch(`${API_BASE_URL}/api/v1/meal?loadingtype=complete`, {
-        headers: {
-          'X-API-KEY': getApiKey(),
-        },
-      });
-
-      if (!mealResponse.ok) {
-        throw new Error(`API Error: ${mealResponse.status}`);
-      }
-
-      const mealData = await mealResponse.json();
-      
-      // Extract meals array
-      let allMealsRaw: any[] = [];
-      if (mealData.meals && Array.isArray(mealData.meals)) {
-        allMealsRaw = mealData.meals;
-      } else if (Array.isArray(mealData)) {
-        allMealsRaw = mealData;
-      }
-
-      // Filter to only meals that are in our menu and add canteen info
-      const meals: Meal[] = [];
-      for (const meal of allMealsRaw) {
-        const mealId = meal.id || meal._id;
-        if (mealIdsFromMenu.has(mealId)) {
-          const menuInfo = mealCanteenMap.get(mealId);
-          meals.push({
-            id: mealId,
-            name: meal.name,
-            canteenId: menuInfo?.canteenId,
-            category: meal.category,
-            prices: meal.prices,
-            additives: meal.additives,
-            badges: meal.badges,
-            mealReviews: meal.mealReviews,
-            date: menuInfo?.date,
-            co2Bilanz: meal.co2Bilanz,
-            waterBilanz: meal.waterBilanz,
-          });
-        }
-      }
-
+      logStep(`Extracted ${meals.length} meals directly from menue API - COMPLETE`);
       return meals;
     } catch (error) {
       console.error('Error fetching meals:', error);

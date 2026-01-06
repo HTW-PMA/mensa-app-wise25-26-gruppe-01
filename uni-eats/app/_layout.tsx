@@ -49,8 +49,7 @@ export default function RootLayout() {
                             <Stack.Screen
                                 name="mensa-detail"
                                 options={{
-                                    title: 'Mensa Details',
-                                    headerShown: true,
+                                    headerShown: false,
                                     presentation: 'card',
                                 }}
                             />
