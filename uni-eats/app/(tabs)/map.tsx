@@ -8,10 +8,9 @@ import { Colors } from '@/constants/theme';
 import { useMensas } from '@/hooks/useMensas';
 import { type Canteen } from '@/services/mensaApi';
 
-// expo-maps stellt plattformspezifische Views bereit; wir wählen passend zur Plattform.
+// expo-maps stellt plattformspezifische Views bereit
 const isWeb = Platform.OS === 'web';
 const isIOS = Platform.OS === 'ios';
-const MapComponent = isIOS ? AppleMaps.View : GoogleMaps.View;
 
 // --- Helpers ---
 const FALLBACK_COORDS = { latitude: 52.52, longitude: 13.405 }; // Berlin fallback
@@ -122,25 +121,29 @@ export default function MapScreen() {
             .filter(Boolean) as any[];
 
         if (isIOS) {
-            const appleMarkers = mensaMarkers.map((marker) => ({
+            const appleAnnotations = mensaMarkers.map((marker) => ({
                 id: marker.id,
                 coordinates: marker.coordinates,
                 title: marker.title,
                 systemImage: 'fork.knife',
-                color: '#02AA20',
+                tintColor: '#02AA20',
+                // Annotation-spezifische Felder für bessere Sichtbarkeit
+                backgroundColor: '#02AA20',
             }));
 
             if (userCoords) {
-                appleMarkers.unshift({
+                appleAnnotations.unshift({
                     id: 'user',
                     coordinates: userCoords,
                     title: 'Du bist hier',
                     systemImage: 'location.fill',
-                    color: '#007AFF',
+                    tintColor: '#007AFF',
+                    backgroundColor: '#007AFF',
                 });
             }
 
-            return appleMarkers;
+            console.log('Apple annotations count:', appleAnnotations.length);
+            return appleAnnotations;
         }
 
         const googleMarkers = mensaMarkers.map((marker) => ({
@@ -161,6 +164,7 @@ export default function MapScreen() {
     }, [mensas, userCoords, isIOS]);
 
     const handleMarkerClick = (marker: { id?: string }) => {
+        console.log('Marker clicked:', marker);
         const markerId = marker.id;
 
         // Wenn kein Marker oder kein Mensa-Marker, Auswahl aufheben
@@ -169,9 +173,16 @@ export default function MapScreen() {
             return;
         }
 
-        // Bei erneutem Klick auf den gleichen Marker -> Detailansicht öffnen
+        const mensaId = markerId.replace('mensa:', '');
+
+        // Auf iOS: Direkt zur Detailseite navigieren (onMarkerClick wird nur einmal ausgelöst)
+        if (isIOS) {
+            router.push({ pathname: '/mensa-detail', params: { id: mensaId } });
+            return;
+        }
+
+        // Auf Android: Bei erneutem Klick auf den gleichen Marker -> Detailansicht öffnen
         if (selectedMarkerId === markerId) {
-            const mensaId = markerId.replace('mensa:', '');
             router.push({ pathname: '/mensa-detail', params: { id: mensaId } });
             setSelectedMarkerId(null);
         } else {
@@ -202,14 +213,25 @@ export default function MapScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.mapContainer}>
-                <MapComponent
-                    key={mapKey}
-                    style={styles.map}
-                    cameraPosition={cameraPosition}
-                    markers={markers}
-                    onMarkerClick={handleMarkerClick}
-                    onMapClick={() => setSelectedMarkerId(null)}
-                />
+                {isIOS ? (
+                    <AppleMaps.View
+                        key={mapKey}
+                        style={styles.map}
+                        cameraPosition={cameraPosition}
+                        markers={markers}
+                        onMarkerClick={handleMarkerClick}
+                        onMapClick={() => setSelectedMarkerId(null)}
+                    />
+                ) : (
+                    <GoogleMaps.View
+                        key={mapKey}
+                        style={styles.map}
+                        cameraPosition={cameraPosition}
+                        markers={markers}
+                        onMarkerClick={handleMarkerClick}
+                        onMapClick={() => setSelectedMarkerId(null)}
+                    />
+                )}
 
                 {/* Info Overlays */}
                 <View style={styles.overlayContainer}>
