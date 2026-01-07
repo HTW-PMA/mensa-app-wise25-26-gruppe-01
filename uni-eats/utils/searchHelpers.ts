@@ -14,6 +14,7 @@ export const POPULAR_SEARCHES = [
 export interface SearchResult {
   type: 'meal' | 'mensa';
   id: string;
+  uniqueId: string; // Eindeutiger Key für FlatList (kombiniert id + canteenId für Meals)
   name: string;
   subtitle?: string;
   data: Meal | Canteen;
@@ -48,20 +49,41 @@ export const filterCanteens = (canteens: Canteen[], query: string): Canteen[] =>
 
 /**
  * Kombiniert und sortiert Suchergebnisse
+ * @param meals - Gefilterte Meals
+ * @param canteens - Gefilterte Canteens (für Mensa-Suchergebnisse)
+ * @param allCanteens - Alle verfügbaren Canteens (für Mensa-Namen-Lookup bei Meals)
  */
 export const combineSearchResults = (
   meals: Meal[],
-  canteens: Canteen[]
+  canteens: Canteen[],
+  allCanteens?: Canteen[]
 ): SearchResult[] => {
   const results: SearchResult[] = [];
 
-  // Meals hinzufügen
+  // Erstelle eine Map für schnellen Canteen-Name Lookup
+  const canteenMap = new Map<string, string>();
+  (allCanteens || canteens).forEach(c => {
+    canteenMap.set(c.id, c.name);
+  });
+
+  // Meals hinzufügen - eindeutige ID aus meal.id + canteenId
   meals.forEach(meal => {
+    const canteenName = meal.canteenId ? canteenMap.get(meal.canteenId) : undefined;
+    const subtitleParts: string[] = [];
+    
+    if (canteenName) {
+      subtitleParts.push(canteenName);
+    }
+    if (meal.category) {
+      subtitleParts.push(meal.category);
+    }
+    
     results.push({
       type: 'meal',
       id: meal.id,
+      uniqueId: `meal-${meal.id}-${meal.canteenId || 'unknown'}`,
       name: meal.name,
-      subtitle: meal.category || `Mensa: ${meal.canteenId}`,
+      subtitle: subtitleParts.length > 0 ? subtitleParts.join(' • ') : undefined,
       data: meal,
     });
   });
@@ -71,6 +93,7 @@ export const combineSearchResults = (
     results.push({
       type: 'mensa',
       id: canteen.id,
+      uniqueId: `mensa-${canteen.id}`,
       name: canteen.name,
       subtitle: canteen.address?.street || canteen.address?.city,
       data: canteen,

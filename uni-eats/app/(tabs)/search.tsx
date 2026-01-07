@@ -46,9 +46,12 @@ export default function SearchScreen() {
     if (result.type === 'mensa') {
       router.push(`/mensa-detail?id=${result.id}`);
     } else if (result.type === 'meal') {
-      // You can navigate to a meal detail if you have that screen
-      // For now, navigate to the canteen that has this meal
-      router.push(`/mensa-detail?id=${result.canteenId}`);
+      // Navigate to the canteen that has this meal
+      // Extract canteenId from the meal data
+      const meal = result.data as { canteenId?: string };
+      if (meal.canteenId) {
+        router.push(`/mensa-detail?id=${meal.canteenId}`);
+      }
     }
   };
 
@@ -163,7 +166,7 @@ export default function SearchScreen() {
         <FlatList
           data={results}
           renderItem={renderSearchResult}
-          keyExtractor={(item) => `${item.type}-${item.id}`}
+          keyExtractor={(item) => item.uniqueId}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }

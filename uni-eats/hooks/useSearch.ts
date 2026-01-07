@@ -54,7 +54,8 @@ export function useSearch(): UseSearchResult {
     const filteredMeals = filterMeals(meals, searchQuery);
     const filteredMensas = filterCanteens(mensas, searchQuery);
 
-    const results = combineSearchResults(filteredMeals, filteredMensas);
+    // Übergebe alle Mensas für den Mensa-Namen-Lookup bei Meal-Ergebnissen
+    const results = combineSearchResults(filteredMeals, filteredMensas, mensas);
     setFilteredResults(results);
   }, [searchQuery, allMeals.data, allMensas.data]);
 

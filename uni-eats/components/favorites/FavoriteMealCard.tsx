@@ -59,21 +59,22 @@ const getMealCalories = (meal: Meal): string => {
 };
 
 /**
- * Generiert eine Bild-URL für das Meal
+ * Generiert eine Bild-URL für das Meal - mit statischen URLs für bessere Performance
  */
 const getMealImage = (meal: Meal): string => {
   const category = meal.category?.toLowerCase() || 'food';
-  const searchTerms: Record<string, string> = {
-    'salate': 'salad,fresh',
-    'suppen': 'soup,bowl',
-    'pasta': 'pasta,italian',
-    'hauptgerichte': 'main,dish,dinner',
-    'desserts': 'dessert,chocolate',
-    'beilagen': 'sides,vegetables',
+  
+  // Statische Unsplash-URLs für schnellere Ladezeiten und Zuverlässigkeit
+  const colorMap: Record<string, string> = {
+    'salate': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120&h=120&fit=crop',
+    'suppen': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=120&h=120&fit=crop',
+    'pasta': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=120&h=120&fit=crop',
+    'hauptgerichte': 'https://images.unsplash.com/photo-1567521464027-f127ff144326?w=120&h=120&fit=crop',
+    'desserts': 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=120&h=120&fit=crop',
+    'beilagen': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120&h=120&fit=crop',
   };
   
-  const term = searchTerms[category] || 'food,meal';
-  return `https://source.unsplash.com/featured/120x120/?${term}`;
+  return colorMap[category] || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=120&h=120&fit=crop';
 };
 
 /**

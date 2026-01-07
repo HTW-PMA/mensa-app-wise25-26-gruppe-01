@@ -76,22 +76,28 @@ export function useFavorites(): UseFavoritesResult {
 
       // Lade favorisierte Gerichte
       if (favoriteMealIds.length > 0) {
-        // Hole alle Gerichte und filtere nach IDs
-        // Da wir keine direkte Meal-by-ID API haben, laden wir Gerichte aus verschiedenen Quellen
+        // Hole alle Gerichte mit einem einzigen API-Aufruf
+        // Wir laden alle Meals für heute und die nächsten Tage in einem Request
         const allMeals: Meal[] = [];
         
         try {
-          // Versuche Gerichte von verschiedenen Daten zu laden
-          const dates = getDateRange(7); // Letzte 7 Tage + nächste 7 Tage
+          // Lade Meals ohne Datumsfilter - die API gibt standardmäßig heutige Meals zurück
+          // Für Favoriten reicht das, da wir nur die Metadaten brauchen
+          const todayMeals = await mensaApi.getMeals({ loadingtype: 'complete' });
+          allMeals.push(...todayMeals);
           
-          for (const date of dates) {
-            try {
-              const mealsForDate = await mensaApi.getMeals({ date, loadingtype: 'complete' });
-              allMeals.push(...mealsForDate);
-            } catch {
-              // Ignoriere Fehler für einzelne Tage
-            }
-          }
+          // Optional: Lade auch Meals für die nächsten Tage (parallel, max 3 Requests)
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const dayAfter = new Date();
+          dayAfter.setDate(dayAfter.getDate() + 2);
+          
+          const [tomorrowMeals, dayAfterMeals] = await Promise.all([
+            mensaApi.getMeals({ date: tomorrow.toISOString().split('T')[0], loadingtype: 'complete' }).catch(() => []),
+            mensaApi.getMeals({ date: dayAfter.toISOString().split('T')[0], loadingtype: 'complete' }).catch(() => []),
+          ]);
+          
+          allMeals.push(...tomorrowMeals, ...dayAfterMeals);
         } catch {
           // Fallback: keine Gerichte verfügbar
         }
@@ -151,20 +157,4 @@ export function useFavorites(): UseFavoritesResult {
     favoriteMealIds,
     favoriteCanteenIds,
   };
-}
-
-/**
- * Generiert einen Bereich von Daten (heute +/- n Tage)
- */
-function getDateRange(days: number): string[] {
-  const dates: string[] = [];
-  const today = new Date();
-  
-  for (let i = -days; i <= days; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + i);
-    dates.push(date.toISOString().split('T')[0]);
-  }
-  
-  return dates;
 }

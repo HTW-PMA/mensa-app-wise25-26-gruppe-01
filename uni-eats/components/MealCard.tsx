@@ -1,9 +1,10 @@
 import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useMemo, memo } from 'react';
+import { useMemo, memo, useCallback } from 'react';
 import { type Meal } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
+import { useFavoritesContext } from '@/contexts/FavoritesContext';
 
 interface MealCardProps {
   meal: Meal;
@@ -77,7 +78,14 @@ const getMealImage = (meal: Meal): string => {
 };
 
 export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  // Verwende FavoritesContext für persistente Favoriten
+  const { isFavoriteMeal, toggleFavoriteMeal } = useFavoritesContext();
+  const isFavorite = isFavoriteMeal(meal.id);
+  
+  const handleFavoritePress = useCallback((e: any) => {
+    e.stopPropagation();
+    toggleFavoriteMeal(meal.id);
+  }, [meal.id, toggleFavoriteMeal]);
   
   // Memoize alle Werte um unnötige Berechnungen zu vermeiden
   const price = useMemo(() => getStudentPrice(meal.prices), [meal.prices]);
@@ -145,10 +153,7 @@ export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps)
         />
         <Pressable
           style={styles.favoriteButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            setIsFavorite(!isFavorite);
-          }}
+          onPress={handleFavoritePress}
           hitSlop={10}
         >
           <Ionicons
