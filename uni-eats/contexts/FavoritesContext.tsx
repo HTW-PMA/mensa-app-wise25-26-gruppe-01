@@ -1,13 +1,18 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { storage } from '@/utils/storage';
+import { useAuth } from '@/contexts/AuthContext';
 
-// Storage Keys
-const STORAGE_KEY_FAVORITE_CANTEEN = 'favorite_canteen'; // Legacy - für Migration
-const STORAGE_KEY_FAVORITE_CANTEENS = 'favorite_canteens'; // Neu - Multi-Canteen
-const STORAGE_KEY_FAVORITE_MEALS = 'favorite_meals';
+// Storage Keys - werden dynamisch mit User-ID generiert
+const getStorageKeyCanteens = (userId: string) => `favorites_canteens_${userId}`;
+const getStorageKeyMeals = (userId: string) => `favorites_meals_${userId}`;
+
+// Legacy Keys für Migration
+const LEGACY_STORAGE_KEY_CANTEEN = 'favorite_canteen';
+const LEGACY_STORAGE_KEY_CANTEENS = 'favorite_canteens';
+const LEGACY_STORAGE_KEY_MEALS = 'favorite_meals';
 
 interface FavoritesContextType {
-  favoriteCanteenIds: string[]; // Neue Struktur: Array statt Single Value
+  favoriteCanteenIds: string[];
   favoriteMealIds: string[];
   isLoading: boolean;
   addFavoriteCanteen: (canteenId: string) => Promise<void>;
@@ -18,6 +23,7 @@ interface FavoritesContextType {
   isFavoriteMeal: (mealId: string) => boolean;
   toggleFavoriteCanteen: (canteenId: string) => Promise<void>;
   toggleFavoriteMeal: (mealId: string) => Promise<void>;
+  clearFavorites: () => void;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
@@ -27,63 +33,74 @@ interface FavoritesProviderProps {
 }
 
 export function FavoritesProvider({ children }: FavoritesProviderProps) {
+  const { user } = useAuth();
   const [favoriteCanteenIds, setFavoriteCanteenIds] = useState<string[]>([]);
   const [favoriteMealIds, setFavoriteMealIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Lade gespeicherte Favoriten beim Start
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
   /**
-   * Lädt Favoriten aus Storage und migriert das alte Format
-   * Altes Format: favoriteCanteenId (string | null)
-   * Neues Format: favoriteCanteenIds (string[])
+   * Lädt Favoriten für den aktuellen User aus Storage
    */
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async (userId: string) => {
+    setIsLoading(true);
     try {
-      const [savedCanteens, savedMeals, legacyCanteen] = await Promise.all([
-        storage.get<string[]>(STORAGE_KEY_FAVORITE_CANTEENS),
-        storage.get<string[]>(STORAGE_KEY_FAVORITE_MEALS),
-        storage.get<string>(STORAGE_KEY_FAVORITE_CANTEEN), // Legacy
+      const [savedCanteens, savedMeals] = await Promise.all([
+        storage.get<string[]>(getStorageKeyCanteens(userId)),
+        storage.get<string[]>(getStorageKeyMeals(userId)),
       ]);
 
-      // Neue Struktur laden oder mit Legacy migrieren
+      // Lade user-spezifische Favoriten
       if (savedCanteens && Array.isArray(savedCanteens)) {
         setFavoriteCanteenIds(savedCanteens);
-      } else if (legacyCanteen) {
-        // Migration: Konvertiere altes Format zu neuem
-        const migratedIds = [legacyCanteen];
-        setFavoriteCanteenIds(migratedIds);
-        // Speichere neues Format und lösche altes
-        await Promise.all([
-          storage.save(STORAGE_KEY_FAVORITE_CANTEENS, migratedIds),
-          storage.remove(STORAGE_KEY_FAVORITE_CANTEEN),
-        ]);
+      } else {
+        setFavoriteCanteenIds([]);
       }
 
       if (savedMeals && Array.isArray(savedMeals)) {
         setFavoriteMealIds(savedMeals);
+      } else {
+        setFavoriteMealIds([]);
       }
     } catch (error) {
       console.error('Error loading favorites:', error);
+      setFavoriteCanteenIds([]);
+      setFavoriteMealIds([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  /**
+   * Setzt Favoriten zurück (beim Logout)
+   */
+  const clearFavorites = useCallback(() => {
+    setFavoriteCanteenIds([]);
+    setFavoriteMealIds([]);
+  }, []);
+
+  // Lade Favoriten wenn User sich ändert
+  useEffect(() => {
+    if (user?.id) {
+      loadFavorites(user.id);
+    } else {
+      // Kein User = keine Favoriten
+      clearFavorites();
+      setIsLoading(false);
+    }
+  }, [user?.id, loadFavorites, clearFavorites]);
 
   /**
    * Fügt eine Mensa zu den Favoriten hinzu (nur wenn nicht bereits vorhanden)
    */
   const addFavoriteCanteen = async (canteenId: string) => {
+    if (!user?.id) return;
     try {
       if (favoriteCanteenIds.includes(canteenId)) {
         return; // Bereits in Favoriten
       }
       const newCanteenIds = [...favoriteCanteenIds, canteenId];
       setFavoriteCanteenIds(newCanteenIds);
-      await storage.save(STORAGE_KEY_FAVORITE_CANTEENS, newCanteenIds);
+      await storage.save(getStorageKeyCanteens(user.id), newCanteenIds);
     } catch (error) {
       console.error('Error adding favorite canteen:', error);
     }
@@ -93,30 +110,33 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
    * Entfernt eine Mensa aus den Favoriten
    */
   const removeFavoriteCanteen = async (canteenId: string) => {
+    if (!user?.id) return;
     try {
       const newCanteenIds = favoriteCanteenIds.filter(id => id !== canteenId);
       setFavoriteCanteenIds(newCanteenIds);
-      await storage.save(STORAGE_KEY_FAVORITE_CANTEENS, newCanteenIds);
+      await storage.save(getStorageKeyCanteens(user.id), newCanteenIds);
     } catch (error) {
       console.error('Error removing favorite canteen:', error);
     }
   };
 
   const addFavoriteMeal = async (mealId: string) => {
+    if (!user?.id) return;
     try {
       const newMeals = [...favoriteMealIds, mealId];
       setFavoriteMealIds(newMeals);
-      await storage.save(STORAGE_KEY_FAVORITE_MEALS, newMeals);
+      await storage.save(getStorageKeyMeals(user.id), newMeals);
     } catch (error) {
       console.error('Error adding favorite meal:', error);
     }
   };
 
   const removeFavoriteMeal = async (mealId: string) => {
+    if (!user?.id) return;
     try {
       const newMeals = favoriteMealIds.filter(id => id !== mealId);
       setFavoriteMealIds(newMeals);
-      await storage.save(STORAGE_KEY_FAVORITE_MEALS, newMeals);
+      await storage.save(getStorageKeyMeals(user.id), newMeals);
     } catch (error) {
       console.error('Error removing favorite meal:', error);
     }
@@ -163,6 +183,7 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
         isFavoriteMeal,
         toggleFavoriteCanteen,
         toggleFavoriteMeal,
+        clearFavorites,
       }}
     >
       {children}

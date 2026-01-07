@@ -1,6 +1,48 @@
-# Welcome to your Expo app 👋
+# UniEats - Mensa App WiSe25/26
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native Expo app for discovering meals and checking mensa (canteen) information at the university.
+
+## Features
+
+- **Search Tab** - Search for meals and mensas with real-time filtering
+  - Recent Searches - Save and quickly access your previous searches
+  - Popular Search Tags - Quick access to common meal categories (Vegan, Pasta, Pizza, etc.)
+  - Persistent Storage - Your search history is saved locally
+  - Dark/Light Mode Support
+
+- **Home Tab** - Overview of available mensas and today's meals
+- **Map Tab** - Find mensas near you with location-based services
+- **AI Chef Tab** - Get personalized meal recommendations
+- **Account Tab** - Manage your preferences and settings
+
+## Project Structure
+
+```
+├── app/                    # Expo Router screens
+│   ├── (tabs)/            # Tab-based navigation
+│   │   ├── search.tsx     # Search screen
+│   │   ├── index.tsx      # Home screen
+│   │   ├── map.tsx        # Map screen
+│   │   └── ...
+│   └── _layout.tsx        # Root layout
+├── components/            # Reusable React components
+│   ├── SearchBar.tsx      # Search input component
+│   ├── MensaCard.tsx      # Mensa display card
+│   └── themed-*.tsx       # Themed UI components
+├── hooks/                 # Custom React hooks
+│   ├── useSearch.ts       # Search logic and state
+│   ├── useMeals.ts        # Meals data fetching
+│   ├── useMensas.ts       # Mensas data fetching
+│   └── ...
+├── services/              # API integration
+│   └── mensaApi.ts        # Mensa API client
+├── utils/                 # Utility functions
+│   ├── searchHelpers.ts   # Search filtering & helpers
+│   ├── storage.ts         # AsyncStorage wrapper
+│   └── queryKeys.ts       # React Query keys
+└── constants/             # App constants
+    └── theme.ts           # Color & styling constants
+```
 
 ## Get started
 
@@ -10,41 +52,75 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Create a `.env` file with your API key:
+
+   ```
+   EXPO_PUBLIC_MENSA_API_KEY=your_api_key_here
+   ```
+
+3. Start the app
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## Search Feature Implementation
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### useSearch Hook (`hooks/useSearch.ts`)
+- Manages search state and logic
+- Integrates with React Query for data fetching
+- Provides recent searches functionality
+- Handles debounced search filtering
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### SearchBar Component (`components/SearchBar.tsx`)
+- Reusable search input with clear button
+- Themed text colors for light/dark mode
+- Integrated search icon from Ionicons
 
-## Get a fresh project
+### Search Helpers (`utils/searchHelpers.ts`)
+- `filterMeals()` - Filter meals by query
+- `filterCanteens()` - Filter mensas by query
+- `combineSearchResults()` - Merge and sort results
+- `debounce()` - Optimize search performance
+- `POPULAR_SEARCHES` - Predefined meal categories
 
-When you're ready, run:
+### Search Screen (`app/(tabs)/search.tsx`)
+- Recent Searches section with delete functionality
+- Popular Searches section with category tags
+- Dynamic search results with meal and mensa listings
+- Loading states and error handling
+- Pull-to-refresh functionality
+- Dark/Light mode support
 
-```bash
-npm run reset-project
-```
+## Technologies
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- **React Native** - Cross-platform mobile framework
+- **Expo** - React Native development platform
+- **TypeScript** - Type-safe JavaScript
+- **React Query** - Data fetching and caching
+- **Expo Router** - File-based navigation
+- **AsyncStorage** - Local data persistence
+- **Ionicons** - Icon library
+
+## Requirements
+
+✅ Real-time meal and mensa search
+✅ Recent searches saved persistently (max 10)
+✅ Popular search categories for quick access
+✅ Debounced API calls for performance
+✅ Dark/Light mode support
+✅ Offline support with caching
+✅ Loading and error states
+✅ Responsive design
 
 ## Learn more
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- [Expo documentation](https://docs.expo.dev/): Learn fundamentals
+- [React Query docs](https://tanstack.com/query/latest): Data fetching
+- [Expo Router](https://docs.expo.dev/router/introduction/): Navigation
 
 ## Join the community
 
-Join our community of developers creating universal apps.
+- [Expo Discord](https://chat.expo.dev): Chat with developers
+- [GitHub](https://github.com/expo/expo): Contribute and explore
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.

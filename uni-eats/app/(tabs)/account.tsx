@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   ScrollView,
@@ -16,16 +16,9 @@ import { ThemedView } from '@/components/themed-view';
 import { AccountMenuItem } from '@/components/AccountMenuItem';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors, Fonts } from '@/constants/theme';
-import { storage } from '@/utils/storage';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface UserProfile {
-  name: string;
-  email: string;
-  avatar?: string;
-}
-
-const STORAGE_KEY_USER = 'user_profile';
 const APP_VERSION = '1.0.0';
 
 export default function AccountScreen() {
@@ -34,45 +27,12 @@ export default function AccountScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { favoriteMealIds, favoriteCanteenIds } = useFavoritesContext();
-
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, signOut, isLoading } = useAuth();
 
   // Berechne Favoriten-Anzahl aus Context (Multi-Canteen Support)
   const favoritesCount = {
     meals: favoriteMealIds.length,
     mensas: favoriteCanteenIds.length,
-  };
-
-  // Lade Benutzerdaten beim Start
-  useEffect(() => {
-    loadUserProfile();
-  }, []);
-
-  const loadUserProfile = async () => {
-    try {
-      const savedUser = await storage.get<UserProfile>(STORAGE_KEY_USER);
-      if (savedUser) {
-        setUser(savedUser);
-      } else {
-        // Fallback zu Dummy-Daten (kann durch echte User-Authentifizierung ersetzt werden)
-        const dummyUser: UserProfile = {
-          name: 'Max Student',
-          email: 'max.student@university.edu',
-        };
-        setUser(dummyUser);
-        await storage.save(STORAGE_KEY_USER, dummyUser);
-      }
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-      // Fallback Nutzer
-      setUser({
-        name: 'Max Student',
-        email: 'max.student@university.edu',
-      });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const getInitials = (name: string): string => {
@@ -90,7 +50,7 @@ export default function AccountScreen() {
   };
 
   const handleFavorites = () => {
-    router.push('/favorites');
+    router.push('/favorites' as any);
   };
 
   const handleProfile = () => {
@@ -99,7 +59,7 @@ export default function AccountScreen() {
   };
 
   const handleHelp = () => {
-    router.push('/help');
+    router.push('/help' as any);
   };
 
   const handleSettings = () => {
@@ -117,14 +77,8 @@ export default function AccountScreen() {
           text: 'Sign Out',
           onPress: async () => {
             try {
-              // Lösche Benutzerdaten
-              await storage.remove(STORAGE_KEY_USER);
-              // TODO: Navigiere zu Login/Welcome-Seite
-              // navigation.reset({
-              //   index: 0,
-              //   routes: [{ name: 'login' }],
-              // });
-              Alert.alert('Success', 'Du wurdest abgemeldet');
+              await signOut();
+              // Navigation happens automatically via RootLayoutNav
             } catch (error) {
               Alert.alert('Error', 'Fehler beim Abmelden');
             }
