@@ -38,46 +38,10 @@ function RootLayoutNav() {
         initNotifications();
     }, []);
 
-    // Set up notification tap listener
-    useEffect(() => {
-        let subscription: any;
 
-        const setupListener = async () => {
-            try {
-                const Notifications = await import('expo-notifications');
-
-                if (typeof Notifications?.addNotificationResponseReceivedListener !== 'function') {
-                    console.warn('⚠️ addNotificationResponseReceivedListener not available');
-                    return;
-                }
-
-                subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-                    const data = response?.notification?.request?.content?.data as any;
-                    const canteenId = data?.canteenId as string | undefined;
-
-                    if (canteenId) {
-                        console.log(`📲 Notification tapped: navigating to canteen ${canteenId}`);
-                        router.push({
-                            pathname: '/mensa-detail',
-                            params: { id: canteenId },
-                        } as any);
-                    }
-                });
-
-                console.log('✅ Notification listener set up');
-            } catch (error) {
-                console.warn('⚠️ Failed to set up notification listener:', error);
-            }
-        };
-
-        setupListener();
-
-        return () => {
-            if (subscription && typeof subscription.remove === 'function') {
-                subscription.remove();
-            }
-        };
-    }, [router]);
+    // Note: Notification tap listeners from expo-notifications are not available in local development
+    // They are available only when using EAS Build for native deployment
+    // Alert API notifications are shown through notifyFavoriteMealAvailable in notificationService.ts
 
     // Check favorite meals and send alerts
     useFavoriteMealAlerts();

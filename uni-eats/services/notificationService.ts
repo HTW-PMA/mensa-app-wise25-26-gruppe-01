@@ -1,63 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
-
-const ANDROID_CHANNEL_ID = 'mensa-default';
+import { Alert } from 'react-native';
 
 /**
- * Initialize notification handler and request permissions
+ * Initialize notification handler
+ * Uses fallback Alert API for local development
+ * For full native notifications, use EAS Build (requires Apple Developer account)
  */
 export async function initializeNotifications(): Promise<void> {
-  try {
-    const Notifications = await import('expo-notifications');
-
-    // Check if Notifications module has the required function
-    if (!Notifications.setNotificationHandler) {
-      console.warn('⚠️ Notifications.setNotificationHandler not available');
-      return;
-    }
-
-    // Set notification handler BEFORE setting up listeners
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-      }),
-    });
-
-    console.log('✅ Notification handler configured');
-
-    // Request permissions (works on physical devices)
-    try {
-      const { status } = await Notifications.requestPermissionsAsync();
-      console.log(`📱 Notification permission status: ${status}`);
-      if (status !== 'granted') {
-        console.warn('⚠️ Notification permissions not granted');
-      }
-    } catch (permError) {
-      console.warn('⚠️ Could not request notification permissions:', permError);
-    }
-
-    // Configure Android channel (only on Android)
-    if (Platform.OS === 'android') {
-      try {
-        if (Notifications.setNotificationChannelAsync) {
-          await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
-            name: 'Mensa Notifications',
-            importance: Notifications.AndroidImportance?.DEFAULT || 2,
-            vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#4CAF50',
-            sound: 'default',
-          });
-          console.log('📱 Android notification channel configured');
-        }
-      } catch (channelError) {
-        console.warn('⚠️ Could not configure Android channel:', channelError);
-      }
-    }
-  } catch (error) {
-    console.error('❌ Failed to initialize notifications:', error);
-  }
+  console.log('✅ Notification system initialized (Alert API - local development mode)');
 }
 
 /**
@@ -102,6 +52,7 @@ export async function markNotifiedToday(
 
 /**
  * Send notification when favorite meal is available
+ * Uses React Native Alert API for local development
  */
 export async function notifyFavoriteMealAvailable(
   mealName: string,
@@ -110,26 +61,26 @@ export async function notifyFavoriteMealAvailable(
   mealId: string
 ): Promise<void> {
   try {
-    const Notifications = await import('expo-notifications');
-    const identifier = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Lieblingsgericht verfügbar! 🍽️',
-        body: `Dein Favorit ${mealName} gibt es heute in der ${canteenName}.`,
-        sound: 'default',
-        data: {
-          canteenId,
-          mealId,
-          mealName,
-          type: 'favorite-meal-available',
+    // Use Alert API for local development
+    Alert.alert(
+      '🍽️ Lieblingsgericht verfügbar!',
+      `Dein Favorit "${mealName}" gibt es heute in der ${canteenName}.`,
+      [
+        {
+          text: 'Abbrechen',
+          onPress: () => console.log('Notification dismissed'),
+          style: 'cancel',
         },
-      },
-      trigger: {
-        seconds: 1, // Show immediately after 1 second
-      },
-    });
-
-    console.log(`🔔 Notification scheduled for meal: ${mealName} (ID: ${identifier})`);
+        {
+          text: 'Anzeigen',
+          onPress: () => {
+            console.log(`🔔 User tapped notification for meal: ${mealName} at ${canteenId}`);
+          },
+        },
+      ]
+    );
+    console.log(`🔔 Alert notification shown for meal: ${mealName}`);
   } catch (error) {
-    console.error('❌ Failed to schedule notification:', error);
+    console.error('❌ Failed to show notification:', error);
   }
 }
