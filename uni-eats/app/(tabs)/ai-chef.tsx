@@ -1,56 +1,56 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/themed-view';
+import { Colors, Fonts } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Fonts } from '@/constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
-import { getAiChefResponse } from '@/services/aiChefApi';
+import { getAiChefResponse, AIChefHistoryMessage } from '@/services/aiChefApi';
 import { useMensas } from '@/hooks/useMensas';
 import { useMeals } from '@/hooks/useMeals';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
-type ChatMessage =
-    | { id: string; role: 'assistant'; kind: 'intro' }
-    | { id: string; role: 'assistant' | 'user'; kind: 'text'; text: string };
+type Message = {
+  id: string;
+  text: string;
+  sender: 'user' | 'assistant';
+};
 
-const SUGGESTIONS = [
-  'What should I eat today?',
-  'Something vegan',
-  'Healthy options',
-  'Based on my favorites',
-] as const;
+const INITIAL_MESSAGES: Message[] = [
+  {
+    id: '1',
+    text:
+        'Hi! Ich bin dein AI-Chef-Assistent 🍽️\n\n' +
+        'Ich helfe dir, das perfekte Gericht basierend auf deinen Vorlieben und Favoriten zu finden.',
+    sender: 'assistant',
+  },
+];
+
+const SUGGESTIONS = ['Vegetarisch 🌱', 'Pasta 🍝', 'Fleisch 🥩', 'Günstig 💶', 'Salat 🥗'];
 
 export default function AiChefScreen() {
-  const colorScheme = useColorScheme();
-  const scheme = colorScheme ?? 'light';
+  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [inputText, setInputText] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Theme tokens
-  const bg = useThemeColor({}, 'background');
-  const text = useThemeColor({}, 'text');
-  const tint = useThemeColor({}, 'tint');
+  const flatListRef = useRef<FlatList<Message>>(null);
+  const inputRef = useRef<TextInput>(null);
 
-  // Manual colors (keine neuen Tokens!)
-  const border = scheme === 'dark' ? '#26322A' : '#E5E7EB';
-  const muted = scheme === 'dark' ? '#A7B0AA' : '#6B7280';
-  const subtext = scheme === 'dark' ? '#C9D1CB' : '#374151';
-  const cardBg = scheme === 'dark' ? '#121A14' : '#FFFFFF';
-  const inputBg = scheme === 'dark' ? '#121A14' : '#F3F4F6';
-  const bottomBarBg = scheme === 'dark' ? '#0F1511' : '#FFFFFF';
-  const badgeBg = scheme === 'dark' ? '#12301A' : '#E7F8EA';
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
 
   // Data
   const { data: mensas, isLoading: isLoadingMensas, isError: isMensasError } = useMensas();
@@ -60,50 +60,60 @@ export default function AiChefScreen() {
   const isLoadingContext = isLoadingMensas || isLoadingMeals;
   const isErrorContext = isMensasError || isMealsError;
 
-  // Chat state
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 'intro', role: 'assistant', kind: 'intro' },
-  ]);
-  const [loading, setLoading] = useState(false);
+  // Theme colors
+  const backgroundColor = useThemeColor({ light: '#FFFFFF', dark: '#000000' }, 'background');
+  const textColor = useThemeColor({ light: '#000000', dark: '#FFFFFF' }, 'text');
+  const subTextColor = useThemeColor({ light: '#666666', dark: '#9BA1A6' }, 'text');
 
-  const scrollRef = useRef<ScrollView>(null);
-  const inputRef = useRef<TextInput>(null);
+  const inputBackgroundColor = useThemeColor({ light: '#F5F5F5', dark: '#1C1C1E' }, 'background');
+  const borderColor = useThemeColor({ light: '#EEEEEE', dark: '#333333' }, 'background');
+  const aiBubbleColor = useThemeColor({ light: '#F0F0F0', dark: '#2C2C2E' }, 'background');
+  const chipBackgroundColor = useThemeColor({ light: '#F0F0F0', dark: '#2C2C2E' }, 'background');
 
-  const canSend = useMemo(
-      () => input.trim().length > 0 && !loading && !isLoadingContext,
-      [input, loading, isLoadingContext]
-  );
+  const primaryGreen = Colors.light.tint;
+
+  const canSend = useMemo(() => {
+    return inputText.trim().length > 0 && !loading && !isLoadingContext;
+  }, [inputText, loading, isLoadingContext]);
+
+  const scrollToEnd = (animated = true) => {
+    requestAnimationFrame(() => flatListRef.current?.scrollToEnd({ animated }));
+  };
 
   useEffect(() => {
-    const t = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+    const t = setTimeout(() => scrollToEnd(true), 50);
     return () => clearTimeout(t);
   }, [messages.length]);
 
-  const handleChipPress = (value: string) => {
-    setInput(value);
-    requestAnimationFrame(() => inputRef.current?.focus());
+  const buildHistory = (): AIChefHistoryMessage[] => {
+    const recent = messages.slice(-8);
+    return recent.map((m) => ({
+      role: m.sender === 'user' ? 'user' : 'assistant',
+      content: m.text,
+    }));
   };
 
-  const handleSend = async () => {
-    if (!canSend) return;
+  const handleSendMessage = async (textToSend?: string) => {
+    const finalText = (textToSend ?? inputText).trim();
+    if (!finalText || loading || isLoadingContext) return;
 
-    const trimmed = input.trim();
-    setMessages((prev) => [
-      ...prev,
-      { id: `u-${Date.now()}`, role: 'user', kind: 'text', text: trimmed },
-    ]);
-    setInput('');
+    Keyboard.dismiss();
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      text: finalText,
+      sender: 'user',
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    if (!textToSend) setInputText('');
     setLoading(true);
 
     try {
-      const history = messages
-          .filter((m): m is Extract<ChatMessage, { kind: 'text' }> => m.kind === 'text')
-          .slice(-6)
-          .map((m) => ({ role: m.role, content: m.text }));
+      const history = buildHistory();
 
       const response = await getAiChefResponse(
-          trimmed,
+          finalText,
           {
             mensas: mensas ?? [],
             meals: meals ?? [],
@@ -114,299 +124,263 @@ export default function AiChefScreen() {
           history
       );
 
-      setMessages((prev) => [
-        ...prev,
-        { id: `a-${Date.now()}`, role: 'assistant', kind: 'text', text: response },
-      ]);
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        text: response,
+        sender: 'assistant',
+      };
+
+      setMessages((prev) => [...prev, aiMsg]);
     } catch (e) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `e-${Date.now()}`,
-          role: 'assistant',
-          kind: 'text',
-          text: e instanceof Error ? e.message : 'Unexpected error',
-        },
-      ]);
+      const errMsg: Message = {
+        id: (Date.now() + 2).toString(),
+        text: e instanceof Error ? e.message : 'Unexpected error',
+        sender: 'assistant',
+      };
+      setMessages((prev) => [...prev, errMsg]);
     } finally {
       setLoading(false);
+      setTimeout(() => scrollToEnd(true), 80);
     }
   };
 
+  const handleSuggestionPress = (suggestion: string) => {
+    handleSendMessage(suggestion);
+  };
+
+  const renderItem = ({ item }: { item: Message }) => {
+    const isUser = item.sender === 'user';
+    return (
+        <View
+            style={[
+              styles.messageBubble,
+              isUser
+                  ? [styles.userBubble, { backgroundColor: primaryGreen }]
+                  : [styles.aiBubble, { backgroundColor: aiBubbleColor }],
+            ]}
+        >
+          <Text style={[styles.messageText, { color: isUser ? '#FFFFFF' : textColor }]}>
+            {item.text}
+          </Text>
+        </View>
+    );
+  };
+
+  // Minimal keyboard offset
+  const keyboardVerticalOffset = Platform.OS === 'ios' ? 0 : 0;
+
   return (
-      <ThemedView style={[styles.root, { backgroundColor: bg }]}>
-        <SafeAreaView style={styles.flex} edges={['top', 'left', 'right']}>
-          <KeyboardAvoidingView
-              style={styles.flex}
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-                <MaterialCommunityIcons name="robot-outline" size={20} color={tint} />
+      <ThemedView style={[styles.container, { backgroundColor }]}>
+        {/* Header */}
+        <View
+            style={[
+              styles.header,
+              {
+                borderBottomColor: borderColor,
+                backgroundColor,
+                paddingTop: Math.max(insets.top, 16) + 8,
+              },
+            ]}
+        >
+          <Text style={[styles.headerTitle, { color: textColor }]}>👨‍🍳 AI-Chef</Text>
+        </View>
+
+        <KeyboardAvoidingView
+            style={styles.keyboardAvoidingView}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={keyboardVerticalOffset}
+        >
+          <FlatList
+              ref={flatListRef}
+              data={messages}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              onContentSizeChange={() => scrollToEnd(true)}
+              contentContainerStyle={[
+                styles.messageList,
+                {
+                  paddingBottom: 8,
+                },
+              ]}
+          />
+
+          {/* Loading bubble */}
+          {loading && (
+              <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: aiBubbleColor, marginHorizontal: 16 }]}>
+                <ActivityIndicator color={primaryGreen} />
               </View>
+          )}
 
-              <View style={styles.headerText}>
-                <Text style={[styles.title, { color: text, fontFamily: Fonts.bold }]}>
-                  AI Chef
-                </Text>
-                <Text style={[styles.subtitle, { color: muted, fontFamily: Fonts.regular }]}>
-                  Your personal food advisor
-                </Text>
-              </View>
-            </View>
-
-            <View style={[styles.headerDivider, { borderBottomColor: border }]} />
-
-            {/* Content */}
-            <ScrollView
-                ref={scrollRef}
-                contentContainerStyle={[
-                  styles.content,
-                  { paddingBottom: 80 } // Höhe der BottomBar + SafeArea
-                ]}
-                keyboardShouldPersistTaps="handled"
-            >
-            {messages.map((m) =>
-                  m.kind === 'intro' ? (
-                      <View key={m.id} style={styles.rowLeft}>
-                        <View style={[styles.smallBadge, { backgroundColor: badgeBg }]}>
-                          <MaterialCommunityIcons name="robot-outline" size={18} color={tint} />
-                        </View>
-
-                        <View
-                            style={[
-                              styles.introCard,
-                              { backgroundColor: cardBg, borderColor: border },
-                            ]}
+          {/* Try Asking Zone */}
+          {messages.length <= 1 && !loading && (
+              <View style={[styles.suggestionsContainer, { backgroundColor }]}>
+                <Text style={[styles.suggestionsTitle, { color: subTextColor }]}>✨ Probier mal:</Text>
+                <FlatList
+                    data={SUGGESTIONS}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    keyExtractor={(item) => item}
+                    contentContainerStyle={styles.suggestionsList}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            style={[styles.suggestionChip, { backgroundColor: chipBackgroundColor }]}
+                            onPress={() => handleSuggestionPress(item)}
+                            activeOpacity={0.8}
                         >
-                          <Text style={[styles.introTitle, { fontFamily: Fonts.bold }]}>
-                            Hi! I&apos;m your AI Chef assistant 🍽️
-                          </Text>
-
-                          <Text style={[styles.introParagraph, { color: subtext }]}>
-                            I can help you find the perfect meal based on today&apos;s menu and your
-                            favorites. Try asking me:
-                          </Text>
-
-                          {[
-                            "'What should I eat today?'",
-                            "'Recommend something vegan'",
-                            "'I want something healthy'",
-                            "'Based on my favorites'",
-                          ].map((t) => (
-                              <Text key={t} style={[styles.bulletText, { color: subtext }]}>
-                                • {t}
-                              </Text>
-                          ))}
-                        </View>
-                      </View>
-                  ) : (
-                      <View
-                          key={m.id}
-                          style={[
-                            styles.msgRow,
-                            m.role === 'user' ? styles.rowRight : styles.rowLeftOnly,
-                          ]}
-                      >
-                        {m.role !== 'user' && (
-                            <View style={[styles.smallBadge, { backgroundColor: badgeBg }]}>
-                              <MaterialCommunityIcons name="robot-outline" size={18} color={tint} />
-                            </View>
-                        )}
-
-                        <View
-                            style={[
-                              styles.bubble,
-                              m.role === 'user'
-                                  ? { backgroundColor: tint }
-                                  : { backgroundColor: cardBg, borderColor: border },
-                            ]}
-                        >
-                          <Text
-                              style={[
-                                styles.bubbleText,
-                                { color: m.role === 'user' ? '#fff' : subtext },
-                              ]}
-                          >
-                            {m.text}
-                          </Text>
-                        </View>
-                      </View>
-                  )
-              )}
-
-              {loading && (
-                  <View style={styles.rowLeftOnly}>
-                    <View style={[styles.smallBadge, { backgroundColor: badgeBg }]}>
-                      <MaterialCommunityIcons name="robot-outline" size={18} color={tint} />
-                    </View>
-                    <View style={[styles.bubble, { backgroundColor: cardBg }]}>
-                      <ActivityIndicator color={tint} />
-                    </View>
-                  </View>
-              )}
-
-              {/* Chips */}
-              <View style={styles.tryAskingWrap}>
-                <Text style={[styles.tryAskingLabel, { color: muted }]}>✨ Try asking:</Text>
-                <View style={styles.chipsWrap}>
-                  {SUGGESTIONS.map((s) => (
-                      <Pressable
-                          key={s}
-                          onPress={() => handleChipPress(s)}
-                          style={[
-                            styles.chip,
-                            { backgroundColor: cardBg, borderColor: border },
-                          ]}
-                      >
-                        <Text style={{ color: text }}>{s}</Text>
-                      </Pressable>
-                  ))}
-                </View>
-              </View>
-
-            </ScrollView>
-
-            {/* Bottom input */}
-            <View style={[styles.bottomBar, { backgroundColor: bottomBarBg, borderTopColor: border }]}>
-              <View style={styles.inputRow}>
-                <TextInput
-                    ref={inputRef}
-                    value={input}
-                    onChangeText={setInput}
-                    placeholder="Ask me anything about food..."
-                    placeholderTextColor={scheme === 'dark' ? '#7C8A80' : '#9CA3AF'}
-                    style={[
-                      styles.input,
-                      { backgroundColor: inputBg, borderColor: border, color: text },
-                    ]}
-                    onSubmitEditing={handleSend}
+                          <Text style={[styles.suggestionText, { color: textColor }]}>{item}</Text>
+                        </TouchableOpacity>
+                    )}
                 />
-
-                <Pressable
-                    onPress={handleSend}
-                    disabled={!canSend}
-                    style={[
-                      styles.sendBtn,
-                      { backgroundColor: tint, opacity: canSend ? 1 : 0.4 },
-                    ]}
-                >
-                  <Ionicons name="send" size={18} color="#fff" />
-                </Pressable>
               </View>
-            </View>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
+          )}
+
+          {/* Input Area */}
+          <View
+              style={[
+                styles.inputContainer,
+                {
+                  borderTopColor: borderColor,
+                  backgroundColor,
+                  paddingBottom: insets.bottom > 0 ? insets.bottom / 2 : 4,
+                },
+              ]}
+          >
+            <TextInput
+                ref={inputRef}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: inputBackgroundColor,
+                    color: textColor,
+                    fontFamily: Fonts.regular,
+                  },
+                ]}
+                placeholder="Was möchtest du essen?"
+                placeholderTextColor={subTextColor}
+                value={inputText}
+                onChangeText={setInputText}
+                returnKeyType="send"
+                onSubmitEditing={() => handleSendMessage()}
+                editable={!loading && !isLoadingContext}
+            />
+
+            <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  {
+                    backgroundColor: primaryGreen,
+                    opacity: canSend ? 1 : 0.4,
+                  },
+                ]}
+                onPress={() => handleSendMessage()}
+                activeOpacity={0.8}
+                disabled={!canSend}
+            >
+              <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  root: { flex: 1 },
+  container: {
+    flex: 1,
+  },
 
   header: {
+    paddingBottom: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontFamily: Fonts.bold,
+    lineHeight: 32,
+    includeFontPadding: false,
+  },
+
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+
+  messageList: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+
+  messageBubble: {
+    maxWidth: '80%',
+    padding: 12,
+    borderRadius: 18,
+    marginBottom: 10,
+  },
+  aiBubble: {
+    alignSelf: 'flex-start',
+    borderTopLeftRadius: 4,
+  },
+  userBubble: {
+    alignSelf: 'flex-end',
+    borderTopRightRadius: 4,
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 21,
+    fontFamily: Fonts.regular,
+    includeFontPadding: false,
+  },
+
+  suggestionsContainer: {
+    paddingTop: 8,
+    paddingBottom: 12,
+    paddingLeft: 16,
+  },
+  suggestionsTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    marginBottom: 8,
+    includeFontPadding: false,
+  },
+  suggestionsList: {
+    paddingRight: 16,
+  },
+  suggestionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 18,
+    marginRight: 10,
+  },
+  suggestionText: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    includeFontPadding: false,
+  },
+
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 8,
-  },
-
-  headerDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    marginHorizontal: 16,
-    marginBottom: 8,
-  },
-
-  badge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  headerText: { marginLeft: 12 },
-  title: { fontSize: 18 },
-  subtitle: { fontSize: 13, marginTop: 2 },
-
-  content: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-
-  rowLeft: { flexDirection: 'row', alignItems: 'flex-start' },
-  rowLeftOnly: { flexDirection: 'row', marginTop: 12 },
-  rowRight: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 },
-
-  msgRow: { gap: 10 },
-
-  smallBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-    marginTop: 6,
-  },
-
-  introCard: {
-    maxWidth: '88%',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-  },
-
-  introTitle: { fontSize: 16, marginBottom: 8 },
-  introParagraph: { fontSize: 14, marginBottom: 8 },
-  bulletText: { fontSize: 14, marginTop: 4 },
-
-  bubble: {
-    maxWidth: '85%',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 12,
-  },
-
-  bubbleText: { fontSize: 14 },
-
-  tryAskingWrap: { marginTop: 20 },
-  tryAskingLabel: { fontSize: 13, marginBottom: 10 },
-
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-
-  chip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-
-  bottomBar: {
     borderTopWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
   },
-
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-
   input: {
     flex: 1,
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginRight: 10,
+    includeFontPadding: false,
   },
-
-  sendBtn: {
+  sendButton: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
 });
-
