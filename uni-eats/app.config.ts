@@ -2,25 +2,23 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "Uni-Eats",
+  name: "Uni Eats",
   slug: "uni-eats",
   version: "1.0.0",
   orientation: "portrait",
-  icon: "./assets/images/UniEatsLogo.png",
+  icon: "./assets/images/icon.png",
   scheme: "unieats",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.unieats.app",
-    icon: "./assets/images/UniEatsLogo.png"
+    icon: "./assets/images/icon.png",
   },
   android: {
     adaptiveIcon: {
       backgroundColor: "#02AA20",
-      foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
-      monochromeImage: "./assets/images/android-icon-monochrome.png",
+      foregroundImage: "./assets/images/icon.png",
     },
     config: {
       googleMaps: {
