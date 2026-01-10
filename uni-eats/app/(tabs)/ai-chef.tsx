@@ -10,6 +10,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
+  ScrollView,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/themed-view';
@@ -18,10 +21,12 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
-import { getAiChefResponse, AIChefHistoryMessage } from '@/services/aiChefApi';
+import { getAiChefResponse, AIChefHistoryMessage, UserPreferences } from '@/services/aiChefApi';
 import { useMensas } from '@/hooks/useMensas';
 import { useMeals } from '@/hooks/useMeals';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
+import { useLocation } from '@/hooks/useLocation';
+import { storage } from '@/utils/storage';
 
 type Message = {
   id: string;
@@ -34,17 +39,45 @@ const INITIAL_MESSAGES: Message[] = [
     id: '1',
     text:
         'Hi! Ich bin dein AI-Chef-Assistent 🍽️\n\n' +
-        'Ich helfe dir, das perfekte Gericht basierend auf deinen Vorlieben und Favoriten zu finden.',
+        'Ich helfe dir, das perfekte Gericht basierend auf deinen Vorlieben, Allergien und Budget zu finden.',
     sender: 'assistant',
   },
 ];
 
-const SUGGESTIONS = ['Vegetarisch 🌱', 'Pasta 🍝', 'Fleisch 🥩', 'Günstig 💶', 'Salat 🥗'];
+const SUGGESTIONS = [
+  'Vegetarisch 🌱',
+  'Pasta 🍝',
+  'Günstig 💶',
+  'Bin müde 😴',
+  'Vergleich: Salat vs Pizza',
+];
+
+const COMMON_ALLERGENS = [
+  'Gluten',
+  'Laktose',
+  'Nüsse',
+  'Eier',
+  'Soja',
+  'Fisch',
+  'Schalenfrüchte',
+  'Sellerie',
+];
+
+const STORAGE_KEY_PREFERENCES = 'ai_chef_user_preferences';
 
 export default function AiChefScreen() {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
+
+  // User preferences
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    allergies: [],
+    dietType: 'none',
+    dailyBudget: undefined,
+    spentToday: 0,
+  });
 
   const flatListRef = useRef<FlatList<Message>>(null);
   const inputRef = useRef<TextInput>(null);
@@ -56,6 +89,7 @@ export default function AiChefScreen() {
   const { data: mensas, isLoading: isLoadingMensas, isError: isMensasError } = useMensas();
   const { data: meals, isLoading: isLoadingMeals, isError: isMealsError } = useMeals();
   const { favoriteCanteenIds, favoriteMealIds } = useFavoritesContext();
+  const { location } = useLocation();
 
   const isLoadingContext = isLoadingMensas || isLoadingMeals;
   const isErrorContext = isMensasError || isMealsError;
@@ -64,13 +98,38 @@ export default function AiChefScreen() {
   const backgroundColor = useThemeColor({ light: '#FFFFFF', dark: '#000000' }, 'background');
   const textColor = useThemeColor({ light: '#000000', dark: '#FFFFFF' }, 'text');
   const subTextColor = useThemeColor({ light: '#666666', dark: '#9BA1A6' }, 'text');
-
   const inputBackgroundColor = useThemeColor({ light: '#F5F5F5', dark: '#1C1C1E' }, 'background');
   const borderColor = useThemeColor({ light: '#EEEEEE', dark: '#333333' }, 'background');
   const aiBubbleColor = useThemeColor({ light: '#F0F0F0', dark: '#2C2C2E' }, 'background');
   const chipBackgroundColor = useThemeColor({ light: '#F0F0F0', dark: '#2C2C2E' }, 'background');
+  const modalBackground = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'background');
 
   const primaryGreen = Colors.light.tint;
+
+  // Load preferences on mount
+  useEffect(() => {
+    loadPreferences();
+  }, []);
+
+  const loadPreferences = async () => {
+    try {
+      const saved = await storage.get<UserPreferences>(STORAGE_KEY_PREFERENCES);
+      if (saved) {
+        setPreferences(saved);
+      }
+    } catch (error) {
+      console.error('Error loading preferences:', error);
+    }
+  };
+
+  const savePreferences = async (newPrefs: UserPreferences) => {
+    try {
+      await storage.save(STORAGE_KEY_PREFERENCES, newPrefs);
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+    }
+  };
 
   const canSend = useMemo(() => {
     return inputText.trim().length > 0 && !loading && !isLoadingContext;
@@ -119,6 +178,8 @@ export default function AiChefScreen() {
             meals: meals ?? [],
             favoriteCanteenIds,
             favoriteMealIds,
+            userPreferences: preferences,
+            userLocation: location ?? undefined,
             contextStatus: { isLoadingContext, isErrorContext },
           },
           history
@@ -148,6 +209,14 @@ export default function AiChefScreen() {
     handleSendMessage(suggestion);
   };
 
+  const toggleAllergy = (allergy: string) => {
+    const newAllergies = preferences.allergies?.includes(allergy)
+        ? preferences.allergies.filter((a) => a !== allergy)
+        : [...(preferences.allergies || []), allergy];
+
+    savePreferences({ ...preferences, allergies: newAllergies });
+  };
+
   const renderItem = ({ item }: { item: Message }) => {
     const isUser = item.sender === 'user';
     return (
@@ -166,8 +235,13 @@ export default function AiChefScreen() {
     );
   };
 
-  // Minimal keyboard offset
   const keyboardVerticalOffset = Platform.OS === 'ios' ? 0 : 0;
+
+  // Preferences badge count
+  const preferencesCount =
+      (preferences.allergies?.length || 0) +
+      (preferences.dietType !== 'none' ? 1 : 0) +
+      (preferences.dailyBudget ? 1 : 0);
 
   return (
       <ThemedView style={[styles.container, { backgroundColor }]}>
@@ -182,7 +256,20 @@ export default function AiChefScreen() {
               },
             ]}
         >
-          <Text style={[styles.headerTitle, { color: textColor }]}>👨‍🍳 AI-Chef</Text>
+          <View style={styles.headerContent}>
+            <Text style={[styles.headerTitle, { color: textColor }]}>👨‍🍳 AI-Chef</Text>
+            <TouchableOpacity
+                style={[styles.prefsButton, { backgroundColor: chipBackgroundColor }]}
+                onPress={() => setShowPreferences(true)}
+            >
+              <Ionicons name="options-outline" size={20} color={primaryGreen} />
+              {preferencesCount > 0 && (
+                  <View style={[styles.badge, { backgroundColor: primaryGreen }]}>
+                    <Text style={styles.badgeText}>{preferencesCount}</Text>
+                  </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         <KeyboardAvoidingView
@@ -197,22 +284,15 @@ export default function AiChefScreen() {
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
               onContentSizeChange={() => scrollToEnd(true)}
-              contentContainerStyle={[
-                styles.messageList,
-                {
-                  paddingBottom: 8,
-                },
-              ]}
+              contentContainerStyle={[styles.messageList, { paddingBottom: 8 }]}
           />
 
-          {/* Loading bubble */}
           {loading && (
               <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: aiBubbleColor, marginHorizontal: 16 }]}>
                 <ActivityIndicator color={primaryGreen} />
               </View>
           )}
 
-          {/* Try Asking Zone */}
           {messages.length <= 1 && !loading && (
               <View style={[styles.suggestionsContainer, { backgroundColor }]}>
                 <Text style={[styles.suggestionsTitle, { color: subTextColor }]}>✨ Probier mal:</Text>
@@ -235,7 +315,6 @@ export default function AiChefScreen() {
               </View>
           )}
 
-          {/* Input Area */}
           <View
               style={[
                 styles.inputContainer,
@@ -281,38 +360,129 @@ export default function AiChefScreen() {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
+
+        {/* Preferences Modal */}
+        <Modal
+            visible={showPreferences}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => setShowPreferences(false)}
+        >
+          <ThemedView style={[styles.modalContainer, { backgroundColor: modalBackground }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+              <Text style={[styles.modalTitle, { color: textColor }]}>⚙️ Einstellungen</Text>
+              <TouchableOpacity onPress={() => setShowPreferences(false)}>
+                <Ionicons name="close" size={28} color={textColor} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              {/* Allergies */}
+              <Text style={[styles.sectionTitle, { color: textColor }]}>🚨 Allergien & Unverträglichkeiten</Text>
+              <View style={styles.allergyGrid}>
+                {COMMON_ALLERGENS.map((allergy) => {
+                  const isSelected = preferences.allergies?.includes(allergy);
+                  return (
+                      <TouchableOpacity
+                          key={allergy}
+                          style={[
+                            styles.allergyChip,
+                            { backgroundColor: chipBackgroundColor, borderColor: isSelected ? primaryGreen : 'transparent', borderWidth: 2 },
+                          ]}
+                          onPress={() => toggleAllergy(allergy)}
+                      >
+                        <Text style={[styles.allergyText, { color: isSelected ? primaryGreen : textColor }]}>
+                          {allergy}
+                        </Text>
+                      </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Diet Type */}
+              <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>🌱 Ernährungsweise</Text>
+              {['none', 'vegetarian', 'vegan', 'pescatarian'].map((diet) => (
+                  <TouchableOpacity
+                      key={diet}
+                      style={[styles.dietOption, { backgroundColor: chipBackgroundColor }]}
+                      onPress={() => savePreferences({ ...preferences, dietType: diet as any })}
+                  >
+                    <Text style={[styles.dietText, { color: textColor }]}>
+                      {diet === 'none' ? 'Keine Einschränkung' : diet.charAt(0).toUpperCase() + diet.slice(1)}
+                    </Text>
+                    {preferences.dietType === diet && <Ionicons name="checkmark-circle" size={24} color={primaryGreen} />}
+                  </TouchableOpacity>
+              ))}
+
+              {/* Budget */}
+              <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>💶 Tagesbudget</Text>
+              <View style={[styles.budgetContainer, { backgroundColor: chipBackgroundColor }]}>
+                <Text style={[styles.budgetLabel, { color: subTextColor }]}>Max. €/Tag:</Text>
+                <TextInput
+                    style={[styles.budgetInput, { color: textColor }]}
+                    keyboardType="decimal-pad"
+                    placeholder="z.B. 5.00"
+                    placeholderTextColor={subTextColor}
+                    value={preferences.dailyBudget?.toString() || ''}
+                    onChangeText={(text) => {
+                      const value = parseFloat(text);
+                      savePreferences({ ...preferences, dailyBudget: isNaN(value) ? undefined : value });
+                    }}
+                />
+              </View>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          </ThemedView>
+        </Modal>
       </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
+  container: { flex: 1 },
   header: {
     paddingBottom: 14,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 26,
     fontFamily: Fonts.bold,
     lineHeight: 32,
-    includeFontPadding: false,
   },
-
-  keyboardAvoidingView: {
-    flex: 1,
+  prefsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+  },
+  keyboardAvoidingView: { flex: 1 },
   messageList: {
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-
   messageBubble: {
     maxWidth: '80%',
     padding: 12,
@@ -331,9 +501,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     fontFamily: Fonts.regular,
-    includeFontPadding: false,
   },
-
   suggestionsContainer: {
     paddingTop: 8,
     paddingBottom: 12,
@@ -343,7 +511,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Fonts.bold,
     marginBottom: 8,
-    includeFontPadding: false,
   },
   suggestionsList: {
     paddingRight: 16,
@@ -357,9 +524,7 @@ const styles = StyleSheet.create({
   suggestionText: {
     fontSize: 15,
     fontFamily: Fonts.regular,
-    includeFontPadding: false,
   },
-
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -374,7 +539,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     marginRight: 10,
-    includeFontPadding: false,
   },
   sendButton: {
     width: 44,
@@ -382,5 +546,76 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    marginBottom: 12,
+  },
+  allergyGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  allergyChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  allergyText: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+  },
+  dietOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  dietText: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+  },
+  budgetContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  budgetLabel: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+    marginRight: 12,
+  },
+  budgetInput: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: Fonts.regular,
   },
 });
