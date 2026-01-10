@@ -251,8 +251,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
     borderBottomWidth: 1,
+    paddingVertical: Platform.select({
+      ios: 12,
+      android: 35,
+    }),
+    paddingBottom: Platform.select({
+      android: 10,
+    }),
   },
   backButton: {
     padding: 8,

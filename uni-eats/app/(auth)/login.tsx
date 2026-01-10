@@ -179,7 +179,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: Platform.select({
+      ios: 12,
+      android: 35,
+    }),
+    paddingBottom: Platform.select({
+      android: 10,
+    }),
     borderBottomWidth: 1,
   },
   backButton: {
@@ -232,6 +238,7 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: 24,
+    includeFontPadding: false,
   },
   forgotPassword: {
     alignSelf: 'flex-end',

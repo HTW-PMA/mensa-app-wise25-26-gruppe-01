@@ -127,6 +127,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.regular,
     height: '100%',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   inputWithIcon: {
     paddingLeft: 0,
