@@ -98,6 +98,7 @@ export default function AiChefScreen() {
   const backgroundColor = useThemeColor({ light: '#FFFFFF', dark: '#000000' }, 'background');
   const textColor = useThemeColor({ light: '#000000', dark: '#FFFFFF' }, 'text');
   const subTextColor = useThemeColor({ light: '#666666', dark: '#9BA1A6' }, 'text');
+
   const inputBackgroundColor = useThemeColor({ light: '#F5F5F5', dark: '#1C1C1E' }, 'background');
   const borderColor = useThemeColor({ light: '#EEEEEE', dark: '#333333' }, 'background');
   const aiBubbleColor = useThemeColor({ light: '#F0F0F0', dark: '#2C2C2E' }, 'background');
@@ -140,9 +141,19 @@ export default function AiChefScreen() {
   };
 
   useEffect(() => {
-    const t = setTimeout(() => scrollToEnd(true), 50);
+    const t = setTimeout(() => scrollToEnd(true), 100);
     return () => clearTimeout(t);
-  }, [messages.length]);
+  }, [messages.length, loading]);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => scrollToEnd(true)
+    );
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   const buildHistory = (): AIChefHistoryMessage[] => {
     const recent = messages.slice(-8);
@@ -228,7 +239,7 @@ export default function AiChefScreen() {
                   : [styles.aiBubble, { backgroundColor: aiBubbleColor }],
             ]}
         >
-          <Text style={[styles.messageText, { color: isUser ? '#FFFFFF' : textColor }]}>
+          <Text style={[styles.messageText, { color: isUser ? '#FFFFFF' : textColor, includeFontPadding: false }]}>
             {item.text}
           </Text>
         </View>
@@ -257,7 +268,10 @@ export default function AiChefScreen() {
             ]}
         >
           <View style={styles.headerContent}>
-            <Text style={[styles.headerTitle, { color: textColor }]}>👨‍🍳 AI-Chef</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 24, marginRight: 8 }}>👨‍🍳</Text>
+              <Text style={[styles.headerTitle, { color: textColor }]}>AI-Chef</Text>
+            </View>
             <TouchableOpacity
                 style={[styles.prefsButton, { backgroundColor: chipBackgroundColor }]}
                 onPress={() => setShowPreferences(true)}
@@ -274,7 +288,7 @@ export default function AiChefScreen() {
 
         <KeyboardAvoidingView
             style={styles.keyboardAvoidingView}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={keyboardVerticalOffset}
         >
           <FlatList
@@ -356,7 +370,7 @@ export default function AiChefScreen() {
                 activeOpacity={0.8}
                 disabled={!canSend}
             >
-              <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-up" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -442,7 +456,7 @@ export default function AiChefScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingBottom: 14,
+    paddingBottom: 5,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
   },
@@ -452,9 +466,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontFamily: Fonts.bold,
-    lineHeight: 32,
+    marginTop: 14,
   },
   prefsButton: {
     width: 40,
@@ -485,9 +499,9 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: '80%',
-    padding: 12,
+    padding: 14,
     borderRadius: 18,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   aiBubble: {
     alignSelf: 'flex-start',
@@ -498,9 +512,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 4,
   },
   messageText: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 22,
     fontFamily: Fonts.regular,
+    includeFontPadding: false,
   },
   suggestionsContainer: {
     paddingTop: 8,
@@ -508,9 +523,10 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
   },
   suggestionsTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: Fonts.bold,
     marginBottom: 8,
+    includeFontPadding: false,
   },
   suggestionsList: {
     paddingRight: 16,
@@ -518,12 +534,13 @@ const styles = StyleSheet.create({
   suggestionChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 18,
-    marginRight: 10,
+    borderRadius: 20,
+    marginRight: 8,
   },
   suggestionText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: Fonts.regular,
+    includeFontPadding: false,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -539,6 +556,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     marginRight: 10,
+    includeFontPadding: false,
   },
   sendButton: {
     width: 44,
