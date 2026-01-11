@@ -5,6 +5,7 @@ import { useMemo, memo, useCallback } from 'react';
 import { type Meal } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
+import { translateBadge } from '@/utils/translations';
 
 interface MealCardProps {
   meal: Meal;
@@ -119,7 +120,7 @@ export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps)
           <View style={styles.badgeRow}>
             {badges.map((badge, index) => (
               <View key={index} style={styles.badge}>
-                <Text style={styles.badgeText}>{badge}</Text>
+                <Text style={styles.badgeText}>{translateBadge(badge)}</Text>
               </View>
             ))}
           </View>

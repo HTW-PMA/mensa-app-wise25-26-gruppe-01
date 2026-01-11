@@ -19,18 +19,7 @@ import { MealCard } from '@/components/MealCard';
 import { Colors } from '@/constants/theme';
 import { useLocation, calculateDistance, formatDistance } from '@/hooks/useLocation';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
-
-// Kategorie-Definitionen mit deutschen/englischen Namen
-const CATEGORY_MAP: Record<string, string> = {
-  'all': 'All',
-  'Hauptgerichte': 'Main Dishes',
-  'Salate': 'Salads',
-  'Suppen': 'Soups',
-  'Desserts': 'Desserts',
-  'Beilagen': 'Sides',
-  'Getränke': 'Drinks',
-  'Aktionen': 'Specials',
-};
+import { translateCategory } from '@/utils/translations';
 
 export default function MensaDetailScreen() {
   const router = useRouter();
@@ -202,10 +191,10 @@ export default function MensaDetailScreen() {
     return `${hour.openAt}–${hour.closeAt}`;
   };
 
-  // Kategorie-Titel für Anzeige
+  // Category title for display - uses central translations
   const getCategoryTitle = (cat: string): string => {
     if (cat === 'all') return 'All Dishes';
-    return CATEGORY_MAP[cat] || cat;
+    return translateCategory(cat);
   };
 
   // Loading State
@@ -392,13 +381,26 @@ export default function MensaDetailScreen() {
                   </Text>
                 </View>
               ) : (
-                filteredMeals.map((meal) => (
+                filteredMeals.map((meal, index) => (
                   <MealCard
-                    key={meal.id}
+                    key={`${meal.id}-${index}`}
                     meal={meal}
                     onPress={() => {
-                      // TODO: Navigate to meal detail
-                      console.log('Meal pressed:', meal.name);
+                      // Navigate to meal detail with all meal data
+                      router.push({
+                        pathname: '/meal-detail',
+                        params: {
+                          id: meal.id,
+                          name: meal.name,
+                          category: meal.category || '',
+                          prices: JSON.stringify(meal.prices || []),
+                          additives: JSON.stringify(meal.additives || []),
+                          badges: JSON.stringify(meal.badges || []),
+                          co2Bilanz: meal.co2Bilanz?.toString() || '',
+                          waterBilanz: meal.waterBilanz?.toString() || '',
+                          canteenName: enrichedCanteen?.name || '',
+                        },
+                      });
                     }}
                   />
                 ))

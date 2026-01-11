@@ -98,6 +98,14 @@ function RootLayoutNav() {
                         presentation: 'card',
                     }}
                 />
+                <Stack.Screen
+                    name="meal-detail"
+                    options={{
+                        title: 'Meal Details',
+                        headerShown: false,
+                        presentation: 'card',
+                    }}
+                />
                 <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             </Stack>
             <StatusBar style="auto" />
