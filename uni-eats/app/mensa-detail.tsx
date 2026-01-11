@@ -6,7 +6,6 @@ import {
   ActivityIndicator, 
   Pressable, 
   RefreshControl,
-  Platform,
   StatusBar
 } from 'react-native';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -19,7 +18,13 @@ import { MealCard } from '@/components/MealCard';
 import { Colors } from '@/constants/theme';
 import { useLocation, calculateDistance, formatDistance } from '@/hooks/useLocation';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
-import { translateCategory } from '@/utils/translations';
+
+const formatLocalDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export default function MensaDetailScreen() {
   const router = useRouter();
@@ -32,10 +37,13 @@ export default function MensaDetailScreen() {
   // State
   const [canteen, setCanteen] = useState<Canteen | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCanteen, setLoadingCanteen] = useState(true);
+  const [loadingMeals, setLoadingMeals] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(() => formatLocalDateKey(new Date()));
+  const [today, setToday] = useState<Date>(() => new Date());
+  const [canteenError, setCanteenError] = useState<string | null>(null);
+  const [mealsError, setMealsError] = useState<string | null>(null);
 
   // Google Ratings Hook - lädt Ratings im Hintergrund während Meals angezeigt werden
   const { enrichCanteensWithRatings } = useGoogleRatings(canteen ? [canteen] : []);
@@ -47,8 +55,37 @@ export default function MensaDetailScreen() {
     return enriched;
   }, [canteen, enrichCanteensWithRatings]);
 
+  const todayKey = useMemo(() => formatLocalDateKey(today), [today]);
+
+  const weekDates = useMemo(() => {
+    const baseDate = new Date(today);
+    baseDate.setHours(0, 0, 0, 0);
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(baseDate);
+      date.setDate(baseDate.getDate() + index);
+      return {
+        key: formatLocalDateKey(date),
+        weekday: date.toLocaleDateString('en-GB', { weekday: 'short' }),
+        label: date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        date,
+      };
+    });
+  }, [today]);
+
+  const selectedDateInfo = useMemo(
+    () => weekDates.find((day) => day.key === selectedDate),
+    [weekDates, selectedDate]
+  );
+
+  const isSelectedToday = selectedDate === todayKey;
+  const mealsCountLabel = mealsError
+    ? '–'
+    : loadingMeals
+      ? 'Loading'
+      : `${meals.length} items`;
+
   // Daten laden
-  const loadData = async () => {
+  const loadCanteen = useCallback(async () => {
     if (!id) return;
     
     const startTime = Date.now();
@@ -58,53 +95,96 @@ export default function MensaDetailScreen() {
     };
 
     try {
-      logStep('START loading mensa detail');
-      setError(null);
-      
-      // Lade Meals und Canteen parallel für bessere Performance
-      logStep('Calling getMeals and getCanteen in parallel...');
-      const [mealsData, canteenData] = await Promise.all([
-        mensaApi.getMeals({ canteenId: id, loadingtype: 'complete' }),
-        mensaApi.getCanteen(id),
-      ]);
-      
-      logStep(`Meals loaded: ${mealsData.length} items`);
+      logStep('START loading canteen');
+      setCanteenError(null);
+      setLoadingCanteen(true);
+
+      logStep('Calling getCanteen...');
+      const canteenData = await mensaApi.getCanteen(id);
       logStep(`Canteen loaded: ${canteenData?.name || 'NOT FOUND'} | canteenData: ${JSON.stringify(canteenData)}`);
-      
-      setMeals(mealsData);
-      console.log('📢 Setting canteen:', canteenData);
-      setCanteen(canteenData);
-      setLoading(false);
+
+      if (!canteenData) {
+        setCanteenError('Mensa not found');
+        setCanteen(null);
+      } else {
+        console.log('📢 Setting canteen:', canteenData);
+        setCanteen(canteenData);
+      }
     } catch (err) {
-      console.error('Error loading mensa details:', err);
+      console.error('Error loading canteen:', err);
       logStep('ERROR occurred');
-      setError('Fehler beim Laden der Daten');
-      setLoading(false);
+      setCanteenError('Fehler beim Laden der Mensa');
+      setCanteen(null);
     } finally {
-      setRefreshing(false);
+      setLoadingCanteen(false);
     }
-  };
+  }, [id]);
+
+  const loadMeals = useCallback(
+    async (dateKey: string) => {
+      if (!id) return;
+
+      const startTime = Date.now();
+      const logStep = (step: string) => {
+        const elapsed = Date.now() - startTime;
+        console.log(`⏱️  MensaDetail [${elapsed}ms]: ${step}`);
+      };
+
+      try {
+        logStep(`START loading meals for ${dateKey}`);
+        setMealsError(null);
+        setLoadingMeals(true);
+
+        logStep('Calling getMeals...');
+        const mealsData = await mensaApi.getMeals({
+          canteenId: id,
+          loadingtype: 'complete',
+          date: dateKey,
+        });
+        logStep(`Meals loaded: ${mealsData.length} items`);
+
+        setMeals(mealsData);
+      } catch (err) {
+        console.error('Error loading meals:', err);
+        logStep('ERROR occurred');
+        setMeals([]);
+        setMealsError('Fehler beim Laden der Gerichte');
+      } finally {
+        setLoadingMeals(false);
+      }
+    },
+    [id]
+  );
 
   useEffect(() => {
-    loadData();
-  }, [id]);
+    loadCanteen();
+  }, [id, loadCanteen]);
+
+  useEffect(() => {
+    loadMeals(selectedDate);
+  }, [loadMeals, selectedDate]);
+
+  useEffect(() => {
+    if (!weekDates.some((day) => day.key === selectedDate)) {
+      setSelectedDate(todayKey);
+    }
+  }, [todayKey, weekDates, selectedDate]);
+
+  useEffect(() => {
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    const timeout = nextMidnight.getTime() - now.getTime();
+    const timer = setTimeout(() => setToday(new Date()), timeout);
+    return () => clearTimeout(timer);
+  }, [today]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadData();
-  }, []);
-
-  // Kategorien aus Meals extrahieren
-  const categories = useMemo(() => {
-    const cats = [...new Set(meals.map(m => m.category).filter(Boolean))] as string[];
-    return ['all', ...cats];
-  }, [meals]);
-
-  // Meals nach Kategorie filtern
-  const filteredMeals = useMemo(() => {
-    if (selectedCategory === 'all') return meals;
-    return meals.filter(m => m.category === selectedCategory);
-  }, [meals, selectedCategory]);
+    Promise.all([loadCanteen(), loadMeals(selectedDate)]).finally(() => {
+      setRefreshing(false);
+    });
+  }, [loadCanteen, loadMeals, selectedDate]);
 
   // Rating-Anzeige
   const getRating = (): { rating: string; count: number } => {
@@ -191,14 +271,8 @@ export default function MensaDetailScreen() {
     return `${hour.openAt}–${hour.closeAt}`;
   };
 
-  // Category title for display - uses central translations
-  const getCategoryTitle = (cat: string): string => {
-    if (cat === 'all') return 'All Dishes';
-    return translateCategory(cat);
-  };
-
   // Loading State
-  if (loading) {
+  if (loadingCanteen && !canteen) {
     return (
       <View style={[styles.centerContainer, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={Colors.light.tint} />
@@ -208,11 +282,11 @@ export default function MensaDetailScreen() {
   }
 
   // Error State
-  if (error || !canteen) {
+  if (!loadingCanteen && !canteen) {
     return (
       <View style={[styles.centerContainer, { paddingTop: insets.top }]}>
         <Ionicons name="alert-circle-outline" size={48} color="#E57373" />
-        <Text style={styles.errorText}>{error || 'Mensa not found'}</Text>
+        <Text style={styles.errorText}>{canteenError || 'Mensa not found'}</Text>
         <Pressable style={styles.retryButton} onPress={() => router.back()}>
           <Text style={styles.retryButtonText}>Go Back</Text>
         </Pressable>
@@ -260,16 +334,19 @@ export default function MensaDetailScreen() {
         <View style={styles.heroContainer}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?q=80&w=800&auto=format&fit=crop' }}
-            style={[styles.heroImage, !loading && meals.length === 0 && styles.heroImageClosed]}
+            style={[
+              styles.heroImage,
+              !loadingMeals && !mealsError && meals.length === 0 && styles.heroImageClosed
+            ]}
             contentFit="cover"
             transition={500}
           />
           {/* Closed Overlay when no meals available (nicht während loading) */}
-          {!loading && meals.length === 0 && (
+          {!loadingMeals && !mealsError && meals.length === 0 && (
             <View style={styles.closedOverlay}>
               <View style={styles.closedBadge}>
                 <Ionicons name="close-circle" size={20} color="#fff" />
-                <Text style={styles.closedBadgeText}>Closed Today</Text>
+                <Text style={styles.closedBadgeText}>{isSelectedToday ? 'Closed Today' : 'Closed'}</Text>
               </View>
             </View>
           )}
@@ -311,12 +388,66 @@ export default function MensaDetailScreen() {
           </View>
         </View>
 
+        {/* Date Filter */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.datePickerScroll}
+          style={styles.datePickerContainer}
+        >
+          {weekDates.map((day) => {
+            const isSelected = day.key === selectedDate;
+            return (
+            <Pressable
+              key={day.key}
+              onPress={() => setSelectedDate(day.key)}
+              style={[
+                styles.dateChip,
+                isSelected && styles.dateChipActive
+              ]}
+            >
+              <Text style={[
+                styles.dateChipDay,
+                isSelected && styles.dateChipTextActive
+              ]}>
+                {day.weekday}
+              </Text>
+              <Text style={[
+                styles.dateChipDate,
+                isSelected && styles.dateChipTextActive
+              ]}>
+                {day.label}
+              </Text>
+            </Pressable>
+          )})}
+        </ScrollView>
+
+        {/* Date Title */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {isSelectedToday
+              ? 'Today'
+              : selectedDateInfo
+                ? `${selectedDateInfo.weekday}, ${selectedDateInfo.label}`
+                : 'Dishes'}
+          </Text>
+          <Text style={styles.sectionCount}>
+            {mealsCountLabel}
+          </Text>
+        </View>
+
         {/* Show Closed state or meal list */}
-        {loading ? (
+        {loadingMeals ? (
           /* Loading State */
           <View style={styles.closedState}>
             <ActivityIndicator size="large" color={Colors.light.tint} />
             <Text style={styles.closedTitle}>Loading Dishes...</Text>
+          </View>
+        ) : mealsError ? (
+          <View style={styles.closedState}>
+            <Ionicons name="alert-circle-outline" size={48} color="#E57373" />
+            <Text style={styles.closedTitle}>Could not load dishes</Text>
+            <Text style={styles.closedSubtitle}>{mealsError}</Text>
           </View>
         ) : meals.length === 0 ? (
           /* Closed State - No meals available today */
@@ -324,89 +455,41 @@ export default function MensaDetailScreen() {
             <View style={styles.closedIconContainer}>
               <Ionicons name="time-outline" size={64} color="#E57373" />
             </View>
-            <Text style={styles.closedTitle}>Closed Today</Text>
+            <Text style={styles.closedTitle}>{isSelectedToday ? 'Closed Today' : 'Closed'}</Text>
             <Text style={styles.closedSubtitle}>
-              This canteen has no dishes available for today.
+              This canteen has no dishes available for this day.
             </Text>
             <Text style={styles.closedHint}>
-              Check back tomorrow or try another canteen nearby.
+              Try another date or check a different canteen nearby.
             </Text>
           </View>
         ) : (
-          /* Category Filter - only show when meals available */
-          <>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryScroll}
-              style={styles.categoryContainer}
-            >
-              {categories.map((category) => (
-                <Pressable
-                  key={category}
-                  onPress={() => setSelectedCategory(category)}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === category && styles.categoryChipActive
-                  ]}
-                >
-                  <Text style={[
-                    styles.categoryText,
-                    selectedCategory === category && styles.categoryTextActive
-                  ]}>
-                    {getCategoryTitle(category)}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            {/* Category Title */}
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                {getCategoryTitle(selectedCategory)}
-              </Text>
-              <Text style={styles.sectionCount}>
-                {filteredMeals.length} items
-              </Text>
-            </View>
-
-            {/* Meal List */}
-            <View style={styles.mealList}>
-              {filteredMeals.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="restaurant-outline" size={48} color="#ccc" />
-                  <Text style={styles.emptyText}>No dishes in this category</Text>
-                  <Text style={styles.emptySubtext}>
-                    Try selecting a different category
-                  </Text>
-                </View>
-              ) : (
-                filteredMeals.map((meal, index) => (
-                  <MealCard
-                    key={`${meal.id}-${index}`}
-                    meal={meal}
-                    onPress={() => {
-                      // Navigate to meal detail with all meal data
-                      router.push({
-                        pathname: '/meal-detail',
-                        params: {
-                          id: meal.id,
-                          name: meal.name,
-                          category: meal.category || '',
-                          prices: JSON.stringify(meal.prices || []),
-                          additives: JSON.stringify(meal.additives || []),
-                          badges: JSON.stringify(meal.badges || []),
-                          co2Bilanz: meal.co2Bilanz?.toString() || '',
-                          waterBilanz: meal.waterBilanz?.toString() || '',
-                          canteenName: enrichedCanteen?.name || '',
-                        },
-                      });
-                    }}
-                  />
-                ))
-              )}
-            </View>
-          </>
+          /* Meal List */
+          <View style={styles.mealList}>
+            {meals.map((meal, index) => (
+              <MealCard
+                key={`${meal.id}-${index}`}
+                meal={meal}
+                onPress={() => {
+                  // Navigate to meal detail with all meal data
+                  router.push({
+                    pathname: '/meal-detail',
+                    params: {
+                      id: meal.id,
+                      name: meal.name,
+                      category: meal.category || '',
+                      prices: JSON.stringify(meal.prices || []),
+                      additives: JSON.stringify(meal.additives || []),
+                      badges: JSON.stringify(meal.badges || []),
+                      co2Bilanz: meal.co2Bilanz?.toString() || '',
+                      waterBilanz: meal.waterBilanz?.toString() || '',
+                      canteenName: enrichedCanteen?.name || '',
+                    },
+                  });
+                }}
+              />
+            ))}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -547,33 +630,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   
-  // Category Filter
-  categoryContainer: {
+  // Date Picker
+  datePickerContainer: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  categoryScroll: {
+  datePickerScroll: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 10,
   },
-  categoryChip: {
+  dateChip: {
     backgroundColor: '#333',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
+    borderRadius: 16,
+    alignItems: 'center',
+    minWidth: 64,
   },
-  categoryChipActive: {
+  dateChipActive: {
     backgroundColor: Colors.light.tint,
   },
-  categoryText: {
+  dateChipDay: {
     fontFamily: 'GoogleSans-Bold',
-    fontSize: 14,
-    color: '#fff',
+    fontSize: 12,
+    color: '#f5f5f5',
   },
-  categoryTextActive: {
+  dateChipDate: {
+    marginTop: 2,
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: 12,
+    color: '#e0e0e0',
+  },
+  dateChipTextActive: {
     color: '#fff',
   },
   
@@ -600,24 +690,6 @@ const styles = StyleSheet.create({
   // Meal List
   mealList: {
     paddingHorizontal: 16,
-  },
-  
-  // Empty State
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    marginTop: 12,
-    fontFamily: 'GoogleSans-Bold',
-    fontSize: 16,
-    color: '#666',
-  },
-  emptySubtext: {
-    marginTop: 4,
-    fontFamily: 'GoogleSans-Regular',
-    fontSize: 14,
-    color: '#999',
   },
   
   // Closed State
