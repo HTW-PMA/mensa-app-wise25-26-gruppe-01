@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type Meal, type MealAdditive, type MealBadge } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { 
   translateCategory, 
   translateBadge, 
@@ -113,6 +114,17 @@ export default function MealDetailScreen() {
   }>();
   const insets = useSafeAreaInsets();
   
+  // Theme Colors
+  const backgroundColor = useThemeColor({ light: '#F5F5F5', dark: '#000000' }, 'background');
+  const cardBackgroundColor = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'background');
+  const textColor = useThemeColor({ light: '#333333', dark: '#FFFFFF' }, 'text');
+  const subTextColor = useThemeColor({ light: '#666666', dark: '#9BA1A6' }, 'text');
+  const borderColor = useThemeColor({ light: '#F0F0F0', dark: '#2C2C2E' }, 'border');
+  const allergenBg = useThemeColor({ light: '#FFF8E1', dark: '#2C1A05' }, 'background');
+  const allergenBorder = useThemeColor({ light: '#FFE082', dark: '#4D3300' }, 'border');
+  const allergenTitleColor = useThemeColor({ light: '#E65100', dark: '#FFB347' }, 'text');
+  const envItemBg = useThemeColor({ light: '#FAFAFA', dark: '#2C2C2E' }, 'background');
+
   // Favoriten-Kontext
   const { isFavoriteMeal, toggleFavoriteMeal } = useFavoritesContext();
   const isFavorite = isFavoriteMeal(params.id);
@@ -172,7 +184,7 @@ export default function MealDetailScreen() {
   };
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Hero Image mit Overlay */}
@@ -206,30 +218,31 @@ export default function MealDetailScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Meal Name & Canteen */}
         <View style={styles.titleSection}>
-          <Text style={styles.mealName}>{meal.name}</Text>
+          <Text style={[styles.mealName, { color: textColor }]}>{meal.name}</Text>
           {canteenName && (
             <View style={styles.canteenRow}>
-              <Ionicons name="restaurant-outline" size={16} color="#666" />
-              <Text style={styles.canteenName}>{canteenName}</Text>
+              <Ionicons name="restaurant-outline" size={16} color={subTextColor} />
+              <Text style={[styles.canteenName, { color: subTextColor }]}>{canteenName}</Text>
             </View>
           )}
         </View>
         
         {/* Price Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Prices</Text>
+        <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>Prices</Text>
           <View style={styles.priceGrid}>
             {allPrices.length > 0 ? (
               allPrices.map((price, index) => (
-                <View key={index} style={styles.priceItem}>
-                  <Text style={styles.priceType}>{price.type}</Text>
+                <View key={index} style={[styles.priceItem, { borderBottomColor: borderColor }]}>
+                  <Text style={[styles.priceType, { color: subTextColor }]}>{price.type}</Text>
                   <Text style={[
                     styles.priceValue,
+                    { color: textColor },
                     price.type === 'Students' && styles.priceValueHighlight
                   ]}>
                     {price.price}
@@ -237,20 +250,20 @@ export default function MealDetailScreen() {
                 </View>
               ))
             ) : (
-              <Text style={styles.noDataText}>No price information available</Text>
+              <Text style={[styles.noDataText, { color: subTextColor }]}>No price information available</Text>
             )}
           </View>
         </View>
         
         {/* Badges */}
         {meal.badges && meal.badges.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Properties</Text>
+          <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>Properties</Text>
             <View style={styles.badgeGrid}>
               {meal.badges.map((badge: MealBadge, index: number) => (
-                <View key={index} style={styles.propertyBadge}>
+                <View key={index} style={[styles.propertyBadge, { backgroundColor: Colors.light.tint + '15' }]}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.light.tint} />
-                  <Text style={styles.propertyBadgeText}>{translateBadge(badge.name)}</Text>
+                  <Text style={[styles.propertyBadgeText, { color: textColor }]}>{translateBadge(badge.name)}</Text>
                 </View>
               ))}
             </View>
@@ -259,25 +272,25 @@ export default function MealDetailScreen() {
         
         {/* Allergens - Highlighted */}
         {allergens.length > 0 && (
-          <View style={[styles.section, styles.allergenSection]}>
+          <View style={[styles.section, { backgroundColor: allergenBg, borderColor: allergenBorder, borderWidth: 1 }]}>
             <View style={styles.allergenHeader}>
               <Ionicons name="warning" size={22} color="#FF9800" />
-              <Text style={styles.allergenTitle}>Allergens</Text>
+              <Text style={[styles.allergenTitle, { color: allergenTitleColor }]}>Allergens</Text>
             </View>
-            <Text style={styles.allergenSubtitle}>
+            <Text style={[styles.allergenSubtitle, { color: subTextColor }]}>
               This dish contains the following allergens:
             </Text>
             <View style={styles.allergenGrid}>
               {allergens.map((allergen, index) => {
                 const info = getAllergenInfo(allergen.text);
                 return (
-                  <View key={index} style={[styles.allergenItem, { borderLeftColor: info.color }]}>
+                  <View key={index} style={[styles.allergenItem, { backgroundColor: cardBackgroundColor, borderLeftColor: info.color }]}>
                     <View style={[styles.allergenIconContainer, { backgroundColor: info.color + '20' }]}>
                       <Ionicons name={info.icon as any} size={20} color={info.color} />
                     </View>
                     <View style={styles.allergenTextContainer}>
-                      <Text style={styles.allergenName}>{translateAllergen(allergen.text)}</Text>
-                      <Text style={styles.allergenCategory}>{info.category}</Text>
+                      <Text style={[styles.allergenName, { color: textColor }]}>{translateAllergen(allergen.text)}</Text>
+                      <Text style={[styles.allergenCategory, { color: subTextColor }]}>{info.category}</Text>
                     </View>
                   </View>
                 );
@@ -288,13 +301,13 @@ export default function MealDetailScreen() {
         
         {/* Additives */}
         {additives.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Additives</Text>
+          <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>Additives</Text>
             <View style={styles.additiveList}>
               {additives.map((additive, index) => (
-                <View key={index} style={styles.additiveItem}>
-                  <Ionicons name="information-circle-outline" size={18} color="#666" />
-                  <Text style={styles.additiveText}>{translateAdditive(additive.text)}</Text>
+                <View key={index} style={[styles.additiveItem, { borderBottomColor: borderColor }]}>
+                  <Ionicons name="information-circle-outline" size={18} color={subTextColor} />
+                  <Text style={[styles.additiveText, { color: subTextColor }]}>{translateAdditive(additive.text)}</Text>
                 </View>
               ))}
             </View>
@@ -303,11 +316,11 @@ export default function MealDetailScreen() {
         
         {/* No Allergens/Additives */}
         {allergens.length === 0 && additives.length === 0 && (
-          <View style={styles.section}>
+          <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
             <View style={styles.noAllergensContainer}>
               <Ionicons name="checkmark-circle" size={48} color={Colors.light.tint} />
-              <Text style={styles.noAllergensTitle}>No allergens listed</Text>
-              <Text style={styles.noAllergensSubtitle}>
+              <Text style={[styles.noAllergensTitle, { color: textColor }]}>No allergens listed</Text>
+              <Text style={[styles.noAllergensSubtitle, { color: subTextColor }]}>
                 No allergens or additives are listed for this dish.
               </Text>
             </View>
@@ -316,25 +329,25 @@ export default function MealDetailScreen() {
         
         {/* Environmental Impact */}
         {(meal.co2Bilanz || meal.waterBilanz) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Environmental Impact</Text>
+          <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>Environmental Impact</Text>
             <View style={styles.environmentGrid}>
               {meal.co2Bilanz && (
-                <View style={styles.environmentItem}>
+                <View style={[styles.environmentItem, { backgroundColor: envItemBg }]}>
                   <View style={[styles.environmentIcon, { backgroundColor: '#E8F5E9' }]}>
                     <Ionicons name="leaf" size={24} color="#4CAF50" />
                   </View>
-                  <Text style={styles.environmentLabel}>CO₂ Footprint</Text>
-                  <Text style={styles.environmentValue}>{meal.co2Bilanz.toFixed(0)}g</Text>
+                  <Text style={[styles.environmentLabel, { color: subTextColor }]}>CO₂ Footprint</Text>
+                  <Text style={[styles.environmentValue, { color: textColor }]}>{meal.co2Bilanz.toFixed(0)}g</Text>
                 </View>
               )}
               {meal.waterBilanz && (
-                <View style={styles.environmentItem}>
+                <View style={[styles.environmentItem, { backgroundColor: envItemBg }]}>
                   <View style={[styles.environmentIcon, { backgroundColor: '#E3F2FD' }]}>
                     <Ionicons name="water" size={24} color="#2196F3" />
                   </View>
-                  <Text style={styles.environmentLabel}>Water Footprint</Text>
-                  <Text style={styles.environmentValue}>{meal.waterBilanz.toFixed(0)}L</Text>
+                  <Text style={[styles.environmentLabel, { color: subTextColor }]}>Water Footprint</Text>
+                  <Text style={[styles.environmentValue, { color: textColor }]}>{meal.waterBilanz.toFixed(0)}L</Text>
                 </View>
               )}
             </View>
@@ -343,9 +356,9 @@ export default function MealDetailScreen() {
       </ScrollView>
       
       {/* Bottom Bar with Price */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+      <View style={[styles.bottomBar, { backgroundColor: cardBackgroundColor, borderTopColor: borderColor, paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.bottomPriceContainer}>
-          <Text style={styles.bottomPriceLabel}>Student Price</Text>
+          <Text style={[styles.bottomPriceLabel, { color: subTextColor }]}>Student Price</Text>
           <Text style={styles.bottomPrice}>{studentPrice}</Text>
         </View>
         <Pressable 
@@ -355,7 +368,7 @@ export default function MealDetailScreen() {
           <Ionicons 
             name={isFavorite ? "heart" : "heart-outline"} 
             size={24} 
-            color={isFavorite ? "#fff" : "#fff"} 
+            color="#fff" 
           />
           <Text style={styles.favoriteButtonText}>
             {isFavorite ? 'Saved' : 'Save'}
@@ -369,7 +382,6 @@ export default function MealDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
   },
   
   // Hero Image
@@ -416,6 +428,7 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Bold',
     fontSize: 14,
     color: '#fff',
+    includeFontPadding: false,
   },
   
   // Scroll Content
@@ -434,8 +447,8 @@ const styles = StyleSheet.create({
   mealName: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 26,
-    color: '#333',
     marginBottom: 8,
+    includeFontPadding: false,
   },
   canteenRow: {
     flexDirection: 'row',
@@ -445,12 +458,11 @@ const styles = StyleSheet.create({
   canteenName: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 15,
-    color: '#666',
+    includeFontPadding: false,
   },
   
   // Sections
   section: {
-    backgroundColor: '#fff',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -471,8 +483,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 18,
-    color: '#333',
     marginBottom: 16,
+    includeFontPadding: false,
   },
   
   // Prices
@@ -485,17 +497,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   priceType: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 15,
-    color: '#666',
+    includeFontPadding: false,
   },
   priceValue: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 16,
-    color: '#333',
+    includeFontPadding: false,
   },
   priceValueHighlight: {
     color: Colors.light.tint,
@@ -504,9 +515,9 @@ const styles = StyleSheet.create({
   noDataText: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
-    color: '#999',
     textAlign: 'center',
     paddingVertical: 12,
+    includeFontPadding: false,
   },
   
   // Badges/Properties
@@ -518,7 +529,6 @@ const styles = StyleSheet.create({
   propertyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.tint + '15',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
@@ -527,15 +537,10 @@ const styles = StyleSheet.create({
   propertyBadgeText: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
-    color: '#333',
+    includeFontPadding: false,
   },
   
   // Allergens
-  allergenSection: {
-    backgroundColor: '#FFF8E1',
-    borderWidth: 1,
-    borderColor: '#FFE082',
-  },
   allergenHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -545,13 +550,13 @@ const styles = StyleSheet.create({
   allergenTitle: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 18,
-    color: '#E65100',
+    includeFontPadding: false,
   },
   allergenSubtitle: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
-    color: '#666',
     marginBottom: 16,
+    includeFontPadding: false,
   },
   allergenGrid: {
     gap: 12,
@@ -559,7 +564,6 @@ const styles = StyleSheet.create({
   allergenItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 14,
     borderLeftWidth: 4,
@@ -578,13 +582,13 @@ const styles = StyleSheet.create({
   allergenName: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 15,
-    color: '#333',
+    includeFontPadding: false,
   },
   allergenCategory: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 13,
-    color: '#666',
     marginTop: 2,
+    includeFontPadding: false,
   },
   
   // Additives
@@ -597,13 +601,12 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   additiveText: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
-    color: '#666',
     flex: 1,
+    includeFontPadding: false,
   },
   
   // No Allergens
@@ -614,15 +617,15 @@ const styles = StyleSheet.create({
   noAllergensTitle: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 16,
-    color: '#333',
     marginTop: 12,
+    includeFontPadding: false,
   },
   noAllergensSubtitle: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
-    color: '#666',
     textAlign: 'center',
     marginTop: 8,
+    includeFontPadding: false,
   },
   
   // Environment
@@ -633,7 +636,6 @@ const styles = StyleSheet.create({
   environmentItem: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
     borderRadius: 12,
     padding: 16,
   },
@@ -648,25 +650,27 @@ const styles = StyleSheet.create({
   environmentLabel: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 13,
-    color: '#666',
     marginBottom: 4,
+    includeFontPadding: false,
   },
   environmentValue: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 18,
-    color: '#333',
+    includeFontPadding: false,
   },
   
   // Bottom Bar
   bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
     
     ...Platform.select({
       ios: {
@@ -686,12 +690,13 @@ const styles = StyleSheet.create({
   bottomPriceLabel: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 13,
-    color: '#666',
+    includeFontPadding: false,
   },
   bottomPrice: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 24,
     color: Colors.light.tint,
+    includeFontPadding: false,
   },
   favoriteButtonLarge: {
     flexDirection: 'row',
@@ -706,5 +711,6 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Bold',
     fontSize: 16,
     color: '#fff',
+    includeFontPadding: false,
   },
 });

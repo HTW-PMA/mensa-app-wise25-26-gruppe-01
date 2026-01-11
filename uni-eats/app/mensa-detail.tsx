@@ -1,10 +1,10 @@
-import { 
-  StyleSheet, 
-  ScrollView, 
-  View, 
-  Text, 
-  ActivityIndicator, 
-  Pressable, 
+import {
+  StyleSheet,
+  ScrollView,
+  View,
+  Text,
+  ActivityIndicator,
+  Pressable,
   RefreshControl,
   StatusBar
 } from 'react-native';
@@ -18,6 +18,8 @@ import { MealCard } from '@/components/MealCard';
 import { Colors } from '@/constants/theme';
 import { useLocation, calculateDistance, formatDistance } from '@/hooks/useLocation';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const formatLocalDateKey = (date: Date): string => {
   const year = date.getFullYear();
@@ -30,10 +32,22 @@ export default function MensaDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  
+  const colorScheme = useColorScheme();
+
+  // Theme Colors
+  const backgroundColor = useThemeColor({ light: '#F5F5F5', dark: '#000000' }, 'background');
+  const contentBackgroundColor = useThemeColor({ light: '#FFFFFF', dark: '#151718' }, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const subTextColor = useThemeColor({ light: '#666666', dark: '#9BA1A6' }, 'text');
+  const borderColor = useThemeColor({ light: '#E0E0E0', dark: '#2C2C2E' }, 'border');
+  const iconColor = useThemeColor({}, 'icon');
+  const tintColor = useThemeColor({}, 'tint');
+  const dateChipBg = useThemeColor({ light: '#333333', dark: '#2C2C2E' }, 'background');
+  const dateChipText = useThemeColor({ light: '#f5f5f5', dark: '#E0E0E0' }, 'text');
+
   // Standort Hook für Live-Distanz
   const { location } = useLocation();
-  
+
   // State
   const [canteen, setCanteen] = useState<Canteen | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -47,7 +61,7 @@ export default function MensaDetailScreen() {
 
   // Google Ratings Hook - lädt Ratings im Hintergrund während Meals angezeigt werden
   const { enrichCanteensWithRatings } = useGoogleRatings(canteen ? [canteen] : []);
-  
+
   // Anreichere Canteen mit Google Ratings
   const enrichedCanteen = useMemo(() => {
     if (!canteen) return null;
@@ -73,21 +87,21 @@ export default function MensaDetailScreen() {
   }, [today]);
 
   const selectedDateInfo = useMemo(
-    () => weekDates.find((day) => day.key === selectedDate),
-    [weekDates, selectedDate]
+      () => weekDates.find((day) => day.key === selectedDate),
+      [weekDates, selectedDate]
   );
 
   const isSelectedToday = selectedDate === todayKey;
   const mealsCountLabel = mealsError
-    ? '–'
-    : loadingMeals
-      ? 'Loading'
-      : `${meals.length} items`;
+      ? '–'
+      : loadingMeals
+          ? 'Loading'
+          : `${meals.length} items`;
 
   // Daten laden
   const loadCanteen = useCallback(async () => {
     if (!id) return;
-    
+
     const startTime = Date.now();
     const logStep = (step: string) => {
       const elapsed = Date.now() - startTime;
@@ -121,39 +135,39 @@ export default function MensaDetailScreen() {
   }, [id]);
 
   const loadMeals = useCallback(
-    async (dateKey: string) => {
-      if (!id) return;
+      async (dateKey: string) => {
+        if (!id) return;
 
-      const startTime = Date.now();
-      const logStep = (step: string) => {
-        const elapsed = Date.now() - startTime;
-        console.log(`⏱️  MensaDetail [${elapsed}ms]: ${step}`);
-      };
+        const startTime = Date.now();
+        const logStep = (step: string) => {
+          const elapsed = Date.now() - startTime;
+          console.log(`⏱️  MensaDetail [${elapsed}ms]: ${step}`);
+        };
 
-      try {
-        logStep(`START loading meals for ${dateKey}`);
-        setMealsError(null);
-        setLoadingMeals(true);
+        try {
+          logStep(`START loading meals for ${dateKey}`);
+          setMealsError(null);
+          setLoadingMeals(true);
 
-        logStep('Calling getMeals...');
-        const mealsData = await mensaApi.getMeals({
-          canteenId: id,
-          loadingtype: 'complete',
-          date: dateKey,
-        });
-        logStep(`Meals loaded: ${mealsData.length} items`);
+          logStep('Calling getMeals...');
+          const mealsData = await mensaApi.getMeals({
+            canteenId: id,
+            loadingtype: 'complete',
+            date: dateKey,
+          });
+          logStep(`Meals loaded: ${mealsData.length} items`);
 
-        setMeals(mealsData);
-      } catch (err) {
-        console.error('Error loading meals:', err);
-        logStep('ERROR occurred');
-        setMeals([]);
-        setMealsError('Fehler beim Laden der Gerichte');
-      } finally {
-        setLoadingMeals(false);
-      }
-    },
-    [id]
+          setMeals(mealsData);
+        } catch (err) {
+          console.error('Error loading meals:', err);
+          logStep('ERROR occurred');
+          setMeals([]);
+          setMealsError('Fehler beim Laden der Gerichte');
+        } finally {
+          setLoadingMeals(false);
+        }
+      },
+      [id]
   );
 
   useEffect(() => {
@@ -195,16 +209,16 @@ export default function MensaDetailScreen() {
     }
     if (enrichedCanteen?.googleRating) {
       console.log('✅ Using googleRating:', enrichedCanteen.googleRating);
-      return { 
-        rating: enrichedCanteen.googleRating.toFixed(1), 
-        count: enrichedCanteen.googleReviewCount || 0 
+      return {
+        rating: enrichedCanteen.googleRating.toFixed(1),
+        count: enrichedCanteen.googleReviewCount || 0
       };
     }
     if (enrichedCanteen?.rating) {
       console.log('✅ Using rating:', enrichedCanteen.rating);
-      return { 
-        rating: enrichedCanteen.rating.toFixed(1), 
-        count: enrichedCanteen.reviewCount || 0 
+      return {
+        rating: enrichedCanteen.rating.toFixed(1),
+        count: enrichedCanteen.reviewCount || 0
       };
     }
     console.log('⚠️  No rating found, returning fallback');
@@ -223,10 +237,10 @@ export default function MensaDetailScreen() {
       return enrichedCanteen.address?.district || '–';
     }
     const distance = calculateDistance(
-      location.latitude,
-      location.longitude,
-      geoLoc.latitude,
-      geoLoc.longitude
+        location.latitude,
+        location.longitude,
+        geoLoc.latitude,
+        geoLoc.longitude
     );
     return formatDistance(distance);
   };
@@ -236,7 +250,7 @@ export default function MensaDetailScreen() {
     if (!enrichedCanteen?.businessDays || enrichedCanteen.businessDays.length === 0) {
       return 'Keine Zeiten';
     }
-    
+
     const weekdayMap: Record<number, string[]> = {
       0: ['So', 'Sonntag'],
       1: ['Mo', 'Montag'],
@@ -246,16 +260,16 @@ export default function MensaDetailScreen() {
       5: ['Fr', 'Freitag'],
       6: ['Sa', 'Samstag'],
     };
-    
+
     const todayVariants = weekdayMap[new Date().getDay()];
-    const todayEntry = enrichedCanteen.businessDays.find(day => 
-      todayVariants.includes(day.day ?? '')
+    const todayEntry = enrichedCanteen.businessDays.find(day =>
+        todayVariants.includes(day.day ?? '')
     );
-    
+
     if (!todayEntry || !todayEntry.businessHours || todayEntry.businessHours.length === 0) {
       return 'Closed';
     }
-    
+
     // Priorität: Mittagstisch > Mensa > erste verfügbare
     const priority = ['Mittagstisch', 'Mensa', 'Backshop'];
     let selectedHour: BusinessHour | undefined;
@@ -264,7 +278,7 @@ export default function MensaDetailScreen() {
       if (selectedHour) break;
     }
     const hour = selectedHour || todayEntry.businessHours[0];
-    
+
     if (!hour.openAt || !hour.closeAt) {
       return 'Closed';
     }
@@ -274,225 +288,229 @@ export default function MensaDetailScreen() {
   // Loading State
   if (loadingCanteen && !canteen) {
     return (
-      <View style={[styles.centerContainer, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={Colors.light.tint} />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
+        <View style={[styles.centerContainer, { backgroundColor, paddingTop: insets.top }]}>
+          <ActivityIndicator size="large" color={Colors.light.tint} />
+          <Text style={[styles.loadingText, { color: subTextColor }]}>Loading...</Text>
+        </View>
     );
   }
 
   // Error State
   if (!loadingCanteen && !canteen) {
     return (
-      <View style={[styles.centerContainer, { paddingTop: insets.top }]}>
-        <Ionicons name="alert-circle-outline" size={48} color="#E57373" />
-        <Text style={styles.errorText}>{canteenError || 'Mensa not found'}</Text>
-        <Pressable style={styles.retryButton} onPress={() => router.back()}>
-          <Text style={styles.retryButtonText}>Go Back</Text>
-        </Pressable>
-      </View>
+        <View style={[styles.centerContainer, { backgroundColor, paddingTop: insets.top }]}>
+          <Ionicons name="alert-circle-outline" size={48} color="#E57373" />
+          <Text style={[styles.errorText, { color: textColor }]}>{canteenError || 'Mensa not found'}</Text>
+          <Pressable style={styles.retryButton} onPress={() => router.back()}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </Pressable>
+        </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      
-      {/* Sticky Header - UniEats Logo centered with Back Button */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Pressable 
-          style={styles.backButton} 
-          onPress={() => router.back()}
-          hitSlop={10}
+      <View style={[styles.container, { backgroundColor }]}>
+        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+
+        {/* Sticky Header - UniEats Logo centered with Back Button */}
+        <View style={[styles.header, { backgroundColor: contentBackgroundColor, borderColor: borderColor, paddingTop: insets.top + 8 }]}>
+          <Pressable
+              style={styles.backButton}
+              onPress={() => router.back()}
+              hitSlop={10}
+          >
+            <Ionicons name="arrow-back" size={24} color={textColor} />
+          </Pressable>
+          <View style={styles.logoContainer}>
+            <Image
+                source={require('@/assets/images/Schriftzug_rmbg.png')}
+                style={styles.headerLogo}
+                contentFit="contain"
+                contentPosition="center"
+            />
+          </View>
+          {/* Empty view to balance the header and keep logo centered */}
+          <View style={styles.backButton} />
+        </View>
+
+        <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={Colors.light.tint}
+              />
+            }
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </Pressable>
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('@/assets/images/Schriftzug_rmbg.png')}
-            style={styles.headerLogo}
-            contentFit="contain"
-            contentPosition="center"
-          />
-        </View>
-        <View style={styles.backButtonSpacer} />
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor={Colors.light.tint} 
-          />
-        }
-      >
-        {/* Hero Image */}
-        <View style={styles.heroContainer}>
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?q=80&w=800&auto=format&fit=crop' }}
-            style={[
-              styles.heroImage,
-              !loadingMeals && !mealsError && meals.length === 0 && styles.heroImageClosed
-            ]}
-            contentFit="cover"
-            transition={500}
-          />
-          {/* Closed Overlay when no meals available (nicht während loading) */}
-          {!loadingMeals && !mealsError && meals.length === 0 && (
-            <View style={styles.closedOverlay}>
-              <View style={styles.closedBadge}>
-                <Ionicons name="close-circle" size={20} color="#fff" />
-                <Text style={styles.closedBadgeText}>{isSelectedToday ? 'Closed Today' : 'Closed'}</Text>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Mensa Info - IMMER anzeigen */}
-        <View style={styles.infoContainer}>
-          <Text style={styles.mensaName}>{enrichedCanteen?.name || 'Loading...'}</Text>
-          
-          <View style={styles.metaRow}>
-            {/* Rating */}
-            <View style={styles.metaItem}>
-              <Ionicons name="star" size={16} color="#FFCC00" />
-              <Text style={styles.metaText}>
-                <Text style={styles.ratingText}>{rating}</Text>
-                <Text style={styles.reviewCount}> ({reviewCount})</Text>
-              </Text>
-            </View>
-
-            {enrichedCanteen && (
-              <>
-                <Text style={styles.metaSeparator}>•</Text>
-
-                {/* Distance - Live location based */}
-                <View style={styles.metaItem}>
-                  <Ionicons name="location-sharp" size={16} color={Colors.light.tint} />
-                  <Text style={styles.metaText}>{getDistance()}</Text>
+          {/* Hero Image */}
+          <View style={styles.heroContainer}>
+            <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?q=80&w=800&auto=format&fit=crop' }}
+                style={[
+                  styles.heroImage,
+                  !loadingMeals && !mealsError && meals.length === 0 && styles.heroImageClosed
+                ]}
+                contentFit="cover"
+                transition={500}
+            />
+            {/* Closed Overlay when no meals available (nicht während loading) */}
+            {!loadingMeals && !mealsError && meals.length === 0 && (
+                <View style={styles.closedOverlay}>
+                  <View style={styles.closedBadge}>
+                    <Ionicons name="close-circle" size={20} color="#fff" />
+                    <Text style={styles.closedBadgeText}>{isSelectedToday ? 'Closed Today' : 'Closed'}</Text>
+                  </View>
                 </View>
-
-                <Text style={styles.metaSeparator}>•</Text>
-
-                {/* Opening Hours */}
-                <View style={styles.metaItem}>
-                  <Ionicons name="time-outline" size={16} color="#666" />
-                  <Text style={styles.metaText}>{getTodayOpeningHours()}</Text>
-                </View>
-              </>
             )}
           </View>
-        </View>
 
-        {/* Date Filter */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.datePickerScroll}
-          style={styles.datePickerContainer}
-        >
-          {weekDates.map((day) => {
-            const isSelected = day.key === selectedDate;
-            return (
-            <Pressable
-              key={day.key}
-              onPress={() => setSelectedDate(day.key)}
-              style={[
-                styles.dateChip,
-                isSelected && styles.dateChipActive
-              ]}
-            >
-              <Text style={[
-                styles.dateChipDay,
-                isSelected && styles.dateChipTextActive
-              ]}>
-                {day.weekday}
-              </Text>
-              <Text style={[
-                styles.dateChipDate,
-                isSelected && styles.dateChipTextActive
-              ]}>
-                {day.label}
-              </Text>
-            </Pressable>
-          )})}
-        </ScrollView>
+          {/* Mensa Info - IMMER anzeigen */}
+          <View style={[styles.infoContainer, { backgroundColor: contentBackgroundColor, borderBottomColor: borderColor }]}>
+            <Text style={[styles.mensaName, { color: textColor }]}>{enrichedCanteen?.name || 'Loading...'}</Text>
 
-        {/* Date Title */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {isSelectedToday
-              ? 'Today'
-              : selectedDateInfo
-                ? `${selectedDateInfo.weekday}, ${selectedDateInfo.label}`
-                : 'Dishes'}
-          </Text>
-          <Text style={styles.sectionCount}>
-            {mealsCountLabel}
-          </Text>
-        </View>
+            <View style={styles.metaRow}>
+              {/* Rating */}
+              <View style={styles.metaItem}>
+                <Ionicons name="star" size={16} color="#FFCC00" />
+                <Text style={[styles.metaText, { color: subTextColor }]}>
+                  <Text style={[styles.ratingText, { color: textColor }]}>{rating}</Text>
+                  <Text style={styles.reviewCount}> ({reviewCount})</Text>
+                </Text>
+              </View>
 
-        {/* Show Closed state or meal list */}
-        {loadingMeals ? (
-          /* Loading State */
-          <View style={styles.closedState}>
-            <ActivityIndicator size="large" color={Colors.light.tint} />
-            <Text style={styles.closedTitle}>Loading Dishes...</Text>
-          </View>
-        ) : mealsError ? (
-          <View style={styles.closedState}>
-            <Ionicons name="alert-circle-outline" size={48} color="#E57373" />
-            <Text style={styles.closedTitle}>Could not load dishes</Text>
-            <Text style={styles.closedSubtitle}>{mealsError}</Text>
-          </View>
-        ) : meals.length === 0 ? (
-          /* Closed State - No meals available today */
-          <View style={styles.closedState}>
-            <View style={styles.closedIconContainer}>
-              <Ionicons name="time-outline" size={64} color="#E57373" />
+              {enrichedCanteen && (
+                  <>
+                    <Text style={[styles.metaSeparator, { color: borderColor }]}>•</Text>
+
+                    {/* Distance - Live location based */}
+                    <View style={styles.metaItem}>
+                      <Ionicons name="location-sharp" size={16} color={Colors.light.tint} />
+                      <Text style={[styles.metaText, { color: subTextColor }]}>{getDistance()}</Text>
+                    </View>
+
+                    <Text style={[styles.metaSeparator, { color: borderColor }]}>•</Text>
+
+                    {/* Opening Hours */}
+                    <View style={styles.metaItem}>
+                      <Ionicons name="time-outline" size={16} color={iconColor} />
+                      <Text style={[styles.metaText, { color: subTextColor }]}>{getTodayOpeningHours()}</Text>
+                    </View>
+                  </>
+              )}
             </View>
-            <Text style={styles.closedTitle}>{isSelectedToday ? 'Closed Today' : 'Closed'}</Text>
-            <Text style={styles.closedSubtitle}>
-              This canteen has no dishes available for this day.
+          </View>
+
+          {/* Date Filter */}
+          <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.datePickerScroll}
+              style={[styles.datePickerContainer, { backgroundColor: contentBackgroundColor, borderBottomColor: borderColor }]}
+          >
+            {weekDates.map((day) => {
+              const isSelected = day.key === selectedDate;
+              return (
+                  <Pressable
+                      key={day.key}
+                      onPress={() => setSelectedDate(day.key)}
+                      style={[
+                        styles.dateChip,
+                        { backgroundColor: isSelected ? Colors.light.tint : dateChipBg },
+                        isSelected && styles.dateChipActive
+                      ]}
+                  >
+                    <Text style={[
+                      styles.dateChipDay,
+                      { color: isSelected ? '#fff' : dateChipText },
+                      isSelected && styles.dateChipTextActive
+                    ]}>
+                      {day.weekday}
+                    </Text>
+                    <Text style={[
+                      styles.dateChipDate,
+                      { color: isSelected ? '#e0e0e0' : subTextColor },
+                      isSelected && styles.dateChipTextActive
+                    ]}>
+                      {day.label}
+                    </Text>
+                  </Pressable>
+              )})}
+          </ScrollView>
+
+          {/* Date Title */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>
+              {isSelectedToday
+                  ? 'Today'
+                  : selectedDateInfo
+                      ? `${selectedDateInfo.weekday}, ${selectedDateInfo.label}`
+                      : 'Dishes'}
             </Text>
-            <Text style={styles.closedHint}>
-              Try another date or check a different canteen nearby.
+            <Text style={[styles.sectionCount, { color: subTextColor }]}>
+              {mealsCountLabel}
             </Text>
           </View>
-        ) : (
-          /* Meal List */
-          <View style={styles.mealList}>
-            {meals.map((meal, index) => (
-              <MealCard
-                key={`${meal.id}-${index}`}
-                meal={meal}
-                onPress={() => {
-                  // Navigate to meal detail with all meal data
-                  router.push({
-                    pathname: '/meal-detail',
-                    params: {
-                      id: meal.id,
-                      name: meal.name,
-                      category: meal.category || '',
-                      prices: JSON.stringify(meal.prices || []),
-                      additives: JSON.stringify(meal.additives || []),
-                      badges: JSON.stringify(meal.badges || []),
-                      co2Bilanz: meal.co2Bilanz?.toString() || '',
-                      waterBilanz: meal.waterBilanz?.toString() || '',
-                      canteenName: enrichedCanteen?.name || '',
-                    },
-                  });
-                }}
-              />
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </View>
+
+          {/* Show Closed state or meal list */}
+          {loadingMeals ? (
+              /* Loading State */
+              <View style={styles.closedState}>
+                <ActivityIndicator size="large" color={Colors.light.tint} />
+                <Text style={[styles.closedTitle, { color: subTextColor }]}>Loading Dishes...</Text>
+              </View>
+          ) : mealsError ? (
+              <View style={styles.closedState}>
+                <Ionicons name="alert-circle-outline" size={48} color="#E57373" />
+                <Text style={[styles.closedTitle, { color: textColor }]}>Could not load dishes</Text>
+                <Text style={[styles.closedSubtitle, { color: subTextColor }]}>{mealsError}</Text>
+              </View>
+          ) : meals.length === 0 ? (
+              /* Closed State - No meals available today */
+              <View style={styles.closedState}>
+                <View style={[styles.closedIconContainer, { backgroundColor: colorScheme === 'dark' ? '#331010' : '#FFEBEE' }]}>
+                  <Ionicons name="time-outline" size={64} color="#E57373" />
+                </View>
+                <Text style={[styles.closedTitle, { color: textColor }]}>{isSelectedToday ? 'Closed Today' : 'Closed'}</Text>
+                <Text style={[styles.closedSubtitle, { color: subTextColor }]}>
+                  This canteen has no dishes available for this day.
+                </Text>
+                <Text style={[styles.closedHint, { color: subTextColor }]}>
+                  Try another date or check a different canteen nearby.
+                </Text>
+              </View>
+          ) : (
+              /* Meal List */
+              <View style={styles.mealList}>
+                {meals.map((meal, index) => (
+                    <MealCard
+                        key={`${meal.id}-${index}`}
+                        meal={meal}
+                        onPress={() => {
+                          // Navigate to meal detail with all meal data
+                          router.push({
+                            pathname: '/meal-detail',
+                            params: {
+                              id: meal.id,
+                              name: meal.name,
+                              category: meal.category || '',
+                              prices: JSON.stringify(meal.prices || []),
+                              additives: JSON.stringify(meal.additives || []),
+                              badges: JSON.stringify(meal.badges || []),
+                              co2Bilanz: meal.co2Bilanz?.toString() || '',
+                              waterBilanz: meal.waterBilanz?.toString() || '',
+                              canteenName: enrichedCanteen?.name || '',
+                            },
+                          });
+                        }}
+                    />
+                ))}
+              </View>
+          )}
+        </ScrollView>
+      </View>
   );
 }
 
@@ -513,6 +531,7 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Regular',
     fontSize: 16,
     color: '#666',
+    includeFontPadding: false,
   },
   errorText: {
     marginTop: 12,
@@ -520,6 +539,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#E57373',
     textAlign: 'center',
+    includeFontPadding: false,
   },
   retryButton: {
     marginTop: 20,
@@ -532,23 +552,22 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Bold',
     fontSize: 14,
     color: '#fff',
+    includeFontPadding: false,
   },
-  
+
   // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingBottom: 8,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     minHeight: 56,
   },
   backButton: {
-    position: 'absolute',
-    left: 16,
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -565,12 +584,7 @@ const styles = StyleSheet.create({
     height: '100%',
     width: 120,
   },
-  backButtonSpacer: {
-    width: 40,
-    position: 'absolute',
-    right: 16,
-  },
-  
+
   // ScrollView
   scrollView: {
     flex: 1,
@@ -578,7 +592,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-  
+
   // Hero Image
   heroContainer: {
     height: 200,
@@ -588,7 +602,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  
+
   // Mensa Info
   infoContainer: {
     backgroundColor: '#fff',
@@ -601,6 +615,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: '#333',
     marginBottom: 8,
+    includeFontPadding: false,
   },
   metaRow: {
     flexDirection: 'row',
@@ -616,20 +631,24 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
     color: '#666',
+    includeFontPadding: false,
   },
   ratingText: {
     fontFamily: 'GoogleSans-Bold',
     color: '#333',
+    includeFontPadding: false,
   },
   reviewCount: {
     color: Colors.light.tint,
+    includeFontPadding: false,
   },
   metaSeparator: {
     marginHorizontal: 8,
     color: '#ccc',
     fontSize: 14,
+    includeFontPadding: false,
   },
-  
+
   // Date Picker
   datePickerContainer: {
     backgroundColor: '#fff',
@@ -656,17 +675,20 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Bold',
     fontSize: 12,
     color: '#f5f5f5',
+    includeFontPadding: false,
   },
   dateChipDate: {
     marginTop: 2,
     fontFamily: 'GoogleSans-Regular',
     fontSize: 12,
     color: '#e0e0e0',
+    includeFontPadding: false,
   },
   dateChipTextActive: {
     color: '#fff',
+    includeFontPadding: false,
   },
-  
+
   // Section Header
   sectionHeader: {
     flexDirection: 'row',
@@ -680,18 +702,20 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Bold',
     fontSize: 18,
     color: '#333',
+    includeFontPadding: false,
   },
   sectionCount: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
     color: '#666',
+    includeFontPadding: false,
   },
-  
+
   // Meal List
   mealList: {
     paddingHorizontal: 16,
   },
-  
+
   // Closed State
   heroImageClosed: {
     opacity: 0.5,
@@ -715,6 +739,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     marginLeft: 6,
+    includeFontPadding: false,
   },
   closedState: {
     alignItems: 'center',
@@ -735,6 +760,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: '#E57373',
     marginBottom: 8,
+    includeFontPadding: false,
   },
   closedSubtitle: {
     fontFamily: 'GoogleSans-Regular',
@@ -742,11 +768,13 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginBottom: 8,
+    includeFontPadding: false,
   },
   closedHint: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
+    includeFontPadding: false,
   },
 });

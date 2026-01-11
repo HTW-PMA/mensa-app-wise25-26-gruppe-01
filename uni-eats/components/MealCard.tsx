@@ -6,6 +6,7 @@ import { type Meal } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
 import { translateBadge } from '@/utils/translations';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface MealCardProps {
   meal: Meal;
@@ -79,6 +80,15 @@ const getMealImage = (meal: Meal): string => {
 };
 
 export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps) {
+  // Theme colors
+  const backgroundColor = useThemeColor({ light: '#ffffff', dark: '#1c1c1e' }, 'background');
+  const textColor = useThemeColor({ light: '#333333', dark: '#ffffff' }, 'text');
+  const subTextColor = useThemeColor({ light: '#666666', dark: '#9ba1a6' }, 'text');
+  const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#333333' }, 'border');
+  const badgeBg = useThemeColor({ light: '#f0f0f0', dark: '#2c2c2e' }, 'background');
+  const badgeTextColor = useThemeColor({ light: '#333333', dark: '#e0e0e0' }, 'text');
+  const favoriteBg = useThemeColor({ light: '#ffffff', dark: '#2c2c2e' }, 'background');
+
   // Verwende FavoritesContext für persistente Favoriten
   const { isFavoriteMeal, toggleFavoriteMeal } = useFavoritesContext();
   const isFavorite = isFavoriteMeal(meal.id);
@@ -102,16 +112,20 @@ export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps)
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.container, 
+        { backgroundColor, borderColor }, 
+        pressed && styles.pressed
+      ]}
       onPress={onPress}
     >
       {/* Linke Seite: Text-Inhalt */}
       <View style={styles.contentContainer}>
-        <Text style={styles.name} numberOfLines={2}>
+        <Text style={[styles.name, { color: textColor }]} numberOfLines={2}>
           {meal.name}
         </Text>
         
-        <Text style={styles.description} numberOfLines={2}>
+        <Text style={[styles.description, { color: subTextColor }]} numberOfLines={2}>
           {description}
         </Text>
         
@@ -119,8 +133,8 @@ export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps)
         {badges.length > 0 && (
           <View style={styles.badgeRow}>
             {badges.map((badge, index) => (
-              <View key={index} style={styles.badge}>
-                <Text style={styles.badgeText}>{translateBadge(badge)}</Text>
+              <View key={index} style={[styles.badge, { backgroundColor: badgeBg }]}>
+                <Text style={[styles.badgeText, { color: badgeTextColor }]}>{translateBadge(badge)}</Text>
               </View>
             ))}
           </View>
@@ -128,10 +142,10 @@ export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps)
         
         {/* Meta-Zeile: Kalorien + Allergene */}
         <View style={styles.metaRow}>
-          <Text style={styles.calories}>{calories}</Text>
+          <Text style={[styles.calories, { color: subTextColor }]}>{calories}</Text>
           {hasAllergens && (
             <>
-              <Text style={styles.separator}>•</Text>
+              <Text style={[styles.separator, { color: subTextColor }]}>•</Text>
               <Pressable style={styles.allergensLink}>
                 <Ionicons name="alert-circle-outline" size={14} color="#FF9800" />
                 <Text style={styles.allergensText}>Allergens</Text>
@@ -153,7 +167,7 @@ export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps)
           transition={300}
         />
         <Pressable
-          style={styles.favoriteButton}
+          style={[styles.favoriteButton, { backgroundColor: favoriteBg }]}
           onPress={handleFavoritePress}
           hitSlop={10}
         >
@@ -207,6 +221,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     marginBottom: 4,
+    includeFontPadding: false,
   },
   description: {
     fontFamily: 'GoogleSans-Regular',
@@ -214,6 +229,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 8,
     lineHeight: 18,
+    includeFontPadding: false,
   },
   badgeRow: {
     flexDirection: 'row',
@@ -231,6 +247,7 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Regular',
     fontSize: 11,
     color: '#333',
+    includeFontPadding: false,
   },
   metaRow: {
     flexDirection: 'row',
@@ -241,11 +258,13 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Regular',
     fontSize: 12,
     color: '#666',
+    includeFontPadding: false,
   },
   separator: {
     marginHorizontal: 6,
     color: '#ccc',
     fontSize: 12,
+    includeFontPadding: false,
   },
   allergensLink: {
     flexDirection: 'row',
@@ -256,11 +275,13 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Regular',
     fontSize: 12,
     color: '#FF9800',
+    includeFontPadding: false,
   },
   price: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 16,
     color: Colors.light.tint,
+    includeFontPadding: false,
   },
   imageContainer: {
     position: 'relative',
