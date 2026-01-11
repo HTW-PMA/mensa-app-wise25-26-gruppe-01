@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   logoImage: {
     width: 120,
@@ -166,6 +166,8 @@ const styles = StyleSheet.create({
   },
   featureEmojiText: {
     fontSize: 24,
+    lineHeight: 32,
+    textAlign: 'center',
   },
   featureText: {
     flex: 1,

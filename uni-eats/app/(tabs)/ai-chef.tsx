@@ -70,6 +70,9 @@ export default function AiChefScreen() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  
+  // Local state for smooth input handling
+  const [localBudget, setLocalBudget] = useState('');
 
   // User preferences
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -111,6 +114,11 @@ export default function AiChefScreen() {
   useEffect(() => {
     loadPreferences();
   }, []);
+
+  // Sync local budget input when preferences change (e.g. after loading)
+  useEffect(() => {
+    setLocalBudget(preferences.dailyBudget?.toString() || '');
+  }, [preferences.dailyBudget]);
 
   const loadPreferences = async () => {
     try {
@@ -390,63 +398,72 @@ export default function AiChefScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalContent}>
-              {/* Allergies */}
-              <Text style={[styles.sectionTitle, { color: textColor }]}>🚨 Allergien & Unverträglichkeiten</Text>
-              <View style={styles.allergyGrid}>
-                {COMMON_ALLERGENS.map((allergy) => {
-                  const isSelected = preferences.allergies?.includes(allergy);
-                  return (
-                      <TouchableOpacity
-                          key={allergy}
-                          style={[
-                            styles.allergyChip,
-                            { backgroundColor: chipBackgroundColor, borderColor: isSelected ? primaryGreen : 'transparent', borderWidth: 2 },
-                          ]}
-                          onPress={() => toggleAllergy(allergy)}
-                      >
-                        <Text style={[styles.allergyText, { color: isSelected ? primaryGreen : textColor }]}>
-                          {allergy}
-                        </Text>
-                      </TouchableOpacity>
-                  );
-                })}
-              </View>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+            >
+              <ScrollView style={styles.modalContent}>
+                {/* Allergies */}
+                <Text style={[styles.sectionTitle, { color: textColor }]}>🚨 Allergien & Unverträglichkeiten</Text>
+                <View style={styles.allergyGrid}>
+                  {COMMON_ALLERGENS.map((allergy) => {
+                    const isSelected = preferences.allergies?.includes(allergy);
+                    return (
+                        <TouchableOpacity
+                            key={allergy}
+                            style={[
+                              styles.allergyChip,
+                              { backgroundColor: chipBackgroundColor, borderColor: isSelected ? primaryGreen : 'transparent', borderWidth: 2 },
+                            ]}
+                            onPress={() => toggleAllergy(allergy)}
+                        >
+                          <Text style={[styles.allergyText, { color: isSelected ? primaryGreen : textColor }]}>
+                            {allergy}
+                          </Text>
+                        </TouchableOpacity>
+                    );
+                  })}
+                </View>
 
-              {/* Diet Type */}
-              <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>🌱 Ernährungsweise</Text>
-              {['none', 'vegetarian', 'vegan', 'pescatarian'].map((diet) => (
-                  <TouchableOpacity
-                      key={diet}
-                      style={[styles.dietOption, { backgroundColor: chipBackgroundColor }]}
-                      onPress={() => savePreferences({ ...preferences, dietType: diet as any })}
-                  >
-                    <Text style={[styles.dietText, { color: textColor }]}>
-                      {diet === 'none' ? 'Keine Einschränkung' : diet.charAt(0).toUpperCase() + diet.slice(1)}
-                    </Text>
-                    {preferences.dietType === diet && <Ionicons name="checkmark-circle" size={24} color={primaryGreen} />}
-                  </TouchableOpacity>
-              ))}
+                {/* Diet Type */}
+                <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>🌱 Ernährungsweise</Text>
+                {['none', 'vegetarian', 'vegan', 'pescatarian'].map((diet) => (
+                    <TouchableOpacity
+                        key={diet}
+                        style={[styles.dietOption, { backgroundColor: chipBackgroundColor }]}
+                        onPress={() => savePreferences({ ...preferences, dietType: diet as any })}
+                    >
+                      <Text style={[styles.dietText, { color: textColor }]}>
+                        {diet === 'none' ? 'Keine Einschränkung' : diet.charAt(0).toUpperCase() + diet.slice(1)}
+                      </Text>
+                      {preferences.dietType === diet && <Ionicons name="checkmark-circle" size={24} color={primaryGreen} />}
+                    </TouchableOpacity>
+                ))}
 
-              {/* Budget */}
-              <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>💶 Tagesbudget</Text>
-              <View style={[styles.budgetContainer, { backgroundColor: chipBackgroundColor }]}>
-                <Text style={[styles.budgetLabel, { color: subTextColor }]}>Max. €/Tag:</Text>
-                <TextInput
-                    style={[styles.budgetInput, { color: textColor }]}
-                    keyboardType="decimal-pad"
-                    placeholder="z.B. 5.00"
-                    placeholderTextColor={subTextColor}
-                    value={preferences.dailyBudget?.toString() || ''}
-                    onChangeText={(text) => {
-                      const value = parseFloat(text);
-                      savePreferences({ ...preferences, dailyBudget: isNaN(value) ? undefined : value });
-                    }}
-                />
-              </View>
-
-              <View style={{ height: 40 }} />
-            </ScrollView>
+                {/* Budget */}
+                <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>💶 Tagesbudget</Text>
+                <View style={[styles.budgetContainer, { backgroundColor: chipBackgroundColor }]}>
+                  <TextInput
+                      style={[styles.budgetInput, { color: textColor }]}
+                      keyboardType="decimal-pad"
+                      placeholder="Max. €/Tag (z.B. 5.00)"
+                      placeholderTextColor={subTextColor}
+                      value={localBudget}
+                      onChangeText={setLocalBudget}
+                      onEndEditing={() => {
+                        const normalized = localBudget.replace(',', '.');
+                        const value = parseFloat(normalized);
+                        const newBudget = isNaN(value) ? undefined : value;
+                        if (newBudget !== preferences.dailyBudget) {
+                          savePreferences({ ...preferences, dailyBudget: newBudget });
+                        }
+                      }}
+                  />
+                </View>
+                <View style={{ height: 40 }} />
+              </ScrollView>
+            </KeyboardAvoidingView>
           </ThemedView>
         </Modal>
       </ThemedView>
@@ -574,8 +591,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 25,
+    paddingVertical: Platform.select({
+      ios: 16,
+      android:35
+    }),
+    paddingBottom: Platform.select({
+      android: 10,
+    }),
     borderBottomWidth: 1,
   },
   modalTitle: {
@@ -605,6 +628,7 @@ const styles = StyleSheet.create({
   allergyText: {
     fontSize: 15,
     fontFamily: Fonts.regular,
+    includeFontPadding: false,
   },
   dietOption: {
     flexDirection: 'row',
@@ -618,22 +642,34 @@ const styles = StyleSheet.create({
   dietText: {
     fontSize: 16,
     fontFamily: Fonts.regular,
+    includeFontPadding: false,
   },
   budgetContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
     borderRadius: 12,
+    ...Platform.select({
+      ios: { paddingVertical: 12 },
+      android: { paddingVertical: 2 },
+    }),
   },
   budgetLabel: {
     fontSize: 16,
     fontFamily: Fonts.regular,
     marginRight: 12,
+    includeFontPadding: false,
   },
   budgetInput: {
     flex: 1,
     fontSize: 16,
     fontFamily: Fonts.regular,
+    includeFontPadding: false,
+    ...Platform.select({
+      android: {
+        paddingVertical: 6,
+        textAlignVertical: 'center',
+      },
+    }),
   },
 });
