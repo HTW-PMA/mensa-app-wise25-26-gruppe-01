@@ -473,9 +473,16 @@ export default function AiChefScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingBottom: 5,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
+    ...Platform.select({
+      ios: {
+        paddingBottom: 12,
+      },
+      android: {
+        paddingBottom: 5,
+      }
+    }),
   },
   headerContent: {
     flexDirection: 'row',
@@ -485,7 +492,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
-    marginTop: 14,
+    ...Platform.select({
+      ios: {
+        marginTop: 0,
+      },
+      android: {
+        marginTop: 14,
+      }
+    }),
   },
   prefsButton: {
     width: 40,

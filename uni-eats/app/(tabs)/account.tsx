@@ -6,7 +6,7 @@ import {
   View,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
+  ActivityIndicator, Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -260,6 +260,10 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontFamily: Fonts.bold,
     color: 'white',
+    lineHeight: Platform.select({
+      ios: 36,
+      android: 32,
+        }),
   },
   userInfo: {
     flex: 1,
@@ -268,6 +272,8 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: Fonts.bold,
     marginBottom: 4,
+    marginVertical: 8,
+
   },
   userEmail: {
     fontSize: 14,
@@ -279,8 +285,17 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     color: Colors.light.tint,
-    fontSize: 14,
+
     fontFamily: Fonts.bold,
+    ...Platform.select({
+      ios: {
+        fontSize: 16,
+      },
+      android: {
+        fontSize: 14,
+
+      }
+    }),
   },
 
   // Menu Section Styles
@@ -321,5 +336,15 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 13,
     fontFamily: Fonts.regular,
+    ...Platform.select({
+      ios: {
+        fontSize: 15,
+      },
+      android: {
+        fontSize: 13,
+
+      }
+    }),
+
   },
 });

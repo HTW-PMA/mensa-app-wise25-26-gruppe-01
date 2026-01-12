@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, View, Text, ActivityIndicator, Pressable, RefreshControl } from 'react-native';
+import {StyleSheet, ScrollView, View, Text, ActivityIndicator, Pressable, RefreshControl, Platform} from 'react-native';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -252,11 +252,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 20,
+
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderColor: '#f0f0f0',
+    ...Platform.select({
+      ios: {
+        paddingTop: 65,
+        paddingBottom: 25,
+      },
+      android: {
+        paddingTop: 60,
+        paddingBottom: 20,
+      }
+    }),
+
   },
   topBar: {
     flexDirection: 'row',
@@ -294,23 +304,39 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     paddingHorizontal: 20,
-    fontSize: 20,
+
     fontFamily: Fonts.bold,
     color: '#333',
     marginTop: 15,
-    marginBottom: 1,
+    ...Platform.select({
+      ios: {
+        marginBottom: 15,
+        fontSize: 25,
+      },
+      android: {
+        marginBottom: 1,
+        fontSize: 20,
+      }
+    }),
   },
   filterScroll: {
     paddingHorizontal: 20,
     gap: 10,
   },
   filterItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 0,
     borderRadius: 20,
+    paddingHorizontal: 16,
     backgroundColor: '#f5f5f5',
     borderWidth: 1,
     borderColor: '#eee',
+    ...Platform.select({
+      ios: {
+        paddingVertical: 7,
+      },
+      android: {
+        paddingVertical: 0,
+      }
+    }),
   },
   filterItemActive: {
     backgroundColor: Colors.light.tint,
@@ -318,9 +344,17 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontFamily: Fonts.bold,
-    fontSize: 14,
+
     color: '#666',
     lineHeight: 30,
+    ...Platform.select({
+      ios: {
+        fontSize: 16,
+      },
+      android: {
+        fontSize: 14,
+      }
+    }),
   },
   filterTextActive: {
     color: '#fff',
@@ -330,6 +364,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 16,
+    gap: 16,
   },
   centerContainer: {
     padding: 40,

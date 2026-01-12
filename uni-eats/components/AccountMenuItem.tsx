@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
+import {Platform, StyleSheet, TouchableOpacity, View, ViewStyle} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ThemedText } from './themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -78,13 +78,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 16,
     fontFamily: Fonts.bold,
     marginBottom: 4,
+    ...Platform.select({
+      ios: {
+        fontSize: 18,
+      },
+      android: {
+        fontSize: 16,
+      }
+    }),
   },
   subtitle: {
-    fontSize: 13,
+
     fontFamily: Fonts.regular,
+    ...Platform.select({
+      ios: {
+        fontSize: 15,
+      },
+      android: {
+        fontSize: 13,
+      }
+    }),
   },
   chevron: {
     marginLeft: 8,
