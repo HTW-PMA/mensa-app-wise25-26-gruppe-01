@@ -59,21 +59,71 @@ const ALLERGEN_INFO: Record<string, { icon: string; color: string; category: str
 };
 
 /**
- * Generates an image URL for the meal
+ * Generiert eine Bild-URL für das Meal basierend auf Name und Kategorie.
+ * Priorisiert:
+ * 1. Eindeutige Formen/Kategorien (Suppe, Salat, Dessert...)
+ * 2. Klare Hauptgerichte (Pizza, Burger...)
+ * 3. Spezifische Zutaten (Schnitzel, Curry...)
  */
-const getMealImage = (category?: string): string => {
-  const cat = category?.toLowerCase() || 'food';
+const getMealImage = (name: string, category?: string): string => {
+  // Suche in Name UND Kategorie für bessere Treffer (Partial Match)
+  const searchText = `${name} ${category || ''}`.toLowerCase();
   
-  const colorMap: Record<string, string> = {
-    'salate': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
-    'suppen': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop',
-    'pasta': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400&h=300&fit=crop',
-    'hauptgerichte': 'https://images.unsplash.com/photo-1567521464027-f127ff144326?w=400&h=300&fit=crop',
-    'desserts': 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop',
-    'beilagen': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
+  // Die Reihenfolge ist wichtig! Zuerst nach eindeutigen Kategorien suchen (z.B. Suppe),
+  // damit "Curry-Suppe" als Suppe erkannt wird und nicht als Curry.
+  const imageMap: Record<string, string> = {
+    // 1. Eindeutige Formen/Kategorien (höchste Priorität)
+    'suppe': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=160&h=160&fit=crop',
+    'stew': 'https://images.unsplash.com/photo-1591386767153-987783380885?w=160&h=160&fit=crop',
+    'eintopf': 'https://images.unsplash.com/photo-1608500218987-0f2b3be34b47?w=160&h=160&fit=crop',
+    'salat': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=160&h=160&fit=crop',
+    'bowl': 'https://images.unsplash.com/photo-1602881917445-0b1ba001addf?w=160&h=160&fit=crop',
+    'kuchen': 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=160&h=160&fit=crop',
+    'pudding': 'https://images.unsplash.com/photo-1734671223988-20df071ab200?w=160&h=160&fit=crop',
+    'joghurt': 'https://images.unsplash.com/photo-1564149503905-7fef56abc1f2?w=160&h=160&fit=crop',
+    'smoothie': 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=160&h=160&fit=crop',
+
+    // 2. Klare Hauptgerichte
+    'pizza': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=160&h=160&fit=crop',
+    'burger': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=160&h=160&fit=crop',
+    'pasta': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=160&h=160&fit=crop',
+    'spaghetti': 'https://images.unsplash.com/photo-1622973536968-3ead9e780960?w=160&h=160&fit=crop',
+    'tortellini': 'https://images.unsplash.com/photo-1628885405379-5d58de03edb0?w=160&h=160&fit=crop',
+    'lasagne': 'https://plus.unsplash.com/premium_photo-1671559021023-3da68c12aeed?w=160&h=160&fit=crop',
+    'gnocchi': 'https://images.unsplash.com/photo-1710532767837-bddfa38b5736?w=160&h=160&fit=crop',
+    'pommes': 'https://plus.unsplash.com/premium_photo-1683121324474-83460636b0ed?w=160&h=160&fit=crop',
+    'fries': 'https://plus.unsplash.com/premium_photo-1683121324474-83460636b0ed?w=160&h=160&fit=crop',
+    'dessert': 'https://plus.unsplash.com/premium_photo-1678715022988-417bbb94e3df?w=160&h=160&fit=crop',
+
+    // 3. Spezifische Zutaten & Gerichte (wird nur geprüft, wenn oben nichts gefunden)
+    'schnitzel': 'https://images.unsplash.com/photo-1560611588-163f295eb145?w=160&h=160&fit=crop',
+    'steak': 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=160&h=160&fit=crop',
+    'wurst': 'https://images.unsplash.com/photo-1695089028198-80245e2f5d06?w=160&h=160&fit=crop',
+    'curry': 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=160&h=160&fit=crop',
+    'wok': 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=160&h=160&fit=crop',
+    'reis': 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=160&h=160&fit=crop',
+    'fisch': 'https://plus.unsplash.com/premium_photo-1683707120330-603d9963cb02?w=160&h=160&fit=crop',
+    'braten': 'https://images.unsplash.com/photo-1581073766947-e8f3ef5393a4?w=160&h=160&fit=crop',
+    'gulasch': 'https://plus.unsplash.com/premium_photo-1669687759693-52ba5f9fa7a8?w=160&h=160&fit=crop',
+    'falafel': 'https://images.unsplash.com/photo-1593001874117-c99c800e3eb8?w=160&h=160&fit=crop',
+    'grill': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=160&h=160&fit=crop',
+    'auflauf': 'https://images.unsplash.com/photo-1645453014403-4ad5170a386c?w=160&h=160&fit=crop',
+    'pfanne': 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=160&h=160&fit=crop',
   };
   
-  return colorMap[cat] || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop';
+  for (const [key, url] of Object.entries(imageMap)) {
+    if (searchText.includes(key)) {
+      return url;
+    }
+  }
+  
+  // 4. Fallback basierend auf allgemeinen Kategorien
+  if (searchText.includes('vegan') || searchText.includes('vegetarisch')) {
+    return 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=600&fit=crop';
+  }
+  
+  // Default Fallback
+  return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop';
 };
 
 /**
@@ -148,7 +198,7 @@ export default function MealDetailScreen() {
   }, [params]);
   
   const canteenName = params.canteenName || '';
-  const imageUrl = useMemo(() => getMealImage(meal.category), [meal.category]);
+  const imageUrl = useMemo(() => getMealImage(meal.name, meal.category), [meal.name, meal.category]);
   const allPrices = useMemo(() => getAllPrices(meal.prices), [meal.prices]);
   const studentPrice = useMemo(() => getStudentPrice(meal.prices), [meal.prices]);
   
