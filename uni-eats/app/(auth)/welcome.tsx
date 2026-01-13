@@ -2,10 +2,10 @@ import React from 'react';
 import {
   StyleSheet,
   View,
-  SafeAreaView,
   Pressable,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
