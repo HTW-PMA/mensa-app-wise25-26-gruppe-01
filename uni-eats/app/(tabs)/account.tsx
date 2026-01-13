@@ -9,7 +9,6 @@ import {
   ActivityIndicator, Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -22,7 +21,6 @@ import { useAuth } from '@/contexts/AuthContext';
 const APP_VERSION = '1.0.0';
 
 export default function AccountScreen() {
-  const navigation = useNavigation();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -54,8 +52,7 @@ export default function AccountScreen() {
   };
 
   const handleProfile = () => {
-    // TODO: Navigiere zu Profil-Einstellungen
-    Alert.alert('Profile Settings', 'Profil-Einstellungen werden noch implementiert');
+    router.push('/profile' as any);
   };
 
   const handleHelp = () => {

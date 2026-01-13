@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { SplashScreen, Stack, useSegments, useRouter } from 'expo-router';
+import { SplashScreen, Stack, useSegments, useRouter, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { useFonts } from 'expo-font';
@@ -10,6 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { queryClient } from '@/config/queryClient';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ProfileProvider, useProfile } from '@/contexts/ProfileContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useFavoriteMealAlerts } from '@/hooks/useFavoriteMealAlerts';
@@ -20,8 +21,10 @@ SplashScreen.preventAutoHideAsync();
 function RootLayoutNav() {
     const colorScheme = useColorScheme();
     const { isAuthenticated, isLoading } = useAuth();
+    const { isProfileComplete, isLoading: isProfileLoading } = useProfile();
     const segments = useSegments();
     const router = useRouter();
+    const rootNavigationState = useRootNavigationState();
 
     // Initialize notifications on app start
     useEffect(() => {
@@ -48,21 +51,44 @@ function RootLayoutNav() {
 
     // Auth routing logic
     useEffect(() => {
-        if (isLoading) return;
+        if (isLoading || isProfileLoading || !rootNavigationState?.key) return;
 
-        const inAuthGroup = segments[0] === '(auth)';
+        const authRoutes = ['welcome', 'login', 'register', 'complete-profile'];
+        const currentRoute = segments[0] ?? '';
+        const inAuthGroup =
+            currentRoute === '(auth)' ||
+            authRoutes.includes(currentRoute) ||
+            authRoutes.includes(segments[1] ?? '');
+        const inCompleteProfile = segments.includes('complete-profile');
 
-        if (!isAuthenticated && !inAuthGroup) {
-            // Redirect to welcome if not authenticated
-            router.replace('/(auth)/welcome' as any);
-        } else if (isAuthenticated && inAuthGroup) {
-            // Redirect to home if authenticated
+        if (!isAuthenticated) {
+            if (!inAuthGroup) {
+                router.replace('/welcome' as any);
+            }
+            return;
+        }
+
+        if (!isProfileComplete) {
+            if (!inCompleteProfile) {
+                router.replace('/complete-profile' as any);
+            }
+            return;
+        }
+
+        if (inAuthGroup) {
             router.replace('/(tabs)' as any);
         }
-    }, [isAuthenticated, isLoading, segments]);
+    }, [
+        isAuthenticated,
+        isLoading,
+        isProfileComplete,
+        isProfileLoading,
+        rootNavigationState?.key,
+        segments,
+    ]);
 
     // Show loading screen while checking auth state
-    if (isLoading) {
+    if (isLoading || isProfileLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.light.tint} />
@@ -106,6 +132,22 @@ function RootLayoutNav() {
                         presentation: 'card',
                     }}
                 />
+                <Stack.Screen
+                    name="profile"
+                    options={{
+                        title: 'Profile',
+                        headerShown: false,
+                        presentation: 'card',
+                    }}
+                />
+                <Stack.Screen
+                    name="profile-edit"
+                    options={{
+                        title: 'Edit Profile',
+                        headerShown: false,
+                        presentation: 'card',
+                    }}
+                />
                 <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             </Stack>
             <StatusBar style="auto" />
@@ -138,9 +180,11 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
                 <AuthProvider>
-                    <FavoritesProvider>
-                        <RootLayoutNav />
-                    </FavoritesProvider>
+                    <ProfileProvider>
+                        <FavoritesProvider>
+                            <RootLayoutNav />
+                        </FavoritesProvider>
+                    </ProfileProvider>
                 </AuthProvider>
             </QueryClientProvider>
         </GestureHandlerRootView>

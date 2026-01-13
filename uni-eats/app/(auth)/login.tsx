@@ -155,7 +155,7 @@ export default function LoginScreen() {
             <ThemedText style={[styles.signUpText, { color: isDark ? '#9BA1A6' : '#666' }]}>
               Don't have an account?{' '}
             </ThemedText>
-            <Pressable onPress={() => router.replace('/(auth)/register' as any)}>
+            <Pressable onPress={() => router.replace('/register' as any)}>
               <ThemedText style={[styles.signUpLink, { color: Colors.light.tint }]}>
                 Sign Up
               </ThemedText>

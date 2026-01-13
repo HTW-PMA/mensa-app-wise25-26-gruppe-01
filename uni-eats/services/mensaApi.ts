@@ -149,6 +149,13 @@ export interface Badge {
   icon?: string;
 }
 
+export interface University {
+  id: string;
+  name: string;
+  shortName?: string;
+  city?: string;
+}
+
 class MensaApiService {
   async getCanteens(filters?: {
     lat?: number;
@@ -407,6 +414,67 @@ class MensaApiService {
       console.error('Error fetching badges:', error);
       throw error;
     }
+  }
+
+  async getUniversities(): Promise<University[]> {
+    const endpoints = [
+      `${API_BASE_URL}/api/v1/university`,
+      `${API_BASE_URL}/api/v1/universities`,
+    ];
+
+    let lastError: unknown = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          headers: {
+            'X-API-KEY': getApiKey(),
+          },
+        });
+
+        if (response.status === 404) {
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const raw =
+          Array.isArray(data)
+            ? data
+            : data?.universities ?? data?.university ?? data?.data ?? [];
+
+        if (!Array.isArray(raw)) {
+          return [];
+        }
+
+        return raw
+          .map((item: any) => {
+            const id = item?._id ?? item?.id ?? item?.ID ?? item?.uuid;
+            const name =
+              item?.name ?? item?.title ?? item?.shortName ?? item?.abbreviation;
+
+            if (!id || !name) return null;
+
+            return {
+              id: String(id),
+              name: String(name),
+              shortName: item?.shortName ?? item?.abbreviation,
+              city: item?.city ?? item?.location?.city,
+            } as University;
+          })
+          .filter(Boolean) as University[];
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (lastError) {
+      console.error('Error fetching universities:', lastError);
+    }
+    return [];
   }
 }
 

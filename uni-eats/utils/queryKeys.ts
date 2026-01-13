@@ -15,4 +15,8 @@ export const queryKeys = {
   badges: {
     all: ['badges'] as const,
   },
+  universities: {
+    all: ['universities'] as const,
+    list: () => [...queryKeys.universities.all, 'list'] as const,
+  },
 };
