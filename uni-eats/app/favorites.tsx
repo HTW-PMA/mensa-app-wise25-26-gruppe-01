@@ -16,12 +16,14 @@ import { FavoriteCanteenCard } from '@/components/favorites/FavoriteCanteenCard'
 import { FavoriteMealCard } from '@/components/favorites/FavoriteMealCard';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors } from '@/constants/theme';
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
   
   const {
     favoriteCanteens,
@@ -56,7 +58,7 @@ export default function FavoritesScreen() {
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
           </Pressable>
-          <ThemedText style={styles.headerTitle}>My Favorites</ThemedText>
+          <ThemedText style={styles.headerTitle}>{t('favorites.title')}</ThemedText>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.loadingContainer}>
@@ -75,7 +77,7 @@ export default function FavoritesScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
         </Pressable>
-        <ThemedText style={styles.headerTitle}>My Favorites</ThemedText>
+        <ThemedText style={styles.headerTitle}>{t('favorites.title')}</ThemedText>
         <View style={styles.headerRight} />
       </View>
 
@@ -97,15 +99,15 @@ export default function FavoritesScreen() {
             <Ionicons name="alert-circle-outline" size={48} color="#FF5722" />
             <ThemedText style={styles.errorText}>{error}</ThemedText>
             <Pressable style={styles.retryButton} onPress={refresh}>
-              <ThemedText style={styles.retryText}>Erneut versuchen</ThemedText>
+              <ThemedText style={styles.retryText}>{t('favorites.retry')}</ThemedText>
             </Pressable>
           </View>
         ) : !hasFavorites ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="heart-outline" size={64} color="#ccc" />
-            <ThemedText style={styles.emptyTitle}>Keine Favoriten</ThemedText>
+            <ThemedText style={styles.emptyTitle}>{t('favorites.emptyTitle')}</ThemedText>
             <ThemedText style={styles.emptySubtitle}>
-              Füge Mensen und Gerichte zu deinen Favoriten hinzu, um sie hier zu sehen.
+              {t('favorites.emptySubtitle')}
             </ThemedText>
           </View>
         ) : (
@@ -116,7 +118,7 @@ export default function FavoritesScreen() {
                 <View style={styles.sectionHeader}>
                   <Ionicons name="star-outline" size={20} color={sectionTitleColor} />
                   <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-                    Favorite Mensas ({favoriteCanteens.length})
+                    {t('favorites.mensasTitle', { count: favoriteCanteens.length })}
                   </ThemedText>
                 </View>
                 
@@ -139,7 +141,7 @@ export default function FavoritesScreen() {
                 <View style={styles.sectionHeader}>
                   <Ionicons name="heart-outline" size={20} color={sectionTitleColor} />
                   <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-                    Favorite Meals ({favoriteMeals.length})
+                    {t('favorites.mealsTitle', { count: favoriteMeals.length })}
                   </ThemedText>
                 </View>
                 

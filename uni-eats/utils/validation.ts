@@ -1,6 +1,8 @@
 /**
  * Password strength object with visual properties
  */
+import { t } from '@/utils/i18n';
+
 export interface PasswordStrength {
   score: number;
   label: 'weak' | 'fair' | 'good' | 'strong';
@@ -35,35 +37,35 @@ export const validatePassword = (password: string): {
 
   // Check minimum length
   if (password.length < 8) {
-    errors.push('Password must be at least 8 characters');
+    errors.push(t('validation.passwordTooShort'));
   } else {
     score += 1;
   }
 
   // Check for uppercase
   if (!/[A-Z]/.test(password)) {
-    errors.push('Password must contain at least one uppercase letter');
+    errors.push(t('validation.passwordMissingUppercase'));
   } else {
     score += 1;
   }
 
   // Check for lowercase
   if (!/[a-z]/.test(password)) {
-    errors.push('Password must contain at least one lowercase letter');
+    errors.push(t('validation.passwordMissingLowercase'));
   } else {
     score += 0.5;
   }
 
   // Check for numbers
   if (!/[0-9]/.test(password)) {
-    errors.push('Password must contain at least one number');
+    errors.push(t('validation.passwordMissingNumber'));
   } else {
     score += 1;
   }
 
   // Check for special characters
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    errors.push('Password must contain at least one special character');
+    errors.push(t('validation.passwordMissingSpecial'));
   } else {
     score += 1;
   }
@@ -110,11 +112,11 @@ export const getFieldError = (
   switch (field) {
     case 'email':
       if (!value.trim()) return null; // Don't show error for empty field
-      return validateEmail(value) ? null : 'Please enter a valid email address';
+      return validateEmail(value) ? null : t('validation.emailInvalid');
     
     case 'name':
       if (!value.trim()) return null;
-      return validateName(value) ? null : 'Name must be at least 2 characters';
+      return validateName(value) ? null : t('validation.nameTooShort');
     
     case 'password':
       if (!value) return null;
@@ -123,7 +125,7 @@ export const getFieldError = (
     
     case 'confirmPassword':
       if (!value || !password) return null;
-      return passwordsMatch(password, value) ? null : 'Passwords do not match';
+      return passwordsMatch(password, value) ? null : t('validation.passwordsDoNotMatch');
     
     default:
       return null;

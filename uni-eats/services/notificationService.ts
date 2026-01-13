@@ -1,5 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { t } from '@/utils/i18n';
 
 /**
  * Initialize notification handler
@@ -7,7 +8,7 @@ import { Alert } from 'react-native';
  * For full native notifications, use EAS Build (requires Apple Developer account)
  */
 export async function initializeNotifications(): Promise<void> {
-  console.log('✅ Notification system initialized (Alert API - local development mode)');
+  console.log('Notification system initialized (Alert API - local development mode)');
 }
 
 /**
@@ -29,7 +30,7 @@ export async function wasNotifiedToday(
     const value = await AsyncStorage.getItem(getNotificationKey(userId, mealId, dateISO));
     return value === '1';
   } catch (e) {
-    console.error('❌ Error checking notification status:', e);
+    console.error('Error checking notification status:', e);
     return false;
   }
 }
@@ -44,9 +45,9 @@ export async function markNotifiedToday(
 ): Promise<void> {
   try {
     await AsyncStorage.setItem(getNotificationKey(userId, mealId, dateISO), '1');
-    console.log(`✅ Marked notification for meal ${mealId} on ${dateISO}`);
+    console.log(`Marked notification for meal ${mealId} on ${dateISO}`);
   } catch (e) {
-    console.error('❌ Error marking notification:', e);
+    console.error('Error marking notification:', e);
   }
 }
 
@@ -61,26 +62,25 @@ export async function notifyFavoriteMealAvailable(
   mealId: string
 ): Promise<void> {
   try {
-    // Use Alert API for local development
     Alert.alert(
-      '🍽️ Lieblingsgericht verfügbar!',
-      `Dein Favorit "${mealName}" gibt es heute in der ${canteenName}.`,
+      t('notifications.favoriteMealTitle'),
+      t('notifications.favoriteMealMessage', { mealName, canteenName }),
       [
         {
-          text: 'Abbrechen',
+          text: t('common.cancel'),
           onPress: () => console.log('Notification dismissed'),
           style: 'cancel',
         },
         {
-          text: 'Anzeigen',
+          text: t('common.view'),
           onPress: () => {
-            console.log(`🔔 User tapped notification for meal: ${mealName} at ${canteenId}`);
+            console.log(`User tapped notification for meal: ${mealName} at ${canteenId}`);
           },
         },
       ]
     );
-    console.log(`🔔 Alert notification shown for meal: ${mealName}`);
+    console.log(`Alert notification shown for meal: ${mealName}`);
   } catch (error) {
-    console.error('❌ Failed to show notification:', error);
+    console.error('Failed to show notification:', error);
   }
 }

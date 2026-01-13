@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 import { useProfile } from '@/contexts/ProfileContext';
 
@@ -11,6 +12,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
   const { profile } = useProfile();
   const cardBackground = isDark ? '#1C1C1E' : '#F7F7F8';
 
@@ -23,37 +25,41 @@ export default function ProfileScreen() {
     >
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedView style={styles.header}>
-          <ThemedText style={styles.title}>Profile</ThemedText>
-          <ThemedText style={styles.subtitle}>Review and update your preferences.</ThemedText>
+          <ThemedText style={styles.title}>{t('profile.title')}</ThemedText>
+          <ThemedText style={styles.subtitle}>{t('profile.subtitle')}</ThemedText>
           <Pressable
             style={[styles.editButton, { backgroundColor: Colors.light.tint }]}
             onPress={() => router.push('/profile-edit' as any)}
           >
-            <ThemedText style={styles.editButtonText}>Edit profile</ThemedText>
+            <ThemedText style={styles.editButtonText}>{t('profile.editButton')}</ThemedText>
           </Pressable>
         </ThemedView>
 
         <View style={[styles.card, { backgroundColor: cardBackground }]}>
-          <ThemedText style={styles.cardTitle}>Status</ThemedText>
-          <ThemedText style={styles.cardValue}>{profile?.status ?? 'Not set'}</ThemedText>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: cardBackground }]}>
-          <ThemedText style={styles.cardTitle}>University</ThemedText>
+          <ThemedText style={styles.cardTitle}>{t('profile.statusTitle')}</ThemedText>
           <ThemedText style={styles.cardValue}>
-            {profile?.universityName ?? 'Not set'}
+            {profile?.status ? t(`profile.status.${profile.status}`) : t('profile.notSet')}
           </ThemedText>
         </View>
 
         <View style={[styles.card, { backgroundColor: cardBackground }]}>
-          <ThemedText style={styles.cardTitle}>Dietary preference</ThemedText>
-          <ThemedText style={styles.cardValue}>{profile?.dietType ?? 'Not set'}</ThemedText>
+          <ThemedText style={styles.cardTitle}>{t('profile.universityTitle')}</ThemedText>
+          <ThemedText style={styles.cardValue}>
+            {profile?.universityName ?? t('profile.notSet')}
+          </ThemedText>
         </View>
 
         <View style={[styles.card, { backgroundColor: cardBackground }]}>
-          <ThemedText style={styles.cardTitle}>Allergies</ThemedText>
+          <ThemedText style={styles.cardTitle}>{t('profile.dietTitle')}</ThemedText>
           <ThemedText style={styles.cardValue}>
-            {profile?.allergies?.length ? profile.allergies.join(', ') : 'None'}
+            {profile?.dietType ? t(`profile.diet.${profile.dietType}`) : t('profile.notSet')}
+          </ThemedText>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: cardBackground }]}>
+          <ThemedText style={styles.cardTitle}>{t('profile.allergiesTitle')}</ThemedText>
+          <ThemedText style={styles.cardValue}>
+            {profile?.allergies?.length ? profile.allergies.join(', ') : t('profile.none')}
           </ThemedText>
         </View>
       </ScrollView>

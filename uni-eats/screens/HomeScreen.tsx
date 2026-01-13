@@ -9,6 +9,7 @@ import { Colors, Fonts } from '@/constants/theme';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 import { useLocation, calculateDistance } from '@/hooks/useLocation';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
 export interface CanteenWithMeals extends Canteen {
@@ -16,7 +17,13 @@ export interface CanteenWithMeals extends Canteen {
 }
 
 // Filter List Definition
-const FILTERS = ['All', 'Vegetarian', 'Vegan', 'Halal', 'Glutenfrei'];
+const FILTERS = [
+  { value: 'all', labelKey: 'home.filters.all' },
+  { value: 'vegetarian', labelKey: 'home.filters.vegetarian' },
+  { value: 'vegan', labelKey: 'home.filters.vegan' },
+  { value: 'halal', labelKey: 'home.filters.halal' },
+  { value: 'glutenfree', labelKey: 'home.filters.glutenFree' },
+];
 
 /**
  * Prüft ob eine Mensa heute geschlossen ist
@@ -50,6 +57,7 @@ const isCanteenClosed = (businessDays?: Canteen['businessDays']): boolean => {
 
 export function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [canteens, setCanteens] = useState<CanteenWithMeals[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +68,7 @@ export function HomeScreen() {
   // Google Ratings Hook
   const { enrichCanteensWithRatings } = useGoogleRatings(canteens);
 
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('all');
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -196,21 +204,21 @@ export function HomeScreen() {
           >
             {FILTERS.map((filter) => (
                 <Pressable
-                    key={filter}
-                    onPress={() => setActiveFilter(filter)}
+                    key={filter.value}
+                    onPress={() => setActiveFilter(filter.value)}
                     style={[
                       styles.filterItem,
-                      { 
-                        backgroundColor: activeFilter === filter ? Colors.light.tint : filterBg,
-                        borderColor: activeFilter === filter ? Colors.light.tint : borderColor
+                      {
+                        backgroundColor: activeFilter === filter.value ? Colors.light.tint : filterBg,
+                        borderColor: activeFilter === filter.value ? Colors.light.tint : borderColor
                       }
                     ]}
                 >
                   <Text style={[
                     styles.filterText,
-                    { color: activeFilter === filter ? '#fff' : textColor }
+                    { color: activeFilter === filter.value ? '#fff' : textColor }
                   ]}>
-                    {filter}
+                    {t(filter.labelKey)}
                   </Text>
                 </Pressable>
             ))}
@@ -224,7 +232,9 @@ export function HomeScreen() {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.light.tint} />
             }
         >
-          <Text style={[styles.subtitle, { color: textColor }]}>📍 Mensas near you</Text>
+          <Text style={[styles.subtitle, { color: textColor }]}>
+            {t('home.mensasNearYou')}
+          </Text>
 
           {loading && !refreshing ? (
               <View style={styles.centerContainer}>

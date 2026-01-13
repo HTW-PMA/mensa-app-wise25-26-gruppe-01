@@ -9,12 +9,14 @@ import {
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   const backgroundColor = isDark ? Colors.dark.background : Colors.light.background;
   const textColor = isDark ? Colors.dark.text : Colors.light.text;
@@ -33,10 +35,10 @@ export default function WelcomeScreen() {
             />
           </View>
           <ThemedText style={[styles.title, { color: textColor }]}>
-            Welcome to UniEats
+            {t('auth.welcome.title')}
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: subtitleColor }]}>
-            Find the best meals at your university
+            {t('auth.welcome.subtitle')}
           </ThemedText>
         </View>
 
@@ -44,20 +46,20 @@ export default function WelcomeScreen() {
         <View style={styles.featuresSection}>
           <FeatureItem
             emoji="📍"
-            title="Find nearby Mensas"
-            description="Discover cafeterias close to you"
+            title={t('auth.welcome.features.nearbyTitle')}
+            description={t('auth.welcome.features.nearbyDescription')}
             isDark={isDark}
           />
           <FeatureItem
             emoji="🥗"
-            title="Browse today's menu"
-            description="See what's cooking today"
+            title={t('auth.welcome.features.menuTitle')}
+            description={t('auth.welcome.features.menuDescription')}
             isDark={isDark}
           />
           <FeatureItem
             emoji="❤️"
-            title="Save your favorites"
-            description="Quick access to meals you love"
+            title={t('auth.welcome.features.favoritesTitle')}
+            description={t('auth.welcome.features.favoritesDescription')}
             isDark={isDark}
           />
         </View>
@@ -68,7 +70,7 @@ export default function WelcomeScreen() {
             style={[styles.primaryButton, { backgroundColor: Colors.light.tint }]}
             onPress={() => router.push('/login' as any)}
           >
-            <ThemedText style={styles.primaryButtonText}>Sign In</ThemedText>
+            <ThemedText style={styles.primaryButtonText}>{t('auth.welcome.signIn')}</ThemedText>
           </Pressable>
 
           <Pressable
@@ -76,7 +78,7 @@ export default function WelcomeScreen() {
             onPress={() => router.push('/register' as any)}
           >
             <ThemedText style={[styles.secondaryButtonText, { color: Colors.light.tint }]}>
-              Create Account
+              {t('auth.welcome.createAccount')}
             </ThemedText>
           </Pressable>
         </View>

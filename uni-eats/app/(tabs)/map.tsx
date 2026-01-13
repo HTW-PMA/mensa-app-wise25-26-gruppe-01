@@ -7,6 +7,7 @@ import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { Colors } from '@/constants/theme';
 import { useMensas } from '@/hooks/useMensas';
 import { type Canteen } from '@/services/mensaApi';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // expo-maps stellt plattformspezifische Views bereit
 const isWeb = Platform.OS === 'web';
@@ -42,6 +43,7 @@ const haversineDistanceKm = (
 export default function MapScreen() {
     const router = useRouter();
     const { data: mensas, isLoading } = useMensas();
+    const { t } = useTranslation();
 
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export default function MapScreen() {
 
     const formatDistance = (canteen: Canteen) => {
         const coords = toCoords(canteen);
-        if (!coords) return '– km';
+        if (!coords) return t('map.distanceUnavailable');
         const origin = userCoords ?? FALLBACK_COORDS;
         const km = haversineDistanceKm(origin.latitude, origin.longitude, coords.latitude, coords.longitude);
         return `${km.toFixed(1)} km`;
@@ -135,7 +137,7 @@ export default function MapScreen() {
                 appleAnnotations.unshift({
                     id: 'user',
                     coordinates: userCoords,
-                    title: 'Du bist hier',
+                    title: t('map.youAreHere'),
                     systemImage: 'location.fill',
                     tintColor: '#007AFF',
                     backgroundColor: '#007AFF',
@@ -154,8 +156,8 @@ export default function MapScreen() {
             googleMarkers.unshift({
                 id: 'user',
                 coordinates: userCoords,
-                title: 'Du bist hier',
-                snippet: 'Aktuelle Position',
+                title: t('map.youAreHere'),
+                snippet: t('map.currentPosition'),
                 color: '#007AFF',
             });
         }
@@ -196,7 +198,9 @@ export default function MapScreen() {
             <View style={styles.container}>
                 <View style={styles.loadingContainer}>
                     <Ionicons name="warning" size={18} color={Colors.light.tint} />
-                    <Text style={[styles.infoText, { textAlign: 'center' }]}>Maps sind im Web nicht verfügbar. Bitte native App / Dev Client nutzen.</Text>
+                    <Text style={[styles.infoText, { textAlign: 'center' }]}>
+                        {t('map.webNotSupported')}
+                    </Text>
                 </View>
             </View>
         );
@@ -238,21 +242,21 @@ export default function MapScreen() {
                     {requestingLocation && (
                         <View style={styles.infoRow}>
                             <ActivityIndicator size="small" color={Colors.light.tint} />
-                            <Text style={styles.infoText}>Standort wird geladen…</Text>
+                            <Text style={styles.infoText}>{t('map.loadingLocation')}</Text>
                         </View>
                     )}
 
                     {locationError === 'LOCATION_DENIED' && (
                         <View style={styles.infoRow}>
                             <Ionicons name="warning" size={18} color={Colors.light.tint} />
-                            <Text style={styles.infoText}>Standortzugriff verweigert. Zeige Berlin als Startpunkt.</Text>
+                            <Text style={styles.infoText}>{t('map.locationDenied')}</Text>
                         </View>
                     )}
 
                     {locationError === 'LOCATION_ERROR' && (
                         <View style={styles.infoRow}>
                             <Ionicons name="warning" size={18} color={Colors.light.tint} />
-                            <Text style={styles.infoText}>Standort konnte nicht geladen werden. Nutze Fallback.</Text>
+                            <Text style={styles.infoText}>{t('map.locationError')}</Text>
                         </View>
                     )}
                 </View>
@@ -307,4 +311,5 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 });
+
 

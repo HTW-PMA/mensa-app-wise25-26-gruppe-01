@@ -1,14 +1,15 @@
-import { Meal, Canteen } from '@/services/mensaApi';
+﻿import { Meal, Canteen } from '@/services/mensaApi';
+import { t } from '@/utils/i18n';
 
 export const POPULAR_SEARCHES = [
-  'Vegan',
-  'Pasta',
-  'Salad',
-  'Pizza',
-  'Soup',
-  'Burger',
-  'Asian',
-  'Vegetarian',
+  'search.popularTags.vegan',
+  'search.popularTags.pasta',
+  'search.popularTags.salad',
+  'search.popularTags.pizza',
+  'search.popularTags.soup',
+  'search.popularTags.burger',
+  'search.popularTags.asian',
+  'search.popularTags.vegetarian',
 ];
 
 export interface SearchResult {
@@ -59,6 +60,7 @@ export const combineSearchResults = (
   allCanteens?: Canteen[]
 ): SearchResult[] => {
   const results: SearchResult[] = [];
+  const separator = ` ${t('common.separator')} `;
 
   // Erstelle eine Map für schnellen Canteen-Name Lookup
   const canteenMap = new Map<string, string>();
@@ -83,7 +85,7 @@ export const combineSearchResults = (
       id: meal.id,
       uniqueId: `meal-${meal.id}-${meal.canteenId || 'unknown'}`,
       name: meal.name,
-      subtitle: subtitleParts.length > 0 ? subtitleParts.join(' • ') : undefined,
+      subtitle: subtitleParts.length > 0 ? subtitleParts.join(separator) : undefined,
       data: meal,
     });
   });
@@ -124,3 +126,4 @@ export const debounce = <T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 };
+

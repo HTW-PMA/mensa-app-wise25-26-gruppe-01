@@ -1,0 +1,406 @@
+{
+  "common": {
+    "back": "Back",
+    "goBack": "Go back",
+    "cancel": "Cancel",
+    "view": "View",
+    "errorTitle": "Error",
+    "loading": "Loading...",
+    "notAvailable": "Not available",
+    "priceFormat": "€%{value}",
+    "priceUnavailable": "Price unavailable",
+    "calories": "%{value} kcal",
+    "allergens": "Allergens",
+    "separator": "\u2022",
+    "distanceUnavailable": "-- km",
+    "timeUnavailable": "-- min",
+    "ratingUnavailable": "--",
+    "unexpectedError": "Something went wrong. Please try again."
+  },
+  "tabs": {
+    "home": "Home",
+    "search": "Search",
+    "map": "Map",
+    "aiChef": "AI Chef",
+    "account": "Account"
+  },
+  "auth": {
+    "welcome": {
+      "title": "UniEats",
+      "subtitle": "Discover today's meals in Berlin mensas.",
+      "features": {
+        "nearbyTitle": "Nearby mensas",
+        "nearbyDescription": "Find canteens around you in seconds.",
+        "menuTitle": "Today's menu",
+        "menuDescription": "Browse meals, prices, and dietary info.",
+        "favoritesTitle": "Favorites",
+        "favoritesDescription": "Save meals and mensas you love."
+      },
+      "signIn": "Sign in",
+      "createAccount": "Create account"
+    },
+    "login": {
+      "title": "Sign in",
+      "welcomeTitle": "Welcome back",
+      "welcomeSubtitle": "Sign in to continue.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Your password",
+      "forgotPassword": "Forgot password?",
+      "resetComingSoonTitle": "Reset password",
+      "resetComingSoonMessage": "Password reset is coming soon.",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account?",
+      "signUp": "Create one"
+    },
+    "register": {
+      "title": "Create account",
+      "welcomeTitle": "Create your account",
+      "welcomeSubtitle": "A few details to get started.",
+      "nameLabel": "Full name",
+      "namePlaceholder": "Your name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "At least 8 characters",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Repeat your password",
+      "terms": {
+        "prefix": "By creating an account, you agree to our",
+        "termsOfService": "Terms of Service",
+        "and": "and",
+        "privacyPolicy": "Privacy Policy"
+      },
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    }
+  },
+  "authErrors": {
+    "userNotFound": "No account found with this email.",
+    "wrongPassword": "Incorrect password.",
+    "invalidCredential": "Invalid email or password.",
+    "invalidEmail": "Invalid email address.",
+    "userDisabled": "This account has been disabled.",
+    "emailAlreadyInUse": "An account with this email already exists.",
+    "weakPassword": "Password is too weak. Use at least 6 characters.",
+    "operationNotAllowed": "Email/password accounts are not enabled.",
+    "tooManyRequests": "Too many failed attempts. Please try again later.",
+    "networkRequestFailed": "Network error. Please check your connection.",
+    "internalError": "An internal error occurred. Please try again.",
+    "invalidApiKey": "Invalid API key. Please check your configuration.",
+    "default": "An unexpected error occurred. Please try again."
+  },
+  "validation": {
+    "emailInvalid": "Please enter a valid email address.",
+    "nameTooShort": "Name must be at least 2 characters.",
+    "passwordTooShort": "Password must be at least 8 characters.",
+    "passwordMissingUppercase": "Password must contain at least one uppercase letter.",
+    "passwordMissingLowercase": "Password must contain at least one lowercase letter.",
+    "passwordMissingNumber": "Password must contain at least one number.",
+    "passwordMissingSpecial": "Password must contain at least one special character.",
+    "passwordsDoNotMatch": "Passwords do not match.",
+    "passwordStrength": {
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
+    }
+  },
+  "account": {
+    "defaultName": "Guest",
+    "defaultEmail": "No email",
+    "edit": "Edit",
+    "editProfileTitle": "Profile",
+    "editProfileMessage": "Profile editing is available on the profile page.",
+    "settingsTitle": "Settings",
+    "settingsMessage": "Settings are coming soon.",
+    "signOutTitle": "Sign out",
+    "signOutPrompt": "Are you sure you want to sign out?",
+    "signOutButton": "Sign out",
+    "signOutError": "Unable to sign out. Try again.",
+    "version": "Version %{version}",
+    "menu": {
+      "favoritesTitle": "Favorites",
+      "favoritesSubtitle": "%{meals} meals • %{mensas} %{mensaLabel}",
+      "mensaSingle": "Mensa",
+      "mensaPlural": "Mensas",
+      "profileTitle": "Profile",
+      "profileSubtitle": "View and edit your preferences",
+      "helpTitle": "Help",
+      "helpSubtitle": "FAQs and support",
+      "settingsTitle": "Settings",
+      "settingsSubtitle": "App preferences"
+    },
+    "languageTitle": "Language",
+    "languageEnglish": "English",
+    "languageGerman": "German"
+  },
+  "profile": {
+    "completeTitle": "Complete your profile",
+    "completeSubtitle": "A few preferences help us personalize prices and recommendations.",
+    "editTitle": "Edit profile",
+    "editSubtitle": "Update your preferences anytime.",
+    "title": "Profile",
+    "subtitle": "Your saved preferences",
+    "editButton": "Edit profile",
+    "allergiesTitle": "Allergies",
+    "allergiesHint": "Select all that apply. You can skip this.",
+    "dietTitle": "Dietary preference",
+    "diet": {
+      "none": "No restrictions",
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan",
+      "pescatarian": "Pescatarian"
+    },
+    "statusTitle": "Status",
+    "status": {
+      "student": "Student",
+      "employee": "Employee",
+      "guest": "Guest"
+    },
+    "statusHint": {
+      "general": "We use this for student pricing.",
+      "student": "Student discounts apply.",
+      "employee": "Employee pricing applies.",
+      "guest": "Guest pricing applies."
+    },
+    "universityTitle": "University",
+    "universityHint": "Choose your university.",
+    "universitySearchPlaceholder": "Search universities",
+    "universityLoading": "Loading universities...",
+    "universityLoadError": "Could not load universities.",
+    "saveProfile": "Save profile",
+    "saveChanges": "Save changes",
+    "none": "None",
+    "notSet": "Not set",
+    "validation": {
+      "statusAndUniversity": "Please select a status and university.",
+      "saveFailed": "Could not save profile."
+    }
+  },
+  "allergens": {
+    "gluten": "Gluten",
+    "lactose": "Lactose",
+    "nuts": "Nuts",
+    "eggs": "Eggs",
+    "soy": "Soy",
+    "fish": "Fish",
+    "shellfish": "Shellfish",
+    "celery": "Celery"
+  },
+  "allergenCategories": {
+    "cereals": "Cereals",
+    "dairy": "Dairy",
+    "animalProducts": "Animal products",
+    "fishSeafood": "Fish & seafood",
+    "nutsSeeds": "Nuts & seeds",
+    "legumes": "Legumes",
+    "vegetables": "Vegetables",
+    "spices": "Spices",
+    "additives": "Additives",
+    "other": "Other"
+  },
+  "aiChef": {
+    "title": "AI Chef",
+    "input": {
+      "placeholder": "What do you want to eat?"
+    },
+    "messages": {
+      "greeting": "Hi, I'm your AI Chef.",
+      "prompt": "Ask me about today's meals, diets, or budgets."
+    },
+    "suggestions": {
+      "title": "Try asking:",
+      "vegetarian": "Any vegetarian options today?",
+      "pasta": "Show me pasta dishes.",
+      "budget": "Meals under 5 euros.",
+      "tired": "I'm tired, suggest something energizing.",
+      "compare": "Compare two meals for me."
+    },
+    "preferences": {
+      "title": "Preferences",
+      "budgetTitle": "Daily budget",
+      "budgetPlaceholder": "Max. €/day (e.g. 5.00)"
+    },
+    "errors": {
+      "missingApiKey": "API key is not configured. Please set EXPO_PUBLIC_GROQ_API_KEY.",
+      "requestFailed": "API request failed (status %{status}).",
+      "invalidResponse": "Received an invalid response from AI.",
+      "generic": "Sorry, something went wrong. Please try again later."
+    }
+  },
+  "meal": {
+    "description": {
+      "salat": "Fresh mixed greens with seasonal vegetables.",
+      "soup": "Homemade soup with fresh ingredients.",
+      "pasta": "Al dente pasta with savory sauce.",
+      "pizza": "Stone-baked pizza with fresh toppings.",
+      "burger": "Juicy burger with crisp lettuce and tomato.",
+      "bowl": "Balanced bowl with grains and vegetables.",
+      "curry": "Warm curry with aromatic spices.",
+      "brownie": "Rich brownie with a chocolatey finish.",
+      "default": "Delicious meal prepared fresh daily."
+    }
+  },
+  "favorites": {
+    "title": "Favorites",
+    "retry": "Try again",
+    "emptyTitle": "No favorites yet",
+    "emptySubtitle": "Save meals and mensas to see them here.",
+    "mensasTitle": {
+      "one": "1 Mensa",
+      "other": "%{count} Mensas"
+    },
+    "mealsTitle": {
+      "one": "1 meal",
+      "other": "%{count} meals"
+    },
+    "distanceAway": "%{distance} away"
+  },
+  "help": {
+    "title": "Help",
+    "faq": {
+      "title": "FAQ",
+      "orderQuestion": "How do I see today's meals?",
+      "orderAnswer": "Open a mensa to view the daily menu and prices.",
+      "favoritesQuestion": "How do I save favorites?",
+      "favoritesAnswer": "Tap the heart to save meals or mensas.",
+      "allergensQuestion": "Where can I find allergen info?",
+      "allergensAnswer": "Allergens are listed in meal details and your profile.",
+      "contactQuestion": "How can I contact you?",
+      "contactAnswer": "Send us an email or give us a call.",
+      "preferencesQuestion": "How do I edit my preferences?",
+      "preferencesAnswer": "Go to Profile to update allergens, status, or university."
+    },
+    "contactTitle": "Contact support",
+    "contactEmail": "Email",
+    "contactPhone": "Phone",
+    "contactUnavailableTitle": "Contact unavailable",
+    "contactEmailUnavailable": "Email is not available on this device.",
+    "contactPhoneUnavailable": "Calling is not available on this device.",
+    "contactActionFailed": "Could not open contact option.",
+    "contactEmailHint": "Send an email",
+    "contactPhoneHint": "Call support"
+  },
+  "home": {
+    "mensasNearYou": "Mensas near you",
+    "filters": {
+      "all": "All",
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan",
+      "halal": "Halal",
+      "glutenFree": "Gluten-free"
+    }
+  },
+  "location": {
+    "permissionDenied": "Location permission denied.",
+    "unavailable": "Unable to determine location."
+  },
+  "map": {
+    "webNotSupported": "Map is not supported on web.",
+    "loadingLocation": "Loading location...",
+    "locationDenied": "Location permission denied.",
+    "locationError": "Unable to load location.",
+    "youAreHere": "You are here",
+    "currentPosition": "Current position",
+    "distanceUnavailable": "Distance unavailable"
+  },
+  "mealDetail": {
+    "title": "Meal details",
+    "fallbackName": "Meal",
+    "pricesTitle": "Prices",
+    "noPrices": "No prices available.",
+    "propertiesTitle": "Properties",
+    "allergensTitle": "Allergens",
+    "allergensSubtitle": "Contains the following allergens.",
+    "additivesTitle": "Additives",
+    "noAllergensTitle": "No allergens listed",
+    "noAllergensSubtitle": "This meal has no known allergens or additives.",
+    "environmentTitle": "Environmental impact",
+    "co2Footprint": "CO2 footprint",
+    "waterFootprint": "Water footprint",
+    "studentPrice": "Student price",
+    "save": "Save",
+    "saved": "Saved"
+  },
+  "mensaCard": {
+    "closed": "Closed",
+    "noHours": "No hours available",
+    "todayClosed": "Closed today",
+    "hoursFallback": "%{day}: %{hours}",
+    "badges": {
+      "fastService": "Fast service",
+      "vegan": "Vegan"
+    }
+  },
+  "mensaDetail": {
+    "notFound": "Mensa not found.",
+    "loadError": "Unable to load mensa.",
+    "mealsLoadError": "Unable to load meals.",
+    "dishesLoadError": "Unable to load dishes.",
+    "loadingDishes": "Loading dishes...",
+    "itemsCount": {
+      "one": "1 dish",
+      "other": "%{count} dishes"
+    },
+    "today": "Today",
+    "dishes": "Dishes",
+    "closed": "Closed",
+    "closedToday": "Closed today",
+    "noHours": "No opening hours",
+    "hoursFormat": "%{open} - %{close}",
+    "noDishes": "No dishes available.",
+    "tryAnotherDate": "Try another date."
+  },
+  "modal": {
+    "title": "Modal",
+    "goHome": "Go to home"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "comingSoon": "Notifications are coming soon.",
+    "favoriteMealTitle": "Favorite meal available",
+    "favoriteMealMessage": "Your favorite \"%{mealName}\" is available today at %{canteenName}."
+  },
+  "priceTypes": {
+    "students": "Students"
+  },
+  "search": {
+    "placeholder": "Search for mensas or meals",
+    "emptyTitle": "No results",
+    "emptySubtitle": "Try a different search term.",
+    "recentTitle": "Recent searches",
+    "popularTitle": "Popular",
+    "clearAll": "Clear all",
+    "loadError": "Unable to load search results.",
+    "popularTags": {
+      "vegan": "Vegan",
+      "pasta": "Pasta",
+      "salad": "Salad",
+      "pizza": "Pizza",
+      "soup": "Soup",
+      "burger": "Burger",
+      "asian": "Asian",
+      "vegetarian": "Vegetarian"
+    }
+  },
+  "explore": {
+    "title": "Explore",
+    "intro": "This screen showcases file-based routing and other Expo Router features.",
+    "fileRoutingTitle": "File-based routing",
+    "fileRoutingBody": "The app has two screens: %{homeScreen} and %{exploreScreen}.",
+    "fileRoutingLayout": "The layout lives in %{layoutFile}.",
+    "learnMore": "Learn more",
+    "platformSupportTitle": "Platform support",
+    "platformSupportBody": "The %{key} in the tab bar means web support.",
+    "imagesTitle": "Images",
+    "imagesBody": "Files ending in %{at2x} and %{at3x} are used for different pixel densities.",
+    "themeTitle": "Theming",
+    "themeBody": "Switch themes with the %{hook} hook.",
+    "animationsTitle": "Animations",
+    "animationsBody": "This screen uses %{component} with %{library}.",
+    "parallaxBody": "On iOS, %{component} adds a parallax effect."
+  }
+}

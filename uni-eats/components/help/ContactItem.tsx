@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity, View, Linking, Alert } from 'react-native
 import { MaterialIcons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 
 interface ContactItemProps {
@@ -15,6 +16,7 @@ interface ContactItemProps {
 export function ContactItem({ icon, label, value, type }: ContactItemProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   const handlePress = async () => {
     try {
@@ -34,15 +36,15 @@ export function ContactItem({ icon, label, value, type }: ContactItemProps) {
         await Linking.openURL(url);
       } else {
         Alert.alert(
-          'Nicht verfügbar',
-          type === 'email' 
-            ? 'Keine E-Mail-App gefunden.' 
-            : 'Keine Telefon-App gefunden.'
+          t('help.contactUnavailableTitle'),
+          type === 'email'
+            ? t('help.contactEmailUnavailable')
+            : t('help.contactPhoneUnavailable')
         );
       }
     } catch (error) {
       console.error('Error opening link:', error);
-      Alert.alert('Fehler', 'Aktion konnte nicht ausgeführt werden.');
+      Alert.alert(t('common.errorTitle'), t('help.contactActionFailed'));
     }
   };
 
@@ -56,7 +58,9 @@ export function ContactItem({ icon, label, value, type }: ContactItemProps) {
       activeOpacity={0.7}
       accessibilityRole="link"
       accessibilityLabel={`${label}: ${value}`}
-      accessibilityHint={type === 'email' ? 'Öffnet E-Mail-App' : 'Öffnet Telefon-App'}
+      accessibilityHint={
+        type === 'email' ? t('help.contactEmailHint') : t('help.contactPhoneHint')
+      }
     >
       <View style={styles.iconContainer}>
         <MaterialIcons

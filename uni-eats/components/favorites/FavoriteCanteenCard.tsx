@@ -3,6 +3,7 @@ import { StyleSheet, Pressable, View, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { type Canteen } from '@/services/mensaApi';
 import { formatDistance } from '@/hooks/useLocation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors } from '@/constants/theme';
 
 interface FavoriteCanteenCardProps {
@@ -12,8 +13,9 @@ interface FavoriteCanteenCardProps {
 }
 
 export function FavoriteCanteenCard({ canteen, onPress, onRemove }: FavoriteCanteenCardProps) {
+  const { t } = useTranslation();
   const distanceText = canteen.distance !== undefined 
-    ? `${formatDistance(canteen.distance)} away`
+    ? t('favorites.distanceAway', { distance: formatDistance(canteen.distance) })
     : canteen.address?.district || canteen.address?.city || '';
 
   return (

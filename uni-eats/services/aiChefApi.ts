@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Enhanced Groq API for AI Chef with dietary preferences, mood detection, and budget tracking
  */
 
@@ -7,6 +7,7 @@ const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'llama-3.1-8b-instant';
 
 import { Canteen, Meal } from '@/services/mensaApi';
+import { t } from '@/utils/i18n';
 
 // Extended user preferences
 export interface UserPreferences {
@@ -93,12 +94,12 @@ function analyzeBudget(preferences?: UserPreferences): string {
     if (remaining <= 0) {
         return 'CRITICAL: User has exceeded daily budget!';
     } else if (remaining < 3) {
-        return `BUDGET ALERT: Only €${remaining.toFixed(2)} remaining today. Suggest cheapest options.`;
+        return `BUDGET ALERT: Only â‚¬${remaining.toFixed(2)} remaining today. Suggest cheapest options.`;
     } else if (remaining < 5) {
-        return `Budget conscious: €${remaining.toFixed(2)} left. Prefer affordable meals.`;
+        return `Budget conscious: â‚¬${remaining.toFixed(2)} left. Prefer affordable meals.`;
     }
 
-    return `Budget available: €${remaining.toFixed(2)} for today.`;
+    return `Budget available: â‚¬${remaining.toFixed(2)} for today.`;
 }
 
 /**
@@ -168,13 +169,13 @@ function analyzeMensaProximity(context: AIChefContext): string {
         .map(m => `${m.name} (${m.distance < 1 ? Math.round(m.distance * 1000) + 'm' : m.distance.toFixed(1) + 'km'})`)
         .join(', ');
 
-    return `\n📍 LOCATION CONTEXT:
+    return `\nðŸ“ LOCATION CONTEXT:
 User's closest mensas: ${proximityInfo}
 IMPORTANT: Prioritize recommendations from nearby mensas unless user specifically asks for others.`;
 }
 function getStudentPrice(meal: Meal): string {
     const p = meal.prices?.find((x) => x.priceType === 'Studierende')?.price;
-    if (typeof p === 'number' && Number.isFinite(p)) return `€${p.toFixed(2)}`;
+    if (typeof p === 'number' && Number.isFinite(p)) return `â‚¬${p.toFixed(2)}`;
     return '';
 }
 
@@ -194,7 +195,7 @@ function analyzeMealCompatibility(meal: Meal, preferences?: UserPreferences): st
             // Check if allergen appears in name or additives
             if (mealName.includes(allergyLower) ||
                 mealAdditives.some(a => a.includes(allergyLower))) {
-                warnings.push(`⚠️ Contains ${allergy}`);
+                warnings.push(`âš ï¸ Contains ${allergy}`);
             }
         }
     }
@@ -207,13 +208,13 @@ function analyzeMealCompatibility(meal: Meal, preferences?: UserPreferences): st
         switch (preferences.dietType) {
             case 'vegan':
                 if (!badges.includes('vegan') && !mealName.includes('vegan')) {
-                    warnings.push('❌ Not vegan');
+                    warnings.push('âŒ Not vegan');
                 }
                 break;
             case 'vegetarian':
                 const hasMeat = ['fleisch', 'chicken', 'rind', 'schwein', 'hähnchen'].some(m => mealName.includes(m));
                 if (hasMeat) {
-                    warnings.push('❌ Contains meat');
+                    warnings.push('âŒ Contains meat');
                 }
                 break;
         }
@@ -294,7 +295,7 @@ function buildSystemPrompt(context: AIChefContext, userMessage: string) {
     let dietaryInfo = '';
 
     if (preferences?.allergies && preferences.allergies.length > 0) {
-        dietaryInfo += `\n⚠️ USER ALLERGIES: ${preferences.allergies.join(', ')}
+        dietaryInfo += `\nâš ï¸ USER ALLERGIES: ${preferences.allergies.join(', ')}
 CRITICAL: Never recommend meals containing these allergens!`;
     }
 
@@ -305,7 +306,7 @@ CRITICAL: Never recommend meals containing these allergens!`;
 
     // BUDGET TRACKING
     const budgetInfo = analyzeBudget(preferences);
-    const budgetContext = budgetInfo ? `\n💶 ${budgetInfo}` : '';
+    const budgetContext = budgetInfo ? `\nðŸ’¶ ${budgetInfo}` : '';
 
     // LEARNED PREFERENCES
     const learnedPrefs = inferPreferences(context);
@@ -320,7 +321,7 @@ CRITICAL: Never recommend meals containing these allergens!`;
         userMessage.includes('oder');
 
     const comparisonHint = isComparison ? `
-📊 COMPARISON MODE DETECTED
+ðŸ“Š COMPARISON MODE DETECTED
 - Compare meals side-by-side
 - Mention: price, calories (if available), dietary fit, allergens
 - Give clear recommendation with reasoning` : '';
@@ -328,12 +329,12 @@ CRITICAL: Never recommend meals containing these allergens!`;
     // Build meals list with compatibility info
     let mealInfo = '';
     if (mealsCount > 0) {
-        mealInfo += '\n🍽️ Available Meals:\n';
+        mealInfo += '\nðŸ½ï¸ Available Meals:\n';
         for (const meal of context.meals) {
             const mensaName = context.mensas.find((m) => m.id === meal.canteenId)?.name ?? 'Unknown';
-            const category = meal.category ? ` • ${meal.category}` : '';
+            const category = meal.category ? ` â€¢ ${meal.category}` : '';
             const price = getStudentPrice(meal);
-            const priceTxt = price ? ` • ${price}` : '';
+            const priceTxt = price ? ` â€¢ ${price}` : '';
             const compatibility = analyzeMealCompatibility(meal, preferences);
 
             mealInfo += `- ${meal.name} @ ${mensaName}${category}${priceTxt}${compatibility}\n`;
@@ -343,7 +344,7 @@ CRITICAL: Never recommend meals containing these allergens!`;
     let mensaInfo = '';
     // Only show mensa list if we have meals
     if (mensasCount > 0 && mealsCount > 0) {
-        mensaInfo += '\n📍 Available Mensas:\n';
+        mensaInfo += '\nðŸ“ Available Mensas:\n';
         for (const mensa of context.mensas) {
             mensaInfo += `- ${mensa.name}\n`;
         }
@@ -352,10 +353,10 @@ CRITICAL: Never recommend meals containing these allergens!`;
     return `
 You are "AI Chef", a smart assistant for Berlin university cafeterias.
 
-🎯 GOAL:
+ðŸŽ¯ GOAL:
 Help students decide what to eat TODAY based on their preferences, dietary needs, and budget.
 
-🚨 CRITICAL RULES:
+ðŸš¨ CRITICAL RULES:
 1. NEVER recommend meals with user's allergens
 2. Respect dietary restrictions (vegan/vegetarian)
 3. Consider budget constraints
@@ -365,22 +366,22 @@ Help students decide what to eat TODAY based on their preferences, dietary needs
 7. Only recommend meals from the "Available Meals" list
 8. If no meals available: apologize briefly and ask user to try again later
 
-💚 USER FAVORITES:
+ðŸ’š USER FAVORITES:
 - Favorite mensas (${favoriteMensasByName.length}): ${favoriteMensasByName.join(', ') || 'none'}
 - Favorite meals (${favoriteMealsByName.length}): ${favoriteMealsByName.join(', ') || 'none'}
 - Learned preferences: ${learnedPrefs}
 ${dietaryInfo}${budgetContext}${moodContext}${proximityInfo}${comparisonHint}
 
-📊 DATA STATUS:
+ðŸ“Š DATA STATUS:
 - Mensas: ${mensasCount}
 - Meals today: ${mealsCount}
 - Loading: ${String(isLoading)}
 - Error: ${String(isError)}
 
 ${mealsCount === 0 ? `
-⚠️ CRITICAL: No meal data available right now!
+âš ï¸ CRITICAL: No meal data available right now!
 Your response MUST be:
-"Leider kann ich gerade keine Speisedaten abrufen. Bitte versuche es in ein paar Minuten nochmal oder schaue direkt in der Mensa vorbei! 😊"
+"Leider kann ich gerade keine Speisedaten abrufen. Bitte versuche es in ein paar Minuten nochmal oder schaue direkt in der Mensa vorbei! ðŸ˜Š"
 DO NOT list any mensas or IDs!` : ''}
 ${mensaInfo}${mealInfo}
 `.trim();
@@ -395,7 +396,7 @@ export async function getAiChefResponse(
     history?: AIChefHistoryMessage[]
 ): Promise<string> {
     if (!API_KEY) {
-        return 'API key is not configured. Please set EXPO_PUBLIC_GROQ_API_KEY.';
+        return t('aiChef.errors.missingApiKey');
     }
 
     const systemPrompt = buildSystemPrompt(context, prompt);
@@ -429,7 +430,7 @@ export async function getAiChefResponse(
         if (!response.ok) {
             const errorText = await response.text();
             console.error('AI Chef API Error:', response.status, errorText);
-            throw new Error(`API request failed with status ${response.status}`);
+            throw new Error(t('aiChef.errors.requestFailed', { status: response.status }));
         }
 
         const data = await response.json();
@@ -437,12 +438,13 @@ export async function getAiChefResponse(
 
         if (typeof aiResponse !== 'string' || aiResponse.trim().length === 0) {
             console.error('Invalid response from AI:', data);
-            throw new Error('Received invalid response from AI.');
+            throw new Error(t('aiChef.errors.invalidResponse'));
         }
 
         return aiResponse.replace(/\*\*(.*?)\*\*/g, '$1').trim();
     } catch (error) {
         console.error('AI Chef error:', error);
-        throw new Error('Sorry, ich habe gerade technische Probleme. Versuch es bitte später nochmal.');
+        throw new Error(t('aiChef.errors.generic'));
     }
 }
+

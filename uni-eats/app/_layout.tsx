@@ -11,9 +11,11 @@ import { queryClient } from '@/config/queryClient';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ProfileProvider, useProfile } from '@/contexts/ProfileContext';
+import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useFavoriteMealAlerts } from '@/hooks/useFavoriteMealAlerts';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +24,8 @@ function RootLayoutNav() {
     const colorScheme = useColorScheme();
     const { isAuthenticated, isLoading } = useAuth();
     const { isProfileComplete, isLoading: isProfileLoading } = useProfile();
+    const { isLoading: isLanguageLoading } = useLanguage();
+    const { t } = useTranslation();
     const segments = useSegments();
     const router = useRouter();
     const rootNavigationState = useRootNavigationState();
@@ -51,7 +55,7 @@ function RootLayoutNav() {
 
     // Auth routing logic
     useEffect(() => {
-        if (isLoading || isProfileLoading || !rootNavigationState?.key) return;
+        if (isLoading || isProfileLoading || isLanguageLoading || !rootNavigationState?.key) return;
 
         const authRoutes = ['welcome', 'login', 'register', 'complete-profile'];
         const currentRoute = segments[0] ?? '';
@@ -83,12 +87,13 @@ function RootLayoutNav() {
         isLoading,
         isProfileComplete,
         isProfileLoading,
+        isLanguageLoading,
         rootNavigationState?.key,
         segments,
     ]);
 
     // Show loading screen while checking auth state
-    if (isLoading || isProfileLoading) {
+    if (isLoading || isProfileLoading || isLanguageLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.light.tint} />
@@ -111,7 +116,7 @@ function RootLayoutNav() {
                 <Stack.Screen
                     name="favorites"
                     options={{
-                        title: 'My Favorites',
+                        title: t('favorites.title'),
                         headerShown: false,
                         presentation: 'card',
                     }}
@@ -119,7 +124,7 @@ function RootLayoutNav() {
                 <Stack.Screen
                     name="help"
                     options={{
-                        title: 'Help',
+                        title: t('help.title'),
                         headerShown: false,
                         presentation: 'card',
                     }}
@@ -127,7 +132,7 @@ function RootLayoutNav() {
                 <Stack.Screen
                     name="meal-detail"
                     options={{
-                        title: 'Meal Details',
+                        title: t('mealDetail.title'),
                         headerShown: false,
                         presentation: 'card',
                     }}
@@ -135,7 +140,7 @@ function RootLayoutNav() {
                 <Stack.Screen
                     name="profile"
                     options={{
-                        title: 'Profile',
+                        title: t('profile.title'),
                         headerShown: false,
                         presentation: 'card',
                     }}
@@ -143,12 +148,12 @@ function RootLayoutNav() {
                 <Stack.Screen
                     name="profile-edit"
                     options={{
-                        title: 'Edit Profile',
+                        title: t('profile.editTitle'),
                         headerShown: false,
                         presentation: 'card',
                     }}
                 />
-                <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal', title: t('modal.title') }} />
             </Stack>
             <StatusBar style="auto" />
         </ThemeProvider>
@@ -179,13 +184,15 @@ export default function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
-                <AuthProvider>
-                    <ProfileProvider>
-                        <FavoritesProvider>
-                            <RootLayoutNav />
-                        </FavoritesProvider>
-                    </ProfileProvider>
-                </AuthProvider>
+                <LanguageProvider>
+                    <AuthProvider>
+                        <ProfileProvider>
+                            <FavoritesProvider>
+                                <RootLayoutNav />
+                            </FavoritesProvider>
+                        </ProfileProvider>
+                    </AuthProvider>
+                </LanguageProvider>
             </QueryClientProvider>
         </GestureHandlerRootView>
     );

@@ -1,9 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import { StyleSheet, Pressable, View, Text, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { type Meal } from '@/services/mensaApi';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors } from '@/constants/theme';
 
 interface FavoriteMealCardProps {
@@ -15,47 +16,47 @@ interface FavoriteMealCardProps {
 /**
  * Holt den Studierendenpreis aus den Preisen
  */
-const getStudentPrice = (prices?: Meal['prices']): string => {
-  if (!prices || prices.length === 0) return '–';
-  const studentPrice = prices.find(p => p.priceType === 'Studierende');
+const getStudentPrice = (prices?: Meal['prices']): number | null => {
+  if (!prices || prices.length === 0) return null;
+  const studentPrice = prices.find((p) => p.priceType === 'Studierende');
   if (studentPrice) {
-    return `€${studentPrice.price.toFixed(2)}`;
+    return studentPrice.price;
   }
-  return `€${prices[0].price.toFixed(2)}`;
+  return prices[0].price;
 };
 
 /**
  * Generiert eine Mock-Beschreibung basierend auf dem Meal-Namen
  */
-const getMealDescription = (meal: Meal): string => {
+const getMealDescriptionKey = (meal: Meal): string => {
   const descriptions: Record<string, string> = {
-    'Salat': 'Fresh mixed greens with seasonal vegetables',
-    'Suppe': 'Homemade soup with fresh ingredients',
-    'Pasta': 'Al dente pasta with homemade sauce',
-    'Pizza': 'Stone-baked pizza with fresh toppings',
-    'Burger': 'Juicy burger with fresh lettuce and tomato',
-    'Bowl': 'Quinoa, roasted vegetables, avocado, tahini...',
-    'Curry': 'Coconut curry with tofu, vegetables, and...',
-    'Brownie': 'Rich chocolate brownie with vanilla ice cream',
+    'Salat': 'meal.description.salat',
+    'Suppe': 'meal.description.soup',
+    'Pasta': 'meal.description.pasta',
+    'Pizza': 'meal.description.pizza',
+    'Burger': 'meal.description.burger',
+    'Bowl': 'meal.description.bowl',
+    'Curry': 'meal.description.curry',
+    'Brownie': 'meal.description.brownie',
   };
-  
-  for (const [key, desc] of Object.entries(descriptions)) {
+
+  for (const [key, descKey] of Object.entries(descriptions)) {
     if (meal.name.toLowerCase().includes(key.toLowerCase())) {
-      return desc;
+      return descKey;
     }
   }
-  return 'Delicious meal prepared fresh daily';
+  return 'meal.description.default';
 };
 
 /**
  * Berechnet Mock-Kalorien basierend auf dem Meal
  */
-const getMealCalories = (meal: Meal): string => {
+const getMealCalories = (meal: Meal): number => {
   if (meal.co2Bilanz) {
-    return `${Math.round(meal.co2Bilanz * 0.8 + 200)} kcal`;
+    return Math.round(meal.co2Bilanz * 0.8 + 200);
   }
   const hash = meal.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return `${300 + (hash % 400)} kcal`;
+  return 300 + (hash % 400);
 };
 
 /**
@@ -109,9 +110,13 @@ const getBadgeStyle = (type: BadgeType) => {
 };
 
 export function FavoriteMealCard({ meal, onPress, onRemove }: FavoriteMealCardProps) {
-  const price = getStudentPrice(meal.prices);
-  const description = getMealDescription(meal);
-  const calories = getMealCalories(meal);
+  const { t } = useTranslation();
+  const priceValue = getStudentPrice(meal.prices);
+  const price = priceValue !== null
+    ? t('common.priceFormat', { value: priceValue.toFixed(2) })
+    : t('common.priceUnavailable');
+  const description = t(getMealDescriptionKey(meal));
+  const calories = t('common.calories', { value: getMealCalories(meal) });
   const imageUrl = getMealImage(meal);
   
   // Badges aus API-Daten
@@ -298,3 +303,4 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 });
+

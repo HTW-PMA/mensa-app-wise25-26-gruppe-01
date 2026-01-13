@@ -12,6 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { FAQItem } from '@/components/help/FAQItem';
 import { ContactItem } from '@/components/help/ContactItem';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 
 interface FAQData {
@@ -20,38 +21,11 @@ interface FAQData {
   answer: string;
 }
 
-const FAQ_DATA: FAQData[] = [
-  {
-    id: '1',
-    question: 'How do I order from a mensa?',
-    answer: 'Browse available mensas, select your desired meals, and add them to your cart. You can pick up your order at the selected mensa.',
-  },
-  {
-    id: '2',
-    question: 'How do I add meals to favorites?',
-    answer: 'Tap the heart icon on any meal to add it to your favorites. You can view all your favorites in the Account section.',
-  },
-  {
-    id: '3',
-    question: 'What do the allergen symbols mean?',
-    answer: 'Each meal displays allergen information. Tap on the allergen info to see a detailed list of allergens present in the dish.',
-  },
-  {
-    id: '4',
-    question: 'How can I contact support?',
-    answer: 'You can reach our support team at support@unieats.com or call +49 123 456 7890 during business hours (9:00 AM - 6:00 PM).',
-  },
-  {
-    id: '5',
-    question: 'Can I change my dietary preferences?',
-    answer: 'Yes! Go to Profile > Dietary Preferences to customize your meal recommendations based on your dietary needs.',
-  },
-];
-
 export default function HelpScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
   
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -62,6 +36,33 @@ export default function HelpScreen() {
   const backgroundColor = isDark ? Colors.dark.background : Colors.light.background;
   const sectionTitleColor = isDark ? Colors.dark.text : '#333';
   const borderColor = isDark ? '#333333' : '#E5E7EB';
+  const faqData: FAQData[] = [
+    {
+      id: '1',
+      question: t('help.faq.orderQuestion'),
+      answer: t('help.faq.orderAnswer'),
+    },
+    {
+      id: '2',
+      question: t('help.faq.favoritesQuestion'),
+      answer: t('help.faq.favoritesAnswer'),
+    },
+    {
+      id: '3',
+      question: t('help.faq.allergensQuestion'),
+      answer: t('help.faq.allergensAnswer'),
+    },
+    {
+      id: '4',
+      question: t('help.faq.contactQuestion'),
+      answer: t('help.faq.contactAnswer'),
+    },
+    {
+      id: '5',
+      question: t('help.faq.preferencesQuestion'),
+      answer: t('help.faq.preferencesAnswer'),
+    },
+  ];
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
@@ -71,11 +72,11 @@ export default function HelpScreen() {
           style={styles.backButton} 
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Zurück"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
         </Pressable>
-        <ThemedText style={styles.headerTitle}>Help</ThemedText>
+        <ThemedText style={styles.headerTitle}>{t('help.title')}</ThemedText>
         <View style={styles.headerRight} />
       </View>
 
@@ -87,11 +88,11 @@ export default function HelpScreen() {
         {/* FAQ Section */}
         <View style={styles.section}>
           <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-            Frequently Asked Questions
+            {t('help.faq.title')}
           </ThemedText>
           
           <View style={[styles.faqContainer, { borderColor }]}>
-            {FAQ_DATA.map((faq) => (
+            {faqData.map((faq) => (
               <FAQItem
                 key={faq.id}
                 question={faq.question}
@@ -106,19 +107,19 @@ export default function HelpScreen() {
         {/* Contact Support Section */}
         <View style={styles.section}>
           <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-            Contact Support
+            {t('help.contactTitle')}
           </ThemedText>
           
           <View style={styles.contactContainer}>
             <ContactItem
               icon="email"
-              label="Email"
+              label={t('help.contactEmail')}
               value="support@unieats.com"
               type="email"
             />
             <ContactItem
               icon="phone"
-              label="Phone"
+              label={t('help.contactPhone')}
               value="+49 123 456 7890"
               type="phone"
             />
@@ -180,3 +181,4 @@ const styles = StyleSheet.create({
 
   },
 });
+

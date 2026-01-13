@@ -10,9 +10,11 @@ import { POPULAR_SEARCHES, SearchResult } from '@/utils/searchHelpers';
 import { Colors, Fonts } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const {
     searchQuery,
     setSearchQuery,
@@ -158,7 +160,7 @@ export default function SearchScreen() {
           value={searchQuery}
           onChangeText={handleSearch}
           onClear={handleClearSearch}
-          placeholder="Search for meals or mensas"
+          placeholder={t('search.placeholder')}
         />
       </SafeAreaView>
 
@@ -175,12 +177,12 @@ export default function SearchScreen() {
               <View style={styles.emptyContainer}>
                 <Ionicons name="search" size={48} color={secondaryTextColor} />
                 <ThemedText style={[styles.emptyText, { color: secondaryTextColor }]}>
-                  No results found
+                  {t('search.emptyTitle')}
                 </ThemedText>
                 <ThemedText
                   style={[styles.emptySubtext, { color: secondaryTextColor }]}
                 >
-                  Try a different search term
+                  {t('search.emptySubtitle')}
                 </ThemedText>
               </View>
             ) : null
@@ -206,11 +208,11 @@ export default function SearchScreen() {
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                      Recent Searches
+                      {t('search.recentTitle')}
                     </ThemedText>
                     <Pressable onPress={clearRecentSearches} hitSlop={10}>
                       <ThemedText style={[styles.clearAllText, { color: '#4CAF50' }]}>
-                        Clear all
+                        {t('search.clearAll')}
                       </ThemedText>
                     </Pressable>
                   </View>
@@ -228,13 +230,13 @@ export default function SearchScreen() {
                 <View style={styles.section}>
                   <View style={styles.popularSectionHeader}>
                     <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                      Popular Searches
+                      {t('search.popularTitle')}
                     </ThemedText>
                   </View>
                   <View style={styles.popularTagsContainer}>
-                    {POPULAR_SEARCHES.map((tag) => (
-                      <View key={tag}>
-                        {renderPopularTag({ item: tag })}
+                    {POPULAR_SEARCHES.map((tagKey) => (
+                      <View key={tagKey}>
+                        {renderPopularTag({ item: t(tagKey) })}
                       </View>
                     ))}
                   </View>
@@ -249,7 +251,7 @@ export default function SearchScreen() {
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={24} color="red" />
           <ThemedText style={styles.errorText}>
-            Failed to load data. Please try again.
+            {t('search.loadError')}
           </ThemedText>
         </View>
       )}

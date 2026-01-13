@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,14 +12,12 @@ import {
   View,
   Modal,
   ScrollView,
-  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Fonts } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import { getAiChefResponse, AIChefHistoryMessage, UserPreferences } from '@/services/aiChefApi';
 import { useMensas } from '@/hooks/useMensas';
@@ -27,6 +25,7 @@ import { useMeals } from '@/hooks/useMeals';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
 import { useLocation } from '@/hooks/useLocation';
 import { storage } from '@/utils/storage';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type Message = {
   id: string;
@@ -34,43 +33,49 @@ type Message = {
   sender: 'user' | 'assistant';
 };
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: '1',
-    text:
-        'Hi! Ich bin dein AI-Chef-Assistent 🍽️\n\n' +
-        'Ich helfe dir, das perfekte Gericht basierend auf deinen Vorlieben, Allergien und Budget zu finden.',
-    sender: 'assistant',
-  },
+const SUGGESTION_KEYS = [
+  'aiChef.suggestions.vegetarian',
+  'aiChef.suggestions.pasta',
+  'aiChef.suggestions.budget',
+  'aiChef.suggestions.tired',
+  'aiChef.suggestions.compare',
 ];
 
-const SUGGESTIONS = [
-  'Vegetarisch 🌱',
-  'Pasta 🍝',
-  'Günstig 💶',
-  'Bin müde 😴',
-  'Vergleich: Salat vs Pizza',
+const ALLERGEN_OPTIONS: Array<{ value: string; labelKey: string }> = [
+  { value: 'Gluten', labelKey: 'allergens.gluten' },
+  { value: 'Laktose', labelKey: 'allergens.lactose' },
+  { value: 'Nüsse', labelKey: 'allergens.nuts' },
+  { value: 'Eier', labelKey: 'allergens.eggs' },
+  { value: 'Soja', labelKey: 'allergens.soy' },
+  { value: 'Fisch', labelKey: 'allergens.fish' },
+  { value: 'Schalenfrüchte', labelKey: 'allergens.shellfish' },
+  { value: 'Sellerie', labelKey: 'allergens.celery' },
 ];
 
-const COMMON_ALLERGENS = [
-  'Gluten',
-  'Laktose',
-  'Nüsse',
-  'Eier',
-  'Soja',
-  'Fisch',
-  'Schalenfrüchte',
-  'Sellerie',
+const DIET_OPTIONS: Array<{ value: UserPreferences['dietType']; labelKey: string }> = [
+  { value: 'none', labelKey: 'profile.diet.none' },
+  { value: 'vegetarian', labelKey: 'profile.diet.vegetarian' },
+  { value: 'vegan', labelKey: 'profile.diet.vegan' },
+  { value: 'pescatarian', labelKey: 'profile.diet.pescatarian' },
 ];
 
 const STORAGE_KEY_PREFERENCES = 'ai_chef_user_preferences';
 
 export default function AiChefScreen() {
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const { t } = useTranslation();
+  const initialMessages = useMemo<Message[]>(
+    () => [
+      { id: 'ai-1', text: t('aiChef.messages.greeting'), sender: 'assistant' },
+      { id: 'ai-2', text: t('aiChef.messages.prompt'), sender: 'assistant' },
+    ],
+    [t]
+  );
+
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
-  
+
   // Local state for smooth input handling
   const [localBudget, setLocalBudget] = useState('');
 
@@ -86,7 +91,6 @@ export default function AiChefScreen() {
   const inputRef = useRef<TextInput>(null);
 
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
 
   // Data
   const { data: mensas, isLoading: isLoadingMensas, isError: isMensasError } = useMensas();
@@ -114,6 +118,13 @@ export default function AiChefScreen() {
   useEffect(() => {
     loadPreferences();
   }, []);
+
+  useEffect(() => {
+    setMessages((prev) => {
+      const hasUserMessage = prev.some((message) => message.sender === 'user');
+      return hasUserMessage ? prev : initialMessages;
+    });
+  }, [initialMessages]);
 
   // Sync local budget input when preferences change (e.g. after loading)
   useEffect(() => {
@@ -149,8 +160,8 @@ export default function AiChefScreen() {
   };
 
   useEffect(() => {
-    const t = setTimeout(() => scrollToEnd(true), 100);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => scrollToEnd(true), 100);
+    return () => clearTimeout(timer);
   }, [messages.length, loading]);
 
   useEffect(() => {
@@ -191,17 +202,17 @@ export default function AiChefScreen() {
       const history = buildHistory();
 
       const response = await getAiChefResponse(
-          finalText,
-          {
-            mensas: mensas ?? [],
-            meals: meals ?? [],
-            favoriteCanteenIds,
-            favoriteMealIds,
-            userPreferences: preferences,
-            userLocation: location ?? undefined,
-            contextStatus: { isLoadingContext, isErrorContext },
-          },
-          history
+        finalText,
+        {
+          mensas: mensas ?? [],
+          meals: meals ?? [],
+          favoriteCanteenIds,
+          favoriteMealIds,
+          userPreferences: preferences,
+          userLocation: location ?? undefined,
+          contextStatus: { isLoadingContext, isErrorContext },
+        },
+        history
       );
 
       const aiMsg: Message = {
@@ -214,7 +225,7 @@ export default function AiChefScreen() {
     } catch (e) {
       const errMsg: Message = {
         id: (Date.now() + 2).toString(),
-        text: e instanceof Error ? e.message : 'Unexpected error',
+        text: e instanceof Error ? e.message : t('common.unexpectedError'),
         sender: 'assistant',
       };
       setMessages((prev) => [...prev, errMsg]);
@@ -230,8 +241,8 @@ export default function AiChefScreen() {
 
   const toggleAllergy = (allergy: string) => {
     const newAllergies = preferences.allergies?.includes(allergy)
-        ? preferences.allergies.filter((a) => a !== allergy)
-        : [...(preferences.allergies || []), allergy];
+      ? preferences.allergies.filter((a) => a !== allergy)
+      : [...(preferences.allergies || []), allergy];
 
     savePreferences({ ...preferences, allergies: newAllergies });
   };
@@ -239,18 +250,18 @@ export default function AiChefScreen() {
   const renderItem = ({ item }: { item: Message }) => {
     const isUser = item.sender === 'user';
     return (
-        <View
-            style={[
-              styles.messageBubble,
-              isUser
-                  ? [styles.userBubble, { backgroundColor: primaryGreen }]
-                  : [styles.aiBubble, { backgroundColor: aiBubbleColor }],
-            ]}
-        >
-          <Text style={[styles.messageText, { color: isUser ? '#FFFFFF' : textColor, includeFontPadding: false }]}>
-            {item.text}
-          </Text>
-        </View>
+      <View
+        style={[
+          styles.messageBubble,
+          isUser
+            ? [styles.userBubble, { backgroundColor: primaryGreen }]
+            : [styles.aiBubble, { backgroundColor: aiBubbleColor }],
+        ]}
+      >
+        <Text style={[styles.messageText, { color: isUser ? '#FFFFFF' : textColor, includeFontPadding: false }]}>
+          {item.text}
+        </Text>
+      </View>
     );
   };
 
@@ -258,215 +269,217 @@ export default function AiChefScreen() {
 
   // Preferences badge count
   const preferencesCount =
-      (preferences.allergies?.length || 0) +
-      (preferences.dietType !== 'none' ? 1 : 0) +
-      (preferences.dailyBudget ? 1 : 0);
+    (preferences.allergies?.length || 0) +
+    (preferences.dietType !== 'none' ? 1 : 0) +
+    (preferences.dailyBudget ? 1 : 0);
+
+  const showSuggestions = messages.length <= initialMessages.length && !loading;
 
   return (
-      <ThemedView style={[styles.container, { backgroundColor }]}>
-        {/* Header */}
+    <ThemedView style={[styles.container, { backgroundColor }]}> 
+      {/* Header */}
+      <View
+        style={[
+          styles.header,
+          {
+            borderBottomColor: borderColor,
+            backgroundColor,
+            paddingTop: Math.max(insets.top, 16) + 8,
+          },
+        ]}
+      >
+        <View style={styles.headerContent}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="restaurant-outline" size={22} color={primaryGreen} style={{ marginRight: 8 }} />
+            <Text style={[styles.headerTitle, { color: textColor }]}>{t('aiChef.title')}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.prefsButton, { backgroundColor: chipBackgroundColor }]}
+            onPress={() => setShowPreferences(true)}
+          >
+            <Ionicons name="options-outline" size={20} color={primaryGreen} />
+            {preferencesCount > 0 && (
+              <View style={[styles.badge, { backgroundColor: primaryGreen }]}>
+                <Text style={styles.badgeText}>{preferencesCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={keyboardVerticalOffset}
+      >
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => scrollToEnd(true)}
+          contentContainerStyle={[styles.messageList, { paddingBottom: 8 }]}
+        />
+
+        {loading && (
+          <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: aiBubbleColor, marginHorizontal: 16 }]}> 
+            <ActivityIndicator color={primaryGreen} />
+          </View>
+        )}
+
+        {showSuggestions && (
+          <View style={[styles.suggestionsContainer, { backgroundColor }]}> 
+            <Text style={[styles.suggestionsTitle, { color: subTextColor }]}>{t('aiChef.suggestions.title')}</Text>
+            <FlatList
+              data={SUGGESTION_KEYS}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => item}
+              contentContainerStyle={styles.suggestionsList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.suggestionChip, { backgroundColor: chipBackgroundColor }]}
+                  onPress={() => handleSuggestionPress(t(item))}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.suggestionText, { color: textColor }]}>{t(item)}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        )}
+
         <View
+          style={[
+            styles.inputContainer,
+            {
+              borderTopColor: borderColor,
+              backgroundColor,
+              paddingBottom: insets.bottom > 0 ? insets.bottom / 2 : 4,
+            },
+          ]}
+        >
+          <TextInput
+            ref={inputRef}
             style={[
-              styles.header,
+              styles.input,
               {
-                borderBottomColor: borderColor,
-                backgroundColor,
-                paddingTop: Math.max(insets.top, 16) + 8,
+                backgroundColor: inputBackgroundColor,
+                color: textColor,
+                fontFamily: Fonts.regular,
               },
             ]}
-        >
-          <View style={styles.headerContent}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 24, marginRight: 8 }}>👨‍🍳</Text>
-              <Text style={[styles.headerTitle, { color: textColor }]}>AI-Chef</Text>
-            </View>
-            <TouchableOpacity
-                style={[styles.prefsButton, { backgroundColor: chipBackgroundColor }]}
-                onPress={() => setShowPreferences(true)}
-            >
-              <Ionicons name="options-outline" size={20} color={primaryGreen} />
-              {preferencesCount > 0 && (
-                  <View style={[styles.badge, { backgroundColor: primaryGreen }]}>
-                    <Text style={styles.badgeText}>{preferencesCount}</Text>
-                  </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <KeyboardAvoidingView
-            style={styles.keyboardAvoidingView}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={keyboardVerticalOffset}
-        >
-          <FlatList
-              ref={flatListRef}
-              data={messages}
-              renderItem={renderItem}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              onContentSizeChange={() => scrollToEnd(true)}
-              contentContainerStyle={[styles.messageList, { paddingBottom: 8 }]}
+            placeholder={t('aiChef.input.placeholder')}
+            placeholderTextColor={subTextColor}
+            value={inputText}
+            onChangeText={setInputText}
+            returnKeyType="send"
+            onSubmitEditing={() => handleSendMessage()}
+            editable={!loading && !isLoadingContext}
           />
 
-          {loading && (
-              <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: aiBubbleColor, marginHorizontal: 16 }]}>
-                <ActivityIndicator color={primaryGreen} />
-              </View>
-          )}
-
-          {messages.length <= 1 && !loading && (
-              <View style={[styles.suggestionsContainer, { backgroundColor }]}>
-                <Text style={[styles.suggestionsTitle, { color: subTextColor }]}>✨ Probier mal:</Text>
-                <FlatList
-                    data={SUGGESTIONS}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    keyExtractor={(item) => item}
-                    contentContainerStyle={styles.suggestionsList}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={[styles.suggestionChip, { backgroundColor: chipBackgroundColor }]}
-                            onPress={() => handleSuggestionPress(item)}
-                            activeOpacity={0.8}
-                        >
-                          <Text style={[styles.suggestionText, { color: textColor }]}>{item}</Text>
-                        </TouchableOpacity>
-                    )}
-                />
-              </View>
-          )}
-
-          <View
-              style={[
-                styles.inputContainer,
-                {
-                  borderTopColor: borderColor,
-                  backgroundColor,
-                  paddingBottom: insets.bottom > 0 ? insets.bottom / 2 : 4,
-                },
-              ]}
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: primaryGreen,
+                opacity: canSend ? 1 : 0.4,
+              },
+            ]}
+            onPress={() => handleSendMessage()}
+            activeOpacity={0.8}
+            disabled={!canSend}
           >
-            <TextInput
-                ref={inputRef}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: inputBackgroundColor,
-                    color: textColor,
-                    fontFamily: Fonts.regular,
-                  },
-                ]}
-                placeholder="Was möchtest du essen?"
-                placeholderTextColor={subTextColor}
-                value={inputText}
-                onChangeText={setInputText}
-                returnKeyType="send"
-                onSubmitEditing={() => handleSendMessage()}
-                editable={!loading && !isLoadingContext}
-            />
+            <Ionicons name="arrow-up" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
 
-            <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  {
-                    backgroundColor: primaryGreen,
-                    opacity: canSend ? 1 : 0.4,
-                  },
-                ]}
-                onPress={() => handleSendMessage()}
-                activeOpacity={0.8}
-                disabled={!canSend}
-            >
-              <Ionicons name="arrow-up" size={24} color="#FFFFFF" />
+      {/* Preferences Modal */}
+      <Modal
+        visible={showPreferences}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPreferences(false)}
+      >
+        <ThemedView style={[styles.modalContainer, { backgroundColor: modalBackground }]}> 
+          <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>{t('aiChef.preferences.title')}</Text>
+            <TouchableOpacity onPress={() => setShowPreferences(false)}>
+              <Ionicons name="close" size={28} color={textColor} />
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
 
-        {/* Preferences Modal */}
-        <Modal
-            visible={showPreferences}
-            animationType="slide"
-            presentationStyle="pageSheet"
-            onRequestClose={() => setShowPreferences(false)}
-        >
-          <ThemedView style={[styles.modalContainer, { backgroundColor: modalBackground }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
-              <Text style={[styles.modalTitle, { color: textColor }]}>⚙️ Einstellungen</Text>
-              <TouchableOpacity onPress={() => setShowPreferences(false)}>
-                <Ionicons name="close" size={28} color={textColor} />
-              </TouchableOpacity>
-            </View>
-
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
-            >
-              <ScrollView style={styles.modalContent}>
-                {/* Allergies */}
-                <Text style={[styles.sectionTitle, { color: textColor }]}>🚨 Allergien & Unverträglichkeiten</Text>
-                <View style={styles.allergyGrid}>
-                  {COMMON_ALLERGENS.map((allergy) => {
-                    const isSelected = preferences.allergies?.includes(allergy);
-                    return (
-                        <TouchableOpacity
-                            key={allergy}
-                            style={[
-                              styles.allergyChip,
-                              { backgroundColor: chipBackgroundColor, borderColor: isSelected ? primaryGreen : 'transparent', borderWidth: 2 },
-                            ]}
-                            onPress={() => toggleAllergy(allergy)}
-                        >
-                          <Text style={[styles.allergyText, { color: isSelected ? primaryGreen : textColor }]}>
-                            {allergy}
-                          </Text>
-                        </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                {/* Diet Type */}
-                <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>🌱 Ernährungsweise</Text>
-                {['none', 'vegetarian', 'vegan', 'pescatarian'].map((diet) => (
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+          >
+            <ScrollView style={styles.modalContent}>
+              {/* Allergies */}
+              <Text style={[styles.sectionTitle, { color: textColor }]}>{t('profile.allergiesTitle')}</Text>
+              <View style={styles.allergyGrid}>
+                {ALLERGEN_OPTIONS.map((allergy) => {
+                  const isSelected = preferences.allergies?.includes(allergy.value);
+                  return (
                     <TouchableOpacity
-                        key={diet}
-                        style={[styles.dietOption, { backgroundColor: chipBackgroundColor }]}
-                        onPress={() => savePreferences({ ...preferences, dietType: diet as any })}
+                      key={allergy.value}
+                      style={[
+                        styles.allergyChip,
+                        { backgroundColor: chipBackgroundColor, borderColor: isSelected ? primaryGreen : 'transparent', borderWidth: 2 },
+                      ]}
+                      onPress={() => toggleAllergy(allergy.value)}
                     >
-                      <Text style={[styles.dietText, { color: textColor }]}>
-                        {diet === 'none' ? 'Keine Einschränkung' : diet.charAt(0).toUpperCase() + diet.slice(1)}
+                      <Text style={[styles.allergyText, { color: isSelected ? primaryGreen : textColor }]}>
+                        {t(allergy.labelKey)}
                       </Text>
-                      {preferences.dietType === diet && <Ionicons name="checkmark-circle" size={24} color={primaryGreen} />}
                     </TouchableOpacity>
-                ))}
+                  );
+                })}
+              </View>
 
-                {/* Budget */}
-                <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>💶 Tagesbudget</Text>
-                <View style={[styles.budgetContainer, { backgroundColor: chipBackgroundColor }]}>
-                  <TextInput
-                      style={[styles.budgetInput, { color: textColor }]}
-                      keyboardType="decimal-pad"
-                      placeholder="Max. €/Tag (z.B. 5.00)"
-                      placeholderTextColor={subTextColor}
-                      value={localBudget}
-                      onChangeText={setLocalBudget}
-                      onEndEditing={() => {
-                        const normalized = localBudget.replace(',', '.');
-                        const value = parseFloat(normalized);
-                        const newBudget = isNaN(value) ? undefined : value;
-                        if (newBudget !== preferences.dailyBudget) {
-                          savePreferences({ ...preferences, dailyBudget: newBudget });
-                        }
-                      }}
-                  />
-                </View>
-                <View style={{ height: 40 }} />
-              </ScrollView>
-            </KeyboardAvoidingView>
-          </ThemedView>
-        </Modal>
-      </ThemedView>
+              {/* Diet Type */}
+              <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>{t('profile.dietTitle')}</Text>
+              {DIET_OPTIONS.map((diet) => (
+                <TouchableOpacity
+                  key={diet.value}
+                  style={[styles.dietOption, { backgroundColor: chipBackgroundColor }]}
+                  onPress={() => savePreferences({ ...preferences, dietType: diet.value })}
+                >
+                  <Text style={[styles.dietText, { color: textColor }]}>
+                    {t(diet.labelKey)}
+                  </Text>
+                  {preferences.dietType === diet.value && <Ionicons name="checkmark-circle" size={24} color={primaryGreen} />}
+                </TouchableOpacity>
+              ))}
+
+              {/* Budget */}
+              <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>{t('aiChef.preferences.budgetTitle')}</Text>
+              <View style={[styles.budgetContainer, { backgroundColor: chipBackgroundColor }]}> 
+                <TextInput
+                  style={[styles.budgetInput, { color: textColor }]}
+                  keyboardType="decimal-pad"
+                  placeholder={t('aiChef.preferences.budgetPlaceholder')}
+                  placeholderTextColor={subTextColor}
+                  value={localBudget}
+                  onChangeText={setLocalBudget}
+                  onEndEditing={() => {
+                    const normalized = localBudget.replace(',', '.');
+                    const value = parseFloat(normalized);
+                    const newBudget = isNaN(value) ? undefined : value;
+                    if (newBudget !== preferences.dailyBudget) {
+                      savePreferences({ ...preferences, dailyBudget: newBudget });
+                    }
+                  }}
+                />
+              </View>
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </ThemedView>
+      </Modal>
+    </ThemedView>
   );
 }
 
@@ -608,7 +621,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     paddingVertical: Platform.select({
       ios: 16,
-      android:35
+      android: 35
     }),
     paddingBottom: Platform.select({
       android: 10,
@@ -667,12 +680,6 @@ const styles = StyleSheet.create({
       ios: { paddingVertical: 12 },
       android: { paddingVertical: 2 },
     }),
-  },
-  budgetLabel: {
-    fontSize: 16,
-    fontFamily: Fonts.regular,
-    marginRight: 12,
-    includeFontPadding: false,
   },
   budgetInput: {
     flex: 1,

@@ -16,6 +16,7 @@ import { AuthInput } from '@/components/auth/AuthInput';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 import {
   validateEmail,
@@ -31,6 +32,7 @@ export default function RegisterScreen() {
   const { signUp } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -85,7 +87,7 @@ export default function RegisterScreen() {
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
           </Pressable>
-          <ThemedText style={styles.headerTitle}>Create Account</ThemedText>
+          <ThemedText style={styles.headerTitle}>{t('auth.register.title')}</ThemedText>
           <View style={styles.headerRight} />
         </View>
 
@@ -97,9 +99,9 @@ export default function RegisterScreen() {
         >
           {/* Welcome Text */}
           <View style={styles.welcomeSection}>
-            <ThemedText style={styles.welcomeTitle}>Join UniEats</ThemedText>
+            <ThemedText style={styles.welcomeTitle}>{t('auth.register.welcomeTitle')}</ThemedText>
             <ThemedText style={[styles.welcomeSubtitle, { color: isDark ? '#9BA1A6' : '#666' }]}>
-              Create an account to save your favorites and get personalized meal recommendations.
+              {t('auth.register.welcomeSubtitle')}
             </ThemedText>
           </View>
 
@@ -114,9 +116,9 @@ export default function RegisterScreen() {
           {/* Form */}
           <View style={styles.form}>
             <AuthInput
-              label="Full Name"
+              label={t('auth.register.nameLabel')}
               icon="person"
-              placeholder="Enter your name"
+              placeholder={t('auth.register.namePlaceholder')}
               autoComplete="name"
               value={name}
               onChangeText={(text) => {
@@ -128,9 +130,9 @@ export default function RegisterScreen() {
             />
 
             <AuthInput
-              label="Email"
+              label={t('auth.register.emailLabel')}
               icon="email"
-              placeholder="Enter your email"
+              placeholder={t('auth.register.emailPlaceholder')}
               keyboardType="email-address"
               autoComplete="email"
               value={email}
@@ -143,9 +145,9 @@ export default function RegisterScreen() {
             />
 
             <AuthInput
-              label="Password"
+              label={t('auth.register.passwordLabel')}
               icon="lock"
-              placeholder="Create a password"
+              placeholder={t('auth.register.passwordPlaceholder')}
               secureTextEntry
               autoComplete="new-password"
               value={password}
@@ -162,9 +164,9 @@ export default function RegisterScreen() {
             )}
 
             <AuthInput
-              label="Confirm Password"
+              label={t('auth.register.confirmPasswordLabel')}
               icon="lock-outline"
-              placeholder="Confirm your password"
+              placeholder={t('auth.register.confirmPasswordPlaceholder')}
               secureTextEntry
               autoComplete="new-password"
               value={confirmPassword}
@@ -197,10 +199,15 @@ export default function RegisterScreen() {
                 )}
               </View>
               <ThemedText style={[styles.termsText, { color: isDark ? '#9BA1A6' : '#666' }]}>
-                I agree to the{' '}
-                <ThemedText style={{ color: Colors.light.tint }}>Terms of Service</ThemedText>
-                {' '}and{' '}
-                <ThemedText style={{ color: Colors.light.tint }}>Privacy Policy</ThemedText>
+                {t('auth.register.terms.prefix')}{' '}
+                <ThemedText style={{ color: Colors.light.tint }}>
+                  {t('auth.register.terms.termsOfService')}
+                </ThemedText>
+                {' '}
+                {t('auth.register.terms.and')}{' '}
+                <ThemedText style={{ color: Colors.light.tint }}>
+                  {t('auth.register.terms.privacyPolicy')}
+                </ThemedText>
               </ThemedText>
             </Pressable>
           </View>
@@ -218,18 +225,18 @@ export default function RegisterScreen() {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <ThemedText style={styles.createButtonText}>Create Account</ThemedText>
+              <ThemedText style={styles.createButtonText}>{t('auth.register.submit')}</ThemedText>
             )}
           </Pressable>
 
           {/* Sign In Link */}
           <View style={styles.signInContainer}>
             <ThemedText style={[styles.signInText, { color: isDark ? '#9BA1A6' : '#666' }]}>
-              Already have an account?{' '}
+              {t('auth.register.haveAccount')}{' '}
             </ThemedText>
             <Pressable onPress={() => router.replace('/login' as any)}>
               <ThemedText style={[styles.signInLink, { color: Colors.light.tint }]}>
-                Sign In
+                {t('auth.register.signIn')}
               </ThemedText>
             </Pressable>
           </View>

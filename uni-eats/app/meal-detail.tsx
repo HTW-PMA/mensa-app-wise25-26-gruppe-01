@@ -23,6 +23,7 @@ import {
   translateAdditive,
   translatePriceType 
 } from '@/utils/translations';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Allergen categories with icons and colors
 const ALLERGEN_INFO: Record<string, { icon: string; color: string; category: string }> = {
@@ -56,6 +57,19 @@ const ALLERGEN_INFO: Record<string, { icon: string; color: string; category: str
   'Lupine': { icon: 'flower', color: '#BA68C8', category: 'Legumes' },
   'Schwefeldioxid': { icon: 'flask', color: '#78909C', category: 'Additives' },
   'Sulfite': { icon: 'flask', color: '#78909C', category: 'Additives' },
+};
+
+const ALLERGEN_CATEGORY_KEYS: Record<string, string> = {
+  Cereals: 'allergenCategories.cereals',
+  Dairy: 'allergenCategories.dairy',
+  'Animal Products': 'allergenCategories.animalProducts',
+  'Fish & Seafood': 'allergenCategories.fishSeafood',
+  'Nuts & Seeds': 'allergenCategories.nutsSeeds',
+  Legumes: 'allergenCategories.legumes',
+  Vegetables: 'allergenCategories.vegetables',
+  Spices: 'allergenCategories.spices',
+  Additives: 'allergenCategories.additives',
+  Other: 'allergenCategories.other',
 };
 
 /**
@@ -129,28 +143,29 @@ const getMealImage = (name: string, category?: string): string => {
 /**
  * Gets the student price from prices
  */
-const getStudentPrice = (prices?: { priceType: string; price: number }[]): string => {
-  if (!prices || prices.length === 0) return '–';
+const getStudentPrice = (prices?: { priceType: string; price: number }[]): number | null => {
+  if (!prices || prices.length === 0) return null;
   const studentPrice = prices.find(p => p.priceType === 'Studierende');
   if (studentPrice) {
-    return `€${studentPrice.price.toFixed(2)}`;
+    return studentPrice.price;
   }
-  return `€${prices[0].price.toFixed(2)}`;
+  return prices[0].price;
 };
 
 /**
  * All prices formatted
  */
-const getAllPrices = (prices?: { priceType: string; price: number }[]): { type: string; price: string }[] => {
+const getAllPrices = (prices?: { priceType: string; price: number }[]): { type: string; value: number }[] => {
   if (!prices || prices.length === 0) return [];
   return prices.map(p => ({
     type: translatePriceType(p.priceType),
-    price: `€${p.price.toFixed(2)}`
+    value: p.price,
   }));
 };
 
 export default function MealDetailScreen() {
   const router = useRouter();
+  const { t, locale } = useTranslation();
   const params = useLocalSearchParams<{ 
     id: string;
     name: string;
@@ -187,7 +202,7 @@ export default function MealDetailScreen() {
     
     return {
       id: params.id,
-      name: params.name || 'Gericht',
+      name: params.name || t('mealDetail.fallbackName'),
       category: params.category,
       prices,
       additives,
@@ -200,7 +215,15 @@ export default function MealDetailScreen() {
   const canteenName = params.canteenName || '';
   const imageUrl = useMemo(() => getMealImage(meal.name, meal.category), [meal.name, meal.category]);
   const allPrices = useMemo(() => getAllPrices(meal.prices), [meal.prices]);
-  const studentPrice = useMemo(() => getStudentPrice(meal.prices), [meal.prices]);
+  const studentPriceValue = useMemo(() => getStudentPrice(meal.prices), [meal.prices]);
+  const studentPriceText = useMemo(
+    () =>
+      studentPriceValue !== null
+        ? t('common.priceFormat', { value: studentPriceValue.toFixed(2) })
+        : t('common.priceUnavailable'),
+    [studentPriceValue, t]
+  );
+  const studentLabel = t('priceTypes.students');
   
   // Allergene und Zusatzstoffe kategorisieren
   const { allergens, additives } = useMemo(() => {
@@ -284,7 +307,7 @@ export default function MealDetailScreen() {
         
         {/* Price Section */}
         <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>Prices</Text>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>{t('mealDetail.pricesTitle')}</Text>
           <View style={styles.priceGrid}>
             {allPrices.length > 0 ? (
               allPrices.map((price, index) => (
@@ -293,14 +316,14 @@ export default function MealDetailScreen() {
                   <Text style={[
                     styles.priceValue,
                     { color: textColor },
-                    price.type === 'Students' && styles.priceValueHighlight
+                    price.type === studentLabel && styles.priceValueHighlight
                   ]}>
-                    {price.price}
+                    {t('common.priceFormat', { value: price.value.toFixed(2) })}
                   </Text>
                 </View>
               ))
             ) : (
-              <Text style={[styles.noDataText, { color: subTextColor }]}>No price information available</Text>
+              <Text style={[styles.noDataText, { color: subTextColor }]}>{t('mealDetail.noPrices')}</Text>
             )}
           </View>
         </View>
@@ -308,7 +331,7 @@ export default function MealDetailScreen() {
         {/* Badges */}
         {meal.badges && meal.badges.length > 0 && (
           <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Properties</Text>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>{t('mealDetail.propertiesTitle')}</Text>
             <View style={styles.badgeGrid}>
               {meal.badges.map((badge: MealBadge, index: number) => (
                 <View key={index} style={[styles.propertyBadge, { backgroundColor: Colors.light.tint + '15' }]}>
@@ -325,14 +348,15 @@ export default function MealDetailScreen() {
           <View style={[styles.section, { backgroundColor: allergenBg, borderColor: allergenBorder, borderWidth: 1 }]}>
             <View style={styles.allergenHeader}>
               <Ionicons name="warning" size={22} color="#FF9800" />
-              <Text style={[styles.allergenTitle, { color: allergenTitleColor }]}>Allergens</Text>
+              <Text style={[styles.allergenTitle, { color: allergenTitleColor }]}>{t('mealDetail.allergensTitle')}</Text>
             </View>
             <Text style={[styles.allergenSubtitle, { color: subTextColor }]}>
-              This dish contains the following allergens:
+              {t('mealDetail.allergensSubtitle')}
             </Text>
             <View style={styles.allergenGrid}>
               {allergens.map((allergen, index) => {
                 const info = getAllergenInfo(allergen.text);
+                const categoryKey = ALLERGEN_CATEGORY_KEYS[info.category] ?? 'allergenCategories.other';
                 return (
                   <View key={index} style={[styles.allergenItem, { backgroundColor: cardBackgroundColor, borderLeftColor: info.color }]}>
                     <View style={[styles.allergenIconContainer, { backgroundColor: info.color + '20' }]}>
@@ -340,7 +364,7 @@ export default function MealDetailScreen() {
                     </View>
                     <View style={styles.allergenTextContainer}>
                       <Text style={[styles.allergenName, { color: textColor }]}>{translateAllergen(allergen.text)}</Text>
-                      <Text style={[styles.allergenCategory, { color: subTextColor }]}>{info.category}</Text>
+                      <Text style={[styles.allergenCategory, { color: subTextColor }]}>{t(categoryKey)}</Text>
                     </View>
                   </View>
                 );
@@ -352,7 +376,7 @@ export default function MealDetailScreen() {
         {/* Additives */}
         {additives.length > 0 && (
           <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Additives</Text>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>{t('mealDetail.additivesTitle')}</Text>
             <View style={styles.additiveList}>
               {additives.map((additive, index) => (
                 <View key={index} style={[styles.additiveItem, { borderBottomColor: borderColor }]}>
@@ -369,9 +393,9 @@ export default function MealDetailScreen() {
           <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
             <View style={styles.noAllergensContainer}>
               <Ionicons name="checkmark-circle" size={48} color={Colors.light.tint} />
-              <Text style={[styles.noAllergensTitle, { color: textColor }]}>No allergens listed</Text>
+              <Text style={[styles.noAllergensTitle, { color: textColor }]}>{t('mealDetail.noAllergensTitle')}</Text>
               <Text style={[styles.noAllergensSubtitle, { color: subTextColor }]}>
-                No allergens or additives are listed for this dish.
+                {t('mealDetail.noAllergensSubtitle')}
               </Text>
             </View>
           </View>
@@ -380,14 +404,14 @@ export default function MealDetailScreen() {
         {/* Environmental Impact */}
         {(meal.co2Bilanz || meal.waterBilanz) && (
           <View style={[styles.section, { backgroundColor: cardBackgroundColor }]}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Environmental Impact</Text>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>{t('mealDetail.environmentTitle')}</Text>
             <View style={styles.environmentGrid}>
               {meal.co2Bilanz && (
                 <View style={[styles.environmentItem, { backgroundColor: envItemBg }]}>
                   <View style={[styles.environmentIcon, { backgroundColor: '#E8F5E9' }]}>
                     <Ionicons name="leaf" size={24} color="#4CAF50" />
                   </View>
-                  <Text style={[styles.environmentLabel, { color: subTextColor }]}>CO₂ Footprint</Text>
+                  <Text style={[styles.environmentLabel, { color: subTextColor }]}>{t('mealDetail.co2Footprint')}</Text>
                   <Text style={[styles.environmentValue, { color: textColor }]}>{meal.co2Bilanz.toFixed(0)}g</Text>
                 </View>
               )}
@@ -396,7 +420,7 @@ export default function MealDetailScreen() {
                   <View style={[styles.environmentIcon, { backgroundColor: '#E3F2FD' }]}>
                     <Ionicons name="water" size={24} color="#2196F3" />
                   </View>
-                  <Text style={[styles.environmentLabel, { color: subTextColor }]}>Water Footprint</Text>
+                  <Text style={[styles.environmentLabel, { color: subTextColor }]}>{t('mealDetail.waterFootprint')}</Text>
                   <Text style={[styles.environmentValue, { color: textColor }]}>{meal.waterBilanz.toFixed(0)}L</Text>
                 </View>
               )}
@@ -408,8 +432,8 @@ export default function MealDetailScreen() {
       {/* Bottom Bar with Price */}
       <View style={[styles.bottomBar, { backgroundColor: cardBackgroundColor, borderTopColor: borderColor, paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.bottomPriceContainer}>
-          <Text style={[styles.bottomPriceLabel, { color: subTextColor }]}>Student Price</Text>
-          <Text style={styles.bottomPrice}>{studentPrice}</Text>
+          <Text style={[styles.bottomPriceLabel, { color: subTextColor }]}>{t('mealDetail.studentPrice')}</Text>
+          <Text style={styles.bottomPrice}>{studentPriceText}</Text>
         </View>
         <Pressable 
           style={styles.favoriteButtonLarge}
@@ -421,7 +445,7 @@ export default function MealDetailScreen() {
             color="#fff" 
           />
           <Text style={styles.favoriteButtonText}>
-            {isFavorite ? 'Saved' : 'Save'}
+            {isFavorite ? t('mealDetail.saved') : t('mealDetail.save')}
           </Text>
         </Pressable>
       </View>
@@ -764,3 +788,4 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 });
+

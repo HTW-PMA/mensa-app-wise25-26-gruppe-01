@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useUniversities } from '@/hooks/useUniversities';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 import {
   DietType,
@@ -24,28 +25,28 @@ import {
 } from '@/contexts/ProfileContext';
 import { University } from '@/services/mensaApi';
 
-const COMMON_ALLERGENS = [
-  'Gluten',
-  'Lactose',
-  'Nuts',
-  'Eggs',
-  'Soy',
-  'Fish',
-  'Shellfish',
-  'Celery',
+const ALLERGEN_OPTIONS: Array<{ value: string; labelKey: string }> = [
+  { value: 'Gluten', labelKey: 'allergens.gluten' },
+  { value: 'Laktose', labelKey: 'allergens.lactose' },
+  { value: 'Nüsse', labelKey: 'allergens.nuts' },
+  { value: 'Eier', labelKey: 'allergens.eggs' },
+  { value: 'Soja', labelKey: 'allergens.soy' },
+  { value: 'Fisch', labelKey: 'allergens.fish' },
+  { value: 'Schalenfrüchte', labelKey: 'allergens.shellfish' },
+  { value: 'Sellerie', labelKey: 'allergens.celery' },
 ];
 
-const DIET_OPTIONS: Array<{ value: DietType; label: string }> = [
-  { value: 'none', label: 'No preference' },
-  { value: 'vegetarian', label: 'Vegetarian' },
-  { value: 'vegan', label: 'Vegan' },
-  { value: 'pescatarian', label: 'Pescatarian' },
+const DIET_OPTIONS: Array<{ value: DietType; labelKey: string }> = [
+  { value: 'none', labelKey: 'profile.diet.none' },
+  { value: 'vegetarian', labelKey: 'profile.diet.vegetarian' },
+  { value: 'vegan', labelKey: 'profile.diet.vegan' },
+  { value: 'pescatarian', labelKey: 'profile.diet.pescatarian' },
 ];
 
-const STATUS_OPTIONS: Array<{ value: ProfileStatus; label: string; hint: string }> = [
-  { value: 'student', label: 'Student', hint: 'Student pricing' },
-  { value: 'employee', label: 'Employee', hint: 'Employee pricing' },
-  { value: 'guest', label: 'Guest', hint: 'Guest pricing' },
+const STATUS_OPTIONS: Array<{ value: ProfileStatus; labelKey: string; hintKey: string }> = [
+  { value: 'student', labelKey: 'profile.status.student', hintKey: 'profile.statusHint.student' },
+  { value: 'employee', labelKey: 'profile.status.employee', hintKey: 'profile.statusHint.employee' },
+  { value: 'guest', labelKey: 'profile.status.guest', hintKey: 'profile.statusHint.guest' },
 ];
 
 export default function CompleteProfileScreen() {
@@ -53,6 +54,7 @@ export default function CompleteProfileScreen() {
   const pathname = usePathname();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
   const { profile, saveProfile, isLoading: isProfileLoading } = useProfile();
   const { data: universities, isLoading: isUniversitiesLoading, isError } = useUniversities();
 
@@ -118,7 +120,7 @@ export default function CompleteProfileScreen() {
 
   const handleSave = async () => {
     if (!canSave) {
-      setError('Please select your status and university (if required).');
+      setError(t('profile.validation.statusAndUniversity'));
       return;
     }
 
@@ -134,7 +136,7 @@ export default function CompleteProfileScreen() {
       });
       router.replace(isEditMode ? '/profile' as any : '/(tabs)' as any);
     } catch (err) {
-      setError('Could not save your profile. Please try again.');
+      setError(t('profile.validation.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -161,12 +163,12 @@ export default function CompleteProfileScreen() {
         >
           <View style={styles.header}>
             <ThemedText style={styles.title}>
-              {isEditMode ? 'Edit your profile' : 'Complete your profile'}
+              {isEditMode ? t('profile.editTitle') : t('profile.completeTitle')}
             </ThemedText>
             <ThemedText style={[styles.subtitle, { color: textMuted }]}>
               {isEditMode
-                ? 'Update your preferences and pricing status.'
-                : 'This helps us personalize pricing and recommendations. You can update this later.'}
+                ? t('profile.editSubtitle')
+                : t('profile.completeSubtitle')}
             </ThemedText>
           </View>
 
@@ -178,21 +180,21 @@ export default function CompleteProfileScreen() {
           )}
 
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Allergies (optional)</ThemedText>
+            <ThemedText style={styles.sectionTitle}>{t('profile.allergiesTitle')}</ThemedText>
             <ThemedText style={[styles.sectionHint, { color: textMuted }]}>
-              Select all that apply.
+              {t('profile.allergiesHint')}
             </ThemedText>
             <View style={styles.allergyGrid}>
-              {COMMON_ALLERGENS.map((allergy) => {
-                const isSelected = allergies.includes(allergy);
+              {ALLERGEN_OPTIONS.map((allergy) => {
+                const isSelected = allergies.includes(allergy.value);
                 return (
                   <Pressable
-                    key={allergy}
+                    key={allergy.value}
                     style={[
                       styles.chip,
                       { backgroundColor: cardColor, borderColor: isSelected ? Colors.light.tint : 'transparent' },
                     ]}
-                    onPress={() => toggleAllergy(allergy)}
+                    onPress={() => toggleAllergy(allergy.value)}
                   >
                     <ThemedText
                       style={[
@@ -200,7 +202,7 @@ export default function CompleteProfileScreen() {
                         { color: isSelected ? Colors.light.tint : isDark ? '#FFFFFF' : '#111111' },
                       ]}
                     >
-                      {allergy}
+                      {t(allergy.labelKey)}
                     </ThemedText>
                   </Pressable>
                 );
@@ -209,7 +211,7 @@ export default function CompleteProfileScreen() {
           </View>
 
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Dietary preference (optional)</ThemedText>
+            <ThemedText style={styles.sectionTitle}>{t('profile.dietTitle')}</ThemedText>
             <View style={styles.optionList}>
               {DIET_OPTIONS.map((option) => (
                 <Pressable
@@ -220,7 +222,7 @@ export default function CompleteProfileScreen() {
                     setDietType(option.value);
                   }}
                 >
-                  <ThemedText style={styles.optionText}>{option.label}</ThemedText>
+                  <ThemedText style={styles.optionText}>{t(option.labelKey)}</ThemedText>
                   {dietType === option.value && (
                     <Ionicons name="checkmark-circle" size={22} color={Colors.light.tint} />
                   )}
@@ -230,9 +232,9 @@ export default function CompleteProfileScreen() {
           </View>
 
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Status</ThemedText>
+            <ThemedText style={styles.sectionTitle}>{t('profile.statusTitle')}</ThemedText>
             <ThemedText style={[styles.sectionHint, { color: textMuted }]}>
-              Required for correct pricing.
+              {t('profile.statusHint.general')}
             </ThemedText>
             <View style={styles.statusRow}>
               {STATUS_OPTIONS.map((option) => {
@@ -255,7 +257,7 @@ export default function CompleteProfileScreen() {
                         { color: isSelected ? '#FFFFFF' : isDark ? '#FFFFFF' : '#111111' },
                       ]}
                     >
-                      {option.label}
+                      {t(option.labelKey)}
                     </ThemedText>
                     <ThemedText
                       style={[
@@ -263,7 +265,7 @@ export default function CompleteProfileScreen() {
                         { color: isSelected ? '#FFFFFF' : textMuted },
                       ]}
                     >
-                      {option.hint}
+                      {t(option.hintKey)}
                     </ThemedText>
                   </Pressable>
                 );
@@ -273,16 +275,16 @@ export default function CompleteProfileScreen() {
 
           {needsUniversity && (
             <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>University</ThemedText>
+              <ThemedText style={styles.sectionTitle}>{t('profile.universityTitle')}</ThemedText>
               <ThemedText style={[styles.sectionHint, { color: textMuted }]}>
-                Select the university that matches your status.
+                {t('profile.universityHint')}
               </ThemedText>
 
               <View style={[styles.searchContainer, { backgroundColor: cardColor }]}>
                 <Ionicons name="search" size={18} color={textMuted} />
                 <TextInput
                   style={[styles.searchInput, { color: isDark ? '#FFFFFF' : '#111111' }]}
-                  placeholder="Search universities"
+                  placeholder={t('profile.universitySearchPlaceholder')}
                   placeholderTextColor={textMuted}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -293,14 +295,14 @@ export default function CompleteProfileScreen() {
                 <View style={styles.loadingRow}>
                   <ActivityIndicator size="small" color={Colors.light.tint} />
                   <ThemedText style={[styles.loadingText, { color: textMuted }]}>
-                    Loading universities...
+                    {t('profile.universityLoading')}
                   </ThemedText>
                 </View>
               )}
 
               {!isUniversitiesLoading && (isError || (universities && universities.length === 0)) && (
                 <ThemedText style={[styles.sectionHint, { color: textMuted }]}>
-                  We could not load universities right now. Please try again later.
+                  {t('profile.universityLoadError')}
                 </ThemedText>
               )}
 
@@ -348,7 +350,7 @@ export default function CompleteProfileScreen() {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <ThemedText style={styles.saveButtonText}>
-                {isEditMode ? 'Save changes' : 'Save profile'}
+                {isEditMode ? t('profile.saveChanges') : t('profile.saveProfile')}
               </ThemedText>
             )}
           </Pressable>
@@ -513,3 +515,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
