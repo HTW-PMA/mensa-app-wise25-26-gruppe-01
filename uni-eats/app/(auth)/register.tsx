@@ -65,7 +65,7 @@ export default function RegisterScreen() {
 
     try {
       await signUp(name, email, password);
-      router.replace('/(tabs)' as any);
+      router.replace('complete-profile' as any);
     } catch (err) {
       const message = handleFirebaseError(err);
       setError(message);
@@ -227,7 +227,7 @@ export default function RegisterScreen() {
             <ThemedText style={[styles.signInText, { color: isDark ? '#9BA1A6' : '#666' }]}>
               Already have an account?{' '}
             </ThemedText>
-            <Pressable onPress={() => router.replace('/(auth)/login' as any)}>
+            <Pressable onPress={() => router.replace('/login' as any)}>
               <ThemedText style={[styles.signInLink, { color: Colors.light.tint }]}>
                 Sign In
               </ThemedText>

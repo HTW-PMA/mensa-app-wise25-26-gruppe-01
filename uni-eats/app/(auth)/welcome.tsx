@@ -66,14 +66,14 @@ export default function WelcomeScreen() {
         <View style={styles.buttonsSection}>
           <Pressable
             style={[styles.primaryButton, { backgroundColor: Colors.light.tint }]}
-            onPress={() => router.push('/(auth)/login' as any)}
+            onPress={() => router.push('/login' as any)}
           >
             <ThemedText style={styles.primaryButtonText}>Sign In</ThemedText>
           </Pressable>
 
           <Pressable
             style={[styles.secondaryButton, { borderColor: Colors.light.tint }]}
-            onPress={() => router.push('/(auth)/register' as any)}
+            onPress={() => router.push('/register' as any)}
           >
             <ThemedText style={[styles.secondaryButtonText, { color: Colors.light.tint }]}>
               Create Account
