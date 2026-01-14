@@ -28,12 +28,12 @@ export default function AccountScreen() {
   const isDark = colorScheme === 'dark';
   const { t } = useTranslation();
   const { locale, setLanguage } = useLanguage();
-  const { favoriteMealIds, favoriteCanteenIds } = useFavoritesContext();
+  const { favoriteMeals, favoriteCanteenIds } = useFavoritesContext();
   const { user, signOut, isLoading } = useAuth();
 
   // Berechne Favoriten-Anzahl aus Context (Multi-Canteen Support)
   const favoritesCount = {
-    meals: favoriteMealIds.length,
+    meals: favoriteMeals.length,
     mensas: favoriteCanteenIds.length,
   };
 

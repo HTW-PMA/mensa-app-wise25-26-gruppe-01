@@ -160,6 +160,20 @@ function RootLayoutNav() {
     );
 }
 
+function AppProviders() {
+    const { reloadKey } = useLanguage();
+
+    return (
+        <AuthProvider key={`lang-${reloadKey}`}>
+            <ProfileProvider>
+                <FavoritesProvider>
+                    <RootLayoutNav />
+                </FavoritesProvider>
+            </ProfileProvider>
+        </AuthProvider>
+    );
+}
+
 export default function RootLayout() {
     const colorScheme = useColorScheme();
 
@@ -185,13 +199,7 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider client={queryClient}>
                 <LanguageProvider>
-                    <AuthProvider>
-                        <ProfileProvider>
-                            <FavoritesProvider>
-                                <RootLayoutNav />
-                            </FavoritesProvider>
-                        </ProfileProvider>
-                    </AuthProvider>
+                    <AppProviders />
                 </LanguageProvider>
             </QueryClientProvider>
         </GestureHandlerRootView>

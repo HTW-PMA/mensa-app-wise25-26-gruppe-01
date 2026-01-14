@@ -95,11 +95,16 @@ export default function AiChefScreen() {
   // Data
   const { data: mensas, isLoading: isLoadingMensas, isError: isMensasError } = useMensas();
   const { data: meals, isLoading: isLoadingMeals, isError: isMealsError } = useMeals();
-  const { favoriteCanteenIds, favoriteMealIds } = useFavoritesContext();
+  const { favoriteCanteenIds, favoriteMeals } = useFavoritesContext();
   const { location } = useLocation();
 
   const isLoadingContext = isLoadingMensas || isLoadingMeals;
   const isErrorContext = isMensasError || isMealsError;
+
+  const favoriteMealIds = useMemo(
+    () => Array.from(new Set(favoriteMeals.map((favorite) => favorite.mealId))),
+    [favoriteMeals]
+  );
 
   // Theme colors
   const backgroundColor = useThemeColor({ light: '#FFFFFF', dark: '#000000' }, 'background');

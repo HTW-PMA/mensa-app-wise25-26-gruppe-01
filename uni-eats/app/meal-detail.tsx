@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type Meal, type MealAdditive, type MealBadge } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
+import { useProfile } from '@/contexts/ProfileContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { 
   translateCategory, 
@@ -23,6 +24,7 @@ import {
   translateAdditive,
   translatePriceType 
 } from '@/utils/translations';
+import { getPriceTypeKeyForStatus, selectPriceForStatus } from '@/utils/priceHelpers';
 import { useTranslation } from '@/hooks/useTranslation';
 
 // Allergen categories with icons and colors
@@ -143,29 +145,22 @@ const getMealImage = (name: string, category?: string): string => {
 /**
  * Gets the student price from prices
  */
-const getStudentPrice = (prices?: { priceType: string; price: number }[]): number | null => {
-  if (!prices || prices.length === 0) return null;
-  const studentPrice = prices.find(p => p.priceType === 'Studierende');
-  if (studentPrice) {
-    return studentPrice.price;
-  }
-  return prices[0].price;
-};
-
 /**
  * All prices formatted
  */
-const getAllPrices = (prices?: { priceType: string; price: number }[]): { type: string; value: number }[] => {
+const getAllPrices = (prices?: { priceType: string; price: number }[]): { type: string; value: number; rawType: string }[] => {
   if (!prices || prices.length === 0) return [];
   return prices.map(p => ({
     type: translatePriceType(p.priceType),
     value: p.price,
+    rawType: p.priceType,
   }));
 };
 
 export default function MealDetailScreen() {
   const router = useRouter();
   const { t, locale } = useTranslation();
+  const { profile } = useProfile();
   const params = useLocalSearchParams<{ 
     id: string;
     name: string;
@@ -176,6 +171,7 @@ export default function MealDetailScreen() {
     co2Bilanz: string;
     waterBilanz: string;
     canteenName: string;
+    canteenId?: string;
   }>();
   const insets = useSafeAreaInsets();
   
@@ -192,7 +188,8 @@ export default function MealDetailScreen() {
 
   // Favoriten-Kontext
   const { isFavoriteMeal, toggleFavoriteMeal } = useFavoritesContext();
-  const isFavorite = isFavoriteMeal(params.id);
+  const canteenId = params.canteenId ?? '';
+  const isFavorite = canteenId ? isFavoriteMeal(params.id, canteenId) : false;
   
   // Parse die Daten aus den Params
   const meal = useMemo(() => {
@@ -210,20 +207,23 @@ export default function MealDetailScreen() {
       co2Bilanz: params.co2Bilanz ? parseFloat(params.co2Bilanz) : undefined,
       waterBilanz: params.waterBilanz ? parseFloat(params.waterBilanz) : undefined,
     };
-  }, [params]);
+  }, [params, t]);
   
   const canteenName = params.canteenName || '';
   const imageUrl = useMemo(() => getMealImage(meal.name, meal.category), [meal.name, meal.category]);
-  const allPrices = useMemo(() => getAllPrices(meal.prices), [meal.prices]);
-  const studentPriceValue = useMemo(() => getStudentPrice(meal.prices), [meal.prices]);
-  const studentPriceText = useMemo(
-    () =>
-      studentPriceValue !== null
-        ? t('common.priceFormat', { value: studentPriceValue.toFixed(2) })
-        : t('common.priceUnavailable'),
-    [studentPriceValue, t]
+  const allPrices = useMemo(() => getAllPrices(meal.prices), [meal.prices, locale]);
+  const selectedPrice = useMemo(
+    () => selectPriceForStatus(meal.prices, profile?.status),
+    [meal.prices, profile?.status]
   );
-  const studentLabel = t('priceTypes.students');
+  const selectedPriceText = useMemo(
+    () =>
+      selectedPrice.price !== null
+        ? t('common.priceFormat', { value: selectedPrice.price.toFixed(2) })
+        : t('common.priceUnavailable'),
+    [selectedPrice.price, t]
+  );
+  const priceTypeLabel = t(getPriceTypeKeyForStatus(profile?.status));
   
   // Allergene und Zusatzstoffe kategorisieren
   const { allergens, additives } = useMemo(() => {
@@ -316,7 +316,7 @@ export default function MealDetailScreen() {
                   <Text style={[
                     styles.priceValue,
                     { color: textColor },
-                    price.type === studentLabel && styles.priceValueHighlight
+                    selectedPrice.priceType === price.rawType && styles.priceValueHighlight
                   ]}>
                     {t('common.priceFormat', { value: price.value.toFixed(2) })}
                   </Text>
@@ -432,12 +432,18 @@ export default function MealDetailScreen() {
       {/* Bottom Bar with Price */}
       <View style={[styles.bottomBar, { backgroundColor: cardBackgroundColor, borderTopColor: borderColor, paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.bottomPriceContainer}>
-          <Text style={[styles.bottomPriceLabel, { color: subTextColor }]}>{t('mealDetail.studentPrice')}</Text>
-          <Text style={styles.bottomPrice}>{studentPriceText}</Text>
+          <Text style={[styles.bottomPriceLabel, { color: subTextColor }]}>
+            {t('mealDetail.priceLabel', { type: priceTypeLabel })}
+          </Text>
+          <Text style={styles.bottomPrice}>{selectedPriceText}</Text>
         </View>
         <Pressable 
           style={styles.favoriteButtonLarge}
-          onPress={() => toggleFavoriteMeal(params.id)}
+          onPress={() => {
+            if (canteenId) {
+              toggleFavoriteMeal(params.id, canteenId);
+            }
+          }}
         >
           <Ionicons 
             name={isFavorite ? "heart" : "heart-outline"} 

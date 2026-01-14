@@ -5,7 +5,9 @@ import { useMemo, memo, useCallback } from 'react';
 import { type Meal } from '@/services/mensaApi';
 import { Colors } from '@/constants/theme';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
+import { useProfile } from '@/contexts/ProfileContext';
 import { translateBadge } from '@/utils/translations';
+import { selectPriceForStatus } from '@/utils/priceHelpers';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -13,18 +15,6 @@ interface MealCardProps {
   meal: Meal;
   onPress?: () => void;
 }
-
-/**
- * Get the student price from the list of prices.
- */
-const getStudentPrice = (prices?: Meal['prices']): number | null => {
-  if (!prices || prices.length === 0) return null;
-  const studentPrice = prices.find((price) => price.priceType === 'Studierende');
-  if (studentPrice) {
-    return studentPrice.price;
-  }
-  return prices[0].price;
-};
 
 /**
  * Generate a mock description based on the meal name.
@@ -121,6 +111,7 @@ const getMealImage = (meal: Meal): string => {
 
 export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps) {
   const { t } = useTranslation();
+  const { profile } = useProfile();
   const backgroundColor = useThemeColor({ light: '#ffffff', dark: '#1c1c1e' }, 'background');
   const textColor = useThemeColor({ light: '#333333', dark: '#ffffff' }, 'text');
   const subTextColor = useThemeColor({ light: '#666666', dark: '#9ba1a6' }, 'text');
@@ -130,17 +121,23 @@ export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps)
   const favoriteBg = useThemeColor({ light: '#ffffff', dark: '#2c2c2e' }, 'background');
 
   const { isFavoriteMeal, toggleFavoriteMeal } = useFavoritesContext();
-  const isFavorite = isFavoriteMeal(meal.id);
+  const canFavorite = Boolean(meal.canteenId);
+  const isFavorite = canFavorite ? isFavoriteMeal(meal.id, meal.canteenId as string) : false;
 
   const handleFavoritePress = useCallback((e: any) => {
     e.stopPropagation();
-    toggleFavoriteMeal(meal.id);
-  }, [meal.id, toggleFavoriteMeal]);
+    if (!meal.canteenId) return;
+    toggleFavoriteMeal(meal.id, meal.canteenId);
+  }, [meal.id, meal.canteenId, toggleFavoriteMeal]);
 
-  const priceValue = useMemo(() => getStudentPrice(meal.prices), [meal.prices]);
-  const price = priceValue !== null
-    ? t('common.priceFormat', { value: priceValue.toFixed(2) })
-    : t('common.priceUnavailable');
+  const selectedPrice = useMemo(
+    () => selectPriceForStatus(meal.prices, profile?.status),
+    [meal.prices, profile?.status]
+  );
+  const price =
+    selectedPrice.price !== null
+      ? t('common.priceFormat', { value: selectedPrice.price.toFixed(2) })
+      : t('common.priceUnavailable');
   const description = t(getMealDescriptionKey(meal));
   const calories = t('common.calories', { value: getMealCalories(meal) });
   const imageUrl = useMemo(() => getMealImage(meal), [meal.category, meal.name]);

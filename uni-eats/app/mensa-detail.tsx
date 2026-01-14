@@ -87,7 +87,7 @@ export default function MensaDetailScreen() {
         date,
       };
     });
-  }, [today]);
+  }, [today, dateLocale]);
 
   const selectedDateInfo = useMemo(
       () => weekDates.find((day) => day.key === selectedDate),
@@ -135,7 +135,7 @@ export default function MensaDetailScreen() {
     } finally {
       setLoadingCanteen(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   const loadMeals = useCallback(
       async (dateKey: string) => {
@@ -170,7 +170,7 @@ export default function MensaDetailScreen() {
           setLoadingMeals(false);
         }
       },
-      [id]
+      [id, t]
   );
 
   useEffect(() => {
@@ -509,6 +509,7 @@ export default function MensaDetailScreen() {
                               co2Bilanz: meal.co2Bilanz?.toString() || '',
                               waterBilanz: meal.waterBilanz?.toString() || '',
                               canteenName: enrichedCanteen?.name || '',
+                              canteenId: enrichedCanteen?.id || id || '',
                             },
                           });
                         }}

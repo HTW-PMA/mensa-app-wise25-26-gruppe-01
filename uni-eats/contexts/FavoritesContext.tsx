@@ -11,18 +11,23 @@ const LEGACY_STORAGE_KEY_CANTEEN = 'favorite_canteen';
 const LEGACY_STORAGE_KEY_CANTEENS = 'favorite_canteens';
 const LEGACY_STORAGE_KEY_MEALS = 'favorite_meals';
 
+export type FavoriteMeal = {
+  mealId: string;
+  canteenId: string;
+};
+
 interface FavoritesContextType {
   favoriteCanteenIds: string[];
-  favoriteMealIds: string[];
+  favoriteMeals: FavoriteMeal[];
   isLoading: boolean;
   addFavoriteCanteen: (canteenId: string) => Promise<void>;
   removeFavoriteCanteen: (canteenId: string) => Promise<void>;
-  addFavoriteMeal: (mealId: string) => Promise<void>;
-  removeFavoriteMeal: (mealId: string) => Promise<void>;
+  addFavoriteMeal: (mealId: string, canteenId: string) => Promise<void>;
+  removeFavoriteMeal: (mealId: string, canteenId: string) => Promise<void>;
   isFavoriteCanteen: (canteenId: string) => boolean;
-  isFavoriteMeal: (mealId: string) => boolean;
+  isFavoriteMeal: (mealId: string, canteenId: string) => boolean;
   toggleFavoriteCanteen: (canteenId: string) => Promise<void>;
-  toggleFavoriteMeal: (mealId: string) => Promise<void>;
+  toggleFavoriteMeal: (mealId: string, canteenId: string) => Promise<void>;
   clearFavorites: () => void;
 }
 
@@ -35,8 +40,22 @@ interface FavoritesProviderProps {
 export function FavoritesProvider({ children }: FavoritesProviderProps) {
   const { user } = useAuth();
   const [favoriteCanteenIds, setFavoriteCanteenIds] = useState<string[]>([]);
-  const [favoriteMealIds, setFavoriteMealIds] = useState<string[]>([]);
+  const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const makeFavoriteMealKey = (mealId: string, canteenId: string) =>
+    `${canteenId}::${mealId}`;
+
+  const normalizeFavoriteMeal = (mealId: string, canteenId: string): FavoriteMeal => ({
+    mealId: String(mealId),
+    canteenId: String(canteenId),
+  });
+
+  const isFavoriteMealEntry = (value: unknown): value is FavoriteMeal =>
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as FavoriteMeal).mealId === 'string' &&
+    typeof (value as FavoriteMeal).canteenId === 'string';
 
   /**
    * Lädt Favoriten für den aktuellen User aus Storage
@@ -46,7 +65,7 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
     try {
       const [savedCanteens, savedMeals] = await Promise.all([
         storage.get<string[]>(getStorageKeyCanteens(userId)),
-        storage.get<string[]>(getStorageKeyMeals(userId)),
+        storage.get<FavoriteMeal[] | string[]>(getStorageKeyMeals(userId)),
       ]);
 
       // Lade user-spezifische Favoriten
@@ -57,14 +76,23 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
       }
 
       if (savedMeals && Array.isArray(savedMeals)) {
-        setFavoriteMealIds(savedMeals);
+        const isLegacy = savedMeals.every((meal) => typeof meal === 'string');
+        if (isLegacy) {
+          setFavoriteMeals([]);
+          await storage.save(getStorageKeyMeals(userId), []);
+        } else {
+          const normalized = savedMeals
+            .filter(isFavoriteMealEntry)
+            .map((meal) => normalizeFavoriteMeal(meal.mealId, meal.canteenId));
+          setFavoriteMeals(normalized);
+        }
       } else {
-        setFavoriteMealIds([]);
+        setFavoriteMeals([]);
       }
     } catch (error) {
       console.error('Error loading favorites:', error);
       setFavoriteCanteenIds([]);
-      setFavoriteMealIds([]);
+      setFavoriteMeals([]);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +103,7 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
    */
   const clearFavorites = useCallback(() => {
     setFavoriteCanteenIds([]);
-    setFavoriteMealIds([]);
+    setFavoriteMeals([]);
   }, []);
 
   // Lade Favoriten wenn User sich ändert
@@ -120,22 +148,33 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
     }
   };
 
-  const addFavoriteMeal = async (mealId: string) => {
+  const addFavoriteMeal = async (mealId: string, canteenId: string) => {
     if (!user?.id) return;
+    if (!mealId || !canteenId) return;
     try {
-      const newMeals = [...favoriteMealIds, mealId];
-      setFavoriteMealIds(newMeals);
+      const next = normalizeFavoriteMeal(mealId, canteenId);
+      const nextKey = makeFavoriteMealKey(next.mealId, next.canteenId);
+      const exists = favoriteMeals.some(
+        (meal) => makeFavoriteMealKey(meal.mealId, meal.canteenId) === nextKey
+      );
+      if (exists) return;
+      const newMeals = [...favoriteMeals, next];
+      setFavoriteMeals(newMeals);
       await storage.save(getStorageKeyMeals(user.id), newMeals);
     } catch (error) {
       console.error('Error adding favorite meal:', error);
     }
   };
 
-  const removeFavoriteMeal = async (mealId: string) => {
+  const removeFavoriteMeal = async (mealId: string, canteenId: string) => {
     if (!user?.id) return;
+    if (!mealId || !canteenId) return;
     try {
-      const newMeals = favoriteMealIds.filter(id => id !== mealId);
-      setFavoriteMealIds(newMeals);
+      const targetKey = makeFavoriteMealKey(mealId, canteenId);
+      const newMeals = favoriteMeals.filter(
+        (meal) => makeFavoriteMealKey(meal.mealId, meal.canteenId) !== targetKey
+      );
+      setFavoriteMeals(newMeals);
       await storage.save(getStorageKeyMeals(user.id), newMeals);
     } catch (error) {
       console.error('Error removing favorite meal:', error);
@@ -146,8 +185,12 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
     return favoriteCanteenIds.includes(canteenId);
   };
 
-  const isFavoriteMeal = (mealId: string): boolean => {
-    return favoriteMealIds.includes(mealId);
+  const isFavoriteMeal = (mealId: string, canteenId: string): boolean => {
+    if (!mealId || !canteenId) return false;
+    const targetKey = makeFavoriteMealKey(mealId, canteenId);
+    return favoriteMeals.some(
+      (meal) => makeFavoriteMealKey(meal.mealId, meal.canteenId) === targetKey
+    );
   };
 
   /**
@@ -161,11 +204,11 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
     }
   };
 
-  const toggleFavoriteMeal = async (mealId: string) => {
-    if (isFavoriteMeal(mealId)) {
-      await removeFavoriteMeal(mealId);
+  const toggleFavoriteMeal = async (mealId: string, canteenId: string) => {
+    if (isFavoriteMeal(mealId, canteenId)) {
+      await removeFavoriteMeal(mealId, canteenId);
     } else {
-      await addFavoriteMeal(mealId);
+      await addFavoriteMeal(mealId, canteenId);
     }
   };
 
@@ -173,7 +216,7 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
     <FavoritesContext.Provider
       value={{
         favoriteCanteenIds,
-        favoriteMealIds,
+        favoriteMeals,
         isLoading,
         addFavoriteCanteen,
         removeFavoriteCanteen,

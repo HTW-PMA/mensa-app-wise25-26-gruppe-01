@@ -4,26 +4,16 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { type Meal } from '@/services/mensaApi';
+import { useProfile } from '@/contexts/ProfileContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Colors } from '@/constants/theme';
+import { selectPriceForStatus } from '@/utils/priceHelpers';
 
 interface FavoriteMealCardProps {
   meal: Meal;
   onPress?: () => void;
   onRemove?: () => void;
 }
-
-/**
- * Holt den Studierendenpreis aus den Preisen
- */
-const getStudentPrice = (prices?: Meal['prices']): number | null => {
-  if (!prices || prices.length === 0) return null;
-  const studentPrice = prices.find((p) => p.priceType === 'Studierende');
-  if (studentPrice) {
-    return studentPrice.price;
-  }
-  return prices[0].price;
-};
 
 /**
  * Generiert eine Mock-Beschreibung basierend auf dem Meal-Namen
@@ -111,10 +101,12 @@ const getBadgeStyle = (type: BadgeType) => {
 
 export function FavoriteMealCard({ meal, onPress, onRemove }: FavoriteMealCardProps) {
   const { t } = useTranslation();
-  const priceValue = getStudentPrice(meal.prices);
-  const price = priceValue !== null
-    ? t('common.priceFormat', { value: priceValue.toFixed(2) })
-    : t('common.priceUnavailable');
+  const { profile } = useProfile();
+  const selectedPrice = selectPriceForStatus(meal.prices, profile?.status);
+  const price =
+    selectedPrice.price !== null
+      ? t('common.priceFormat', { value: selectedPrice.price.toFixed(2) })
+      : t('common.priceUnavailable');
   const description = t(getMealDescriptionKey(meal));
   const calories = t('common.calories', { value: getMealCalories(meal) });
   const imageUrl = getMealImage(meal);

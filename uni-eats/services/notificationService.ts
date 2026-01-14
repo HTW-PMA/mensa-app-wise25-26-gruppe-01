@@ -14,8 +14,13 @@ export async function initializeNotifications(): Promise<void> {
 /**
  * Generate storage key for dedup tracking
  */
-function getNotificationKey(userId: string, mealId: string, dateISO: string): string {
-  return `notified:${userId}:${mealId}:${dateISO}`;
+function getNotificationKey(
+  userId: string,
+  mealId: string,
+  dateISO: string,
+  canteenId: string
+): string {
+  return `notified:${userId}:${canteenId}:${mealId}:${dateISO}`;
 }
 
 /**
@@ -24,10 +29,11 @@ function getNotificationKey(userId: string, mealId: string, dateISO: string): st
 export async function wasNotifiedToday(
   userId: string,
   mealId: string,
-  dateISO: string
+  dateISO: string,
+  canteenId: string
 ): Promise<boolean> {
   try {
-    const value = await AsyncStorage.getItem(getNotificationKey(userId, mealId, dateISO));
+    const value = await AsyncStorage.getItem(getNotificationKey(userId, mealId, dateISO, canteenId));
     return value === '1';
   } catch (e) {
     console.error('Error checking notification status:', e);
@@ -41,10 +47,11 @@ export async function wasNotifiedToday(
 export async function markNotifiedToday(
   userId: string,
   mealId: string,
-  dateISO: string
+  dateISO: string,
+  canteenId: string
 ): Promise<void> {
   try {
-    await AsyncStorage.setItem(getNotificationKey(userId, mealId, dateISO), '1');
+    await AsyncStorage.setItem(getNotificationKey(userId, mealId, dateISO, canteenId), '1');
     console.log(`Marked notification for meal ${mealId} on ${dateISO}`);
   } catch (e) {
     console.error('Error marking notification:', e);

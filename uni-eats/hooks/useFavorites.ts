@@ -11,8 +11,8 @@ interface UseFavoritesResult {
   error: string | null;
   refresh: () => Promise<void>;
   removeFavoriteCanteen: (canteenId: string) => Promise<void>;
-  removeFavoriteMeal: (mealId: string) => Promise<void>;
-  favoriteMealIds: string[];
+  removeFavoriteMeal: (mealId: string, canteenId: string) => Promise<void>;
+  favoriteMealKeys: Array<{ mealId: string; canteenId: string }>;
   favoriteCanteenIds: string[];
 }
 
@@ -23,7 +23,7 @@ interface UseFavoritesResult {
 export function useFavorites(): UseFavoritesResult {
   const { 
     favoriteCanteenIds,
-    favoriteMealIds, 
+    favoriteMeals: favoriteMealKeys,
     isLoading: contextLoading,
     removeFavoriteCanteen: contextRemoveCanteen,
     removeFavoriteMeal: contextRemoveMeal,
@@ -75,7 +75,7 @@ export function useFavorites(): UseFavoritesResult {
       }
 
       // Lade favorisierte Gerichte
-      if (favoriteMealIds.length > 0) {
+      if (favoriteMealKeys.length > 0) {
         // Hole alle Gerichte mit einem einzigen API-Aufruf
         // Wir laden alle Meals für heute und die nächsten Tage in einem Request
         const allMeals: Meal[] = [];
@@ -102,12 +102,19 @@ export function useFavorites(): UseFavoritesResult {
           // Fallback: keine Gerichte verfügbar
         }
 
-        // Filtere nach favorisierten IDs
-        const favorites = allMeals.filter(meal => favoriteMealIds.includes(meal.id));
-        
-        // Entferne Duplikate basierend auf ID
+        // Filtere nach mensa-spezifischen Favoriten
+        const favoriteKeySet = new Set(
+          favoriteMealKeys.map((favorite) => `${favorite.canteenId}::${favorite.mealId}`)
+        );
+        const favorites = allMeals.filter((meal) => {
+          if (!meal.canteenId) return false;
+          return favoriteKeySet.has(`${meal.canteenId}::${meal.id}`);
+        });
+
+        // Entferne Duplikate basierend auf (canteenId + mealId)
         const uniqueFavorites = favorites.reduce((acc: Meal[], meal) => {
-          if (!acc.some(m => m.id === meal.id)) {
+          const key = `${meal.canteenId}::${meal.id}`;
+          if (!acc.some((m) => `${m.canteenId}::${m.id}` === key)) {
             acc.push(meal);
           }
           return acc;
@@ -124,7 +131,7 @@ export function useFavorites(): UseFavoritesResult {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [favoriteCanteenIds, favoriteMealIds, location, contextLoading]);
+  }, [favoriteCanteenIds, favoriteMealKeys, location, contextLoading]);
 
   // Initiale Ladung
   useEffect(() => {
@@ -140,9 +147,9 @@ export function useFavorites(): UseFavoritesResult {
     setFavoriteCanteens(prev => prev.filter(c => c.id !== canteenId));
   };
 
-  const removeFavoriteMeal = async (mealId: string) => {
-    await contextRemoveMeal(mealId);
-    setFavoriteMeals(prev => prev.filter(m => m.id !== mealId));
+  const removeFavoriteMeal = async (mealId: string, canteenId: string) => {
+    await contextRemoveMeal(mealId, canteenId);
+    setFavoriteMeals(prev => prev.filter(m => !(m.id === mealId && m.canteenId === canteenId)));
   };
 
   return {
@@ -154,7 +161,7 @@ export function useFavorites(): UseFavoritesResult {
     refresh,
     removeFavoriteCanteen,
     removeFavoriteMeal,
-    favoriteMealIds,
+    favoriteMealKeys,
     favoriteCanteenIds,
   };
 }

@@ -46,9 +46,9 @@ export default function FavoritesScreen() {
     });
   };
 
-  const handleMealPress = (mealId: string) => {
+  const handleMealPress = (mealId: string, canteenId?: string) => {
     // TODO: Navigiere zu Meal-Detail wenn vorhanden
-    console.log('Meal pressed:', mealId);
+    console.log('Meal pressed:', mealId, canteenId);
   };
 
   if (isLoading) {
@@ -148,10 +148,14 @@ export default function FavoritesScreen() {
                 <View style={styles.mealsList}>
                   {favoriteMeals.map((meal) => (
                     <FavoriteMealCard
-                      key={meal.id}
+                      key={`${meal.canteenId ?? 'unknown'}-${meal.id}`}
                       meal={meal}
-                      onPress={() => handleMealPress(meal.id)}
-                      onRemove={() => removeFavoriteMeal(meal.id)}
+                      onPress={() => handleMealPress(meal.id, meal.canteenId)}
+                      onRemove={() => {
+                        if (meal.canteenId) {
+                          removeFavoriteMeal(meal.id, meal.canteenId);
+                        }
+                      }}
                     />
                   ))}
                 </View>

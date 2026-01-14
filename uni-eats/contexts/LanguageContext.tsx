@@ -16,6 +16,7 @@ import {
 type LanguageContextType = {
   locale: SupportedLocale;
   isLoading: boolean;
+  reloadKey: number;
   setLanguage: (locale: SupportedLocale) => Promise<void>;
 };
 
@@ -29,6 +30,7 @@ type LanguageProviderProps = {
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const [locale, setLocaleState] = useState<SupportedLocale>(getLocale());
   const [isLoading, setIsLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -51,13 +53,15 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   }, []);
 
   const setLanguage = async (nextLocale: SupportedLocale) => {
+    if (nextLocale === locale) return;
     setLocale(nextLocale);
     setLocaleState(nextLocale);
+    setReloadKey((prev) => prev + 1);
     await storage.save(STORAGE_KEY, nextLocale);
   };
 
   return (
-    <LanguageContext.Provider value={{ locale, isLoading, setLanguage }}>
+    <LanguageContext.Provider value={{ locale, isLoading, reloadKey, setLanguage }}>
       {children}
     </LanguageContext.Provider>
   );

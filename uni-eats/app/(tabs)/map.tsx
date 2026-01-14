@@ -163,7 +163,7 @@ export default function MapScreen() {
         }
 
         return googleMarkers;
-    }, [mensas, userCoords, isIOS]);
+    }, [mensas, userCoords, isIOS, t]);
 
     const handleMarkerClick = (marker: { id?: string }) => {
         console.log('Marker clicked:', marker);

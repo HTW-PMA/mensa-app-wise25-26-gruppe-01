@@ -321,6 +321,7 @@
     "environmentTitle": "Umweltbilanz",
     "co2Footprint": "CO2-Bilanz",
     "waterFootprint": "Wasserbilanz",
+    "priceLabel": "Preis (%{type})",
     "studentPrice": "Studentenpreis",
     "save": "Speichern",
     "saved": "Gespeichert"
@@ -360,12 +361,17 @@
   },
   "notifications": {
     "title": "Benachrichtigungen",
+    "availableTitle": "Heute verfuegbar",
+    "emptyTitle": "Keine Favoriten heute",
+    "emptySubtitle": "Wir geben dir Bescheid, sobald Favoriten verfuegbar sind.",
     "comingSoon": "Benachrichtigungen kommen bald.",
     "favoriteMealTitle": "Lieblingsgericht verfügbar",
     "favoriteMealMessage": "Dein Favorit \"%{mealName}\" gibt es heute in der %{canteenName}."
   },
   "priceTypes": {
-    "students": "Studierende"
+    "students": "Studierende",
+    "employees": "Angestellte",
+    "guests": "Gäste"
   },
   "search": {
     "placeholder": "Suche nach Mensen oder Gerichten",

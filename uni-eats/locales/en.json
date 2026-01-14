@@ -321,6 +321,7 @@
     "environmentTitle": "Environmental impact",
     "co2Footprint": "CO2 footprint",
     "waterFootprint": "Water footprint",
+    "priceLabel": "Price (%{type})",
     "studentPrice": "Student price",
     "save": "Save",
     "saved": "Saved"
@@ -360,12 +361,17 @@
   },
   "notifications": {
     "title": "Notifications",
+    "availableTitle": "Available today",
+    "emptyTitle": "No favorite meals today",
+    "emptySubtitle": "We'll let you know when your favorites are available.",
     "comingSoon": "Notifications are coming soon.",
     "favoriteMealTitle": "Favorite meal available",
     "favoriteMealMessage": "Your favorite \"%{mealName}\" is available today at %{canteenName}."
   },
   "priceTypes": {
-    "students": "Students"
+    "students": "Students",
+    "employees": "Employees",
+    "guests": "Guests"
   },
   "search": {
     "placeholder": "Search for mensas or meals",

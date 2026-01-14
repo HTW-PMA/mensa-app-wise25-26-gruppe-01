@@ -10,6 +10,7 @@ import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 import { useLocation, calculateDistance } from '@/hooks/useLocation';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useFavoritesContext } from '@/contexts/FavoritesContext';
 
 // Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
 export interface CanteenWithMeals extends Canteen {
@@ -58,7 +59,9 @@ const isCanteenClosed = (businessDays?: Canteen['businessDays']): boolean => {
 export function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { favoriteMeals } = useFavoritesContext();
   const [canteens, setCanteens] = useState<CanteenWithMeals[]>([]);
+  const [menusToday, setMenusToday] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -90,12 +93,15 @@ export function HomeScreen() {
       const today = new Date().toISOString().split('T')[0];
       const canteensWithMealsToday = new Set<string>();
       
-      const menus = Array.isArray(menuResponse) ? menuResponse : [];
-      menus.forEach((menu: any) => {
+      const menusRaw = Array.isArray(menuResponse) ? menuResponse : menuResponse?.menue;
+      const menus = Array.isArray(menusRaw) ? menusRaw : [];
+      const menusForToday = menus.filter((menu: any) => menu.date === today);
+      menusForToday.forEach((menu: any) => {
         if (menu.date === today && menu.meals && menu.meals.length > 0) {
           canteensWithMealsToday.add(menu.canteenId);
         }
       });
+      setMenusToday(menusForToday);
 
       // Erweitere Canteens mit hasMealsToday Info
       const enrichedData = canteenData.map(canteen => ({
@@ -167,6 +173,30 @@ export function HomeScreen() {
     return enriched;
   }, [canteens, enrichCanteensWithRatings, location]);
 
+  const hasFavoriteMealAvailable = useMemo(() => {
+    if (favoriteMeals.length === 0) return false;
+    if (menusToday.length === 0) return false;
+
+    const favoriteMealKeySet = new Set(
+      favoriteMeals.map((favorite) => `${favorite.canteenId}::${favorite.mealId}`)
+    );
+
+    return menusToday.some((menu: any) => {
+      if (!Array.isArray(menu.meals)) return false;
+      return menu.meals.some((meal: any) => {
+        const id =
+          meal?.id ??
+          meal?._id ??
+          meal?.ID ??
+          meal?.mealId ??
+          meal?.mealID;
+        const canteenId = menu?.canteenId ?? menu?.canteenID ?? menu?.canteen_id;
+        if (!id || !canteenId) return false;
+        return favoriteMealKeySet.has(`${String(canteenId)}::${String(id)}`);
+      });
+    });
+  }, [menusToday, favoriteMeals]);
+
   return (
       <View style={[styles.container, { backgroundColor }]}>
 
@@ -185,14 +215,10 @@ export function HomeScreen() {
                                 </View>
 
                     <Pressable
-
                         onPress={() => router.push('/notifications')}
-
                         style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}>
-
-        
               <Ionicons name="notifications-outline" size={26} color={iconColor} />
-              <View style={styles.notificationBadge} />
+              {hasFavoriteMealAvailable && <View style={styles.notificationBadge} />}
             </Pressable>
           </View>
 
