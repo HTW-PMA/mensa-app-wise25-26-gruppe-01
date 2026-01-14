@@ -79,6 +79,7 @@ export default function NotificationsScreen() {
                   <FavoriteMealCard
                     key={`${meal.canteenId ?? 'unknown'}-${meal.id}`}
                     meal={meal}
+                    canteenName={meal.canteenId ? canteenNameById.get(meal.canteenId) : undefined}
                     onPress={() => handleMealPress(meal)}
                   />
                 ))}

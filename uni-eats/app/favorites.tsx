@@ -15,6 +15,7 @@ import { ThemedView } from '@/components/themed-view';
 import { FavoriteCanteenCard } from '@/components/favorites/FavoriteCanteenCard';
 import { FavoriteMealCard } from '@/components/favorites/FavoriteMealCard';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useMensas } from '@/hooks/useMensas';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Colors } from '@/constants/theme';
@@ -35,9 +36,11 @@ export default function FavoritesScreen() {
     removeFavoriteCanteen,
     removeFavoriteMeal,
   } = useFavorites();
+  const { data: mensas } = useMensas({ loadingtype: 'lazy' });
 
   const backgroundColor = isDark ? Colors.dark.background : Colors.light.background;
   const sectionTitleColor = isDark ? Colors.dark.text : '#333';
+  const canteenNameById = new Map((mensas ?? []).map((canteen) => [canteen.id, canteen.name]));
 
   const handleCanteenPress = (canteenId: string) => {
     router.push({
@@ -150,6 +153,7 @@ export default function FavoritesScreen() {
                     <FavoriteMealCard
                       key={`${meal.canteenId ?? 'unknown'}-${meal.id}`}
                       meal={meal}
+                      canteenName={meal.canteenId ? canteenNameById.get(meal.canteenId) : undefined}
                       onPress={() => handleMealPress(meal.id, meal.canteenId)}
                       onRemove={() => {
                         if (meal.canteenId) {

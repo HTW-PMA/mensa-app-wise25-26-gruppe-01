@@ -11,6 +11,7 @@ import { selectPriceForStatus } from '@/utils/priceHelpers';
 
 interface FavoriteMealCardProps {
   meal: Meal;
+  canteenName?: string;
   onPress?: () => void;
   onRemove?: () => void;
 }
@@ -99,9 +100,10 @@ const getBadgeStyle = (type: BadgeType) => {
   }
 };
 
-export function FavoriteMealCard({ meal, onPress, onRemove }: FavoriteMealCardProps) {
+export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: FavoriteMealCardProps) {
   const { t } = useTranslation();
   const { profile } = useProfile();
+  const resolvedCanteenName = canteenName ?? t('common.notAvailable');
   const selectedPrice = selectPriceForStatus(meal.prices, profile?.status);
   const price =
     selectedPrice.price !== null
@@ -145,7 +147,11 @@ export function FavoriteMealCard({ meal, onPress, onRemove }: FavoriteMealCardPr
         <Text style={styles.name} numberOfLines={1}>
           {meal.name}
         </Text>
-        
+
+        <Text style={styles.canteenName} numberOfLines={1}>
+          {resolvedCanteenName}
+        </Text>
+
         <Text style={styles.description} numberOfLines={1}>
           {description}
         </Text>
@@ -252,6 +258,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     marginBottom: 6,
+  },
+  canteenName: {
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
   },
   badgeRow: {
     flexDirection: 'row',
