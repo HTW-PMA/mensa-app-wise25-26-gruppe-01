@@ -46,31 +46,36 @@ Da sich der App-Code im Ordner `uni-eats` befindet, müssen Sie zuerst dorthin n
     ```
 3. **App starten:**
 
-   - **Standard (Expo Go):**
+   - **Standard (Expo Go Android):**
        ```bash
        npx expo start --clear
        ```
-   - **Bei Änderungen an der Konfiguration oder an der Neuinstallation** 
-   - **Alternative (Native Android Build):** *Falls die App bereits installiert wurde und Cache-Probleme auftreten:*
+   - **Standard (Expo Go IOS):**
        ```bash
-       # Build-Cache löschen und neu vorkonfigurieren
-       cd uni-eats/android
-       ``` 
-       ```bash
-       rm -rf app/build
-       rm -rf app/.cxx
-       ```  
-       ```bash
-       # zurück mensa-app-wise25-26-gruppe-01
-       cd ..
+       npx expo start --tunnel --clear
        ```
-       ```bash
-       npx expo prebuild --platform android --clean
-      ```     
-   - **App direkt auf dem Gerät oder Emulator ausführen:**  
-      ```bash
-      npx expo run:android --device
-      ```
+        
+     - **Bei Änderungen an der Konfiguration oder an der Neuinstallation** 
+     - **Alternative (Native Android Build):** *Falls die App bereits installiert wurde und Cache-Probleme auftreten:*
+         ```bash
+         # Build-Cache löschen und neu vorkonfigurieren
+         cd uni-eats/android
+         ``` 
+         ```bash
+         rm -rf app/build
+         rm -rf app/.cxx
+         ```  
+         ```bash
+         # zurück mensa-app-wise25-26-gruppe-01
+         cd ..
+         ```
+         ```bash
+         npx expo prebuild --platform android --clean
+        ```     
+     - **App direkt auf dem Gerät oder Emulator ausführen:**  
+        ```bash
+        npx expo run:android --device
+        ```
 4. **App öffnen:**
    - Scannen Sie den QR-Code mit der **Expo Go** App (Android/iOS).
    - Oder drücken Sie `w` für Web, `a` für Android Emulator, `i` für iOS Simulator.
