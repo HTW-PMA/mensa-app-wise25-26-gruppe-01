@@ -1,29 +1,13 @@
-﻿/**
- * Enhanced Groq API for AI Chef with dietary preferences, mood detection,
- * structured meal recommendations + HARD relevance filtering (post-processing)
- *
- * Fixes TS errors by using the actual Meal shape used in this project:
- * - Meal has NO `allergens` property
- * - Additives use `.text` (not `.name`)
- * - Prices use `.priceType` (not `.status`)
- * - Avoid implicit any
- */
+import { Canteen, Meal, University } from '@/services/mensaApi';
+import { t } from '@/utils/i18n';
 
 const API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'llama-3.1-8b-instant';
 
-import { Canteen, Meal } from '@/services/mensaApi';
-import { t } from '@/utils/i18n';
-
-// Extended user preferences
 export interface UserPreferences {
     allergies?: string[];
     dietType?: 'vegetarian' | 'vegan' | 'pescatarian' | 'none';
-    dailyBudget?: number;
-    spentToday?: number;
-    frequentCategories?: string[];
-    avoidedCategories?: string[];
 }
 
 export interface AIChefContext {
@@ -32,108 +16,36 @@ export interface AIChefContext {
     favoriteCanteenIds?: string[];
     favoriteMealIds?: string[];
     userPreferences?: UserPreferences;
-    userLocation?: {
-        latitude: number;
-        longitude: number;
-    };
-    contextStatus?: {
-        isLoadingContext?: boolean;
-        isErrorContext?: boolean;
-    };
+    userLocation?: { latitude: number; longitude: number };
+    contextStatus?: { isLoadingContext?: boolean; isErrorContext?: boolean };
+    universities?: University[];
 }
 
-export type AIChefHistoryMessage = {
-    role: 'user' | 'assistant';
-    content: string;
-};
+export type AIChefHistoryMessage = { role: 'user' | 'assistant'; content: string };
 
 export type AIChefResponse = {
     text: string;
-    recommendedMeals?: Array<{
-        mealId: string;
-        reason: string;
-    }>;
+    recommendedMeals?: Array<{ mealId: string; reason: string }>;
 };
 
+// ------------------------------------------------------------
+// Hilfsfunktionen
+// ------------------------------------------------------------
+
 const MOOD_KEYWORDS = {
-    tired: ['müde', 'erschöpft', 'schlapp', 'energielos', 'tired', 'exhausted'],
-    stressed: ['gestresst', 'stress', 'hektisch', 'stressed', 'busy'],
-    hungry: ['hungrig', 'verhungert', 'starving', 'sehr hungrig'],
-    light: ['leicht', 'frisch', 'light', 'gesund', 'healthy'],
-    comfort: ['comfort', 'gemütlich', 'herzhaft', 'soul food', 'deftig'],
-    quick: ['schnell', 'eilig', 'quick', 'fast', 'in eile'],
+    tired: ['müde', 'erschöpft', 'schlapp', 'energielos', 'kraft', 'power', 'tired'],
+    stressed: ['gestresst', 'stress', 'hektisch', 'zeitdruck', 'eilig', 'schnell'],
+    hungry: ['hungrig', 'kohldampf', 'bärenhunger', 'starving', 'viel'],
+    healthy: ['gesund', 'leicht', 'light', 'abnehmen', 'vitamin', 'frisch'],
 };
 
 function detectMood(message: string): string[] {
     const lowerMsg = message.toLowerCase();
-    const detectedMoods: string[] = [];
-    for (const [mood, keywords] of Object.entries(MOOD_KEYWORDS)) {
-        if (keywords.some((keyword) => lowerMsg.includes(keyword))) {
-            detectedMoods.push(mood);
-        }
-    }
-    return detectedMoods;
+    return Object.entries(MOOD_KEYWORDS)
+        .filter(([_, keywords]) => keywords.some((k) => lowerMsg.includes(k)))
+        .map(([mood]) => mood);
 }
 
-function analyzeBudget(preferences?: UserPreferences): string {
-    if (!preferences?.dailyBudget) return '';
-    const remaining = preferences.dailyBudget - (preferences.spentToday || 0);
-    if (remaining <= 0) return 'CRITICAL: User has exceeded daily budget!';
-    if (remaining < 3) return `BUDGET ALERT: Only €${remaining.toFixed(2)} remaining today. Suggest cheapest options.`;
-    if (remaining < 5) return `Budget conscious: €${remaining.toFixed(2)} left. Prefer affordable meals.`;
-    return `Budget available: €${remaining.toFixed(2)} for today.`;
-}
-
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-function toRad(deg: number): number {
-    return deg * (Math.PI / 180);
-}
-
-function analyzeMensaProximity(context: AIChefContext): string {
-    if (!context.userLocation || context.mensas.length === 0) return '';
-    const { latitude: userLat, longitude: userLon } = context.userLocation;
-
-    const mensasWithDistance = context.mensas
-        .map((mensa) => {
-            const geoLoc = mensa.address?.geoLocation;
-            if (!geoLoc?.latitude || !geoLoc?.longitude) return null;
-            const distance = calculateDistance(userLat, userLon, geoLoc.latitude, geoLoc.longitude);
-            return { name: mensa.name, distance };
-        })
-        .filter((x): x is { name: string; distance: number } => Boolean(x));
-
-    mensasWithDistance.sort((a, b) => a.distance - b.distance);
-    const closest = mensasWithDistance.slice(0, 3);
-    if (closest.length === 0) return '';
-
-    const proximityInfo = closest
-        .map((m) => `${m.name} (${m.distance < 1 ? Math.round(m.distance * 1000) + 'm' : m.distance.toFixed(1) + 'km'})`)
-        .join(', ');
-
-    return `\n📍 LOCATION CONTEXT:\nUser's closest mensas: ${proximityInfo}\nIMPORTANT: Prioritize recommendations from nearby mensas unless user specifically asks for others.`;
-}
-
-function getStudentPrice(meal: Meal): string {
-    const p = meal.prices?.find((x) => x.priceType === 'Studierende')?.price;
-    if (typeof p === 'number' && Number.isFinite(p)) return `€${p.toFixed(2)}`;
-    return '';
-}
-
-/**
- * ===== HARD FILTER (Relevance Enforcement) =====
- * Fix: LLM sometimes suggests non-matching meals (e.g., rice when asked for pasta).
- * We enforce strict relevance after parsing the model's JSON.
- */
 type FoodIntentKey =
     | 'pasta'
     | 'reis'
@@ -141,360 +53,267 @@ type FoodIntentKey =
     | 'burger'
     | 'salat'
     | 'suppe'
-    | 'wrap'
-    | 'curry'
-    | 'pommes'
-    | 'dessert';
+    | 'dessert'
+    | 'schnitzel';
 
 function extractFoodIntents(userMessage: string): FoodIntentKey[] {
     const m = userMessage.toLowerCase();
     const intents: FoodIntentKey[] = [];
-
-    // Pasta / Nudeln
-    if (
-        m.includes('pasta') ||
-        m.includes('nudel') ||
-        m.includes('spaghetti') ||
-        m.includes('penne') ||
-        m.includes('tagliatelle') ||
-        m.includes('tortellini') ||
-        m.includes('lasagne') ||
-        m.includes('gnocchi')
-    ) {
-        intents.push('pasta');
-    }
-
-    // Reis
-    if (m.includes('reis') || m.includes('risotto') || m.includes('biryani') || m.includes('fried rice')) {
-        intents.push('reis');
-    }
-
+    if (m.includes('pasta') || m.includes('nudel') || m.includes('spaghetti')) intents.push('pasta');
+    if (m.includes('reis') || m.includes('risotto')) intents.push('reis');
     if (m.includes('pizza')) intents.push('pizza');
     if (m.includes('burger')) intents.push('burger');
     if (m.includes('salat') || m.includes('bowl')) intents.push('salat');
-    if (m.includes('suppe') || m.includes('ramen')) intents.push('suppe');
-    if (m.includes('wrap') || m.includes('döner') || m.includes('doener') || m.includes('kebab')) intents.push('wrap');
-    if (m.includes('curry')) intents.push('curry');
-    if (m.includes('pommes') || m.includes('fries')) intents.push('pommes');
-    if (m.includes('dessert') || m.includes('kuchen') || m.includes('pudding')) intents.push('dessert');
-
+    if (m.includes('suppe') || m.includes('eintopf')) intents.push('suppe');
+    if (m.includes('dessert') || m.includes('süß') || m.includes('kuchen')) intents.push('dessert');
+    if (m.includes('schnitzel')) intents.push('schnitzel');
     return Array.from(new Set(intents));
 }
 
 function mealMatchesIntent(meal: Meal, intents: FoodIntentKey[]): boolean {
     if (intents.length === 0) return true;
-
     const hay = `${meal.name} ${meal.category ?? ''}`.toLowerCase();
-
     const rules: Record<FoodIntentKey, string[]> = {
-        pasta: ['pasta', 'nudel', 'spaghetti', 'penne', 'tagliatelle', 'tortellini', 'lasagne', 'gnocchi'],
-        reis: ['reis', 'risotto', 'biryani', 'fried rice'],
-        pizza: ['pizza'],
+        pasta: ['pasta', 'nudel', 'spaghetti', 'lasagne', 'penne', 'tortellini'],
+        reis: ['reis', 'risotto', 'paella', 'curry'],
+        pizza: ['pizza', 'flammkuchen'],
         burger: ['burger'],
         salat: ['salat', 'bowl'],
-        suppe: ['suppe', 'ramen'],
-        wrap: ['wrap', 'döner', 'doener', 'kebab'],
-        curry: ['curry'],
-        pommes: ['pommes', 'fries'],
-        dessert: ['dessert', 'kuchen', 'pudding'],
+        suppe: ['suppe', 'eintopf', 'stew'],
+        dessert: ['dessert', 'kuchen', 'pudding', 'süß'],
+        schnitzel: ['schnitzel'],
     };
-
-    // OR-Match: if user mentions multiple intents, any match is okay.
     return intents.some((intent) => rules[intent].some((k) => hay.includes(k)));
 }
 
-function friendlyIntentLabel(intents: FoodIntentKey[]): string {
-    if (intents.length === 1) {
-        const map: Record<FoodIntentKey, string> = {
-            pasta: 'Pasta-Gerichte',
-            reis: 'Reisgerichte',
-            pizza: 'Pizza',
-            burger: 'Burger',
-            salat: 'Salate/Bowls',
-            suppe: 'Suppen',
-            wrap: 'Wraps',
-            curry: 'Currys',
-            pommes: 'Pommes',
-            dessert: 'Desserts',
-        };
-        return map[intents[0]];
-    }
-    return 'deine Auswahl';
+function normalizeText(s: string): string {
+    return s
+        .toLowerCase()
+        .replace(/ä/g, 'ae')
+        .replace(/ö/g, 'oe')
+        .replace(/ü/g, 'ue')
+        .replace(/ß/g, 'ss')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
-function buildSystemPrompt(context: AIChefContext, userMessage: string) {
-    const mealsCount = context.meals?.length ?? 0;
-
-    if (mealsCount === 0) {
-        return `You are "AI Chef". No meal data available right now. Say: "Leider kann ich gerade keine Speisedaten abrufen. Bitte versuche es später nochmal! 😊"`;
-    }
-
-    const preferences = context.userPreferences;
-    const detectedMoods = detectMood(userMessage);
-
-    // KOMPAKTE Meal-Liste (nur die wichtigsten 30 Meals)
-    const filteredMeals = context.meals
-        .filter((meal) => {
-            // Filter by allergens (heuristic: search in name + additives text)
-            if (preferences?.allergies && preferences.allergies.length > 0) {
-                const additivesText = meal.additives?.map((a) => a.text).join(' ') ?? '';
-                const mealText = `${meal.name} ${additivesText}`.toLowerCase();
-                const hasAllergen = preferences.allergies.some((a) => mealText.includes(a.toLowerCase()));
-                if (hasAllergen) return false;
-            }
-
-            // Filter by diet (based on badges/name heuristics)
-            if (preferences?.dietType === 'vegan') {
-                const badges = meal.badges?.map((b) => b.name.toLowerCase()) ?? [];
-                if (!badges.includes('vegan') && !meal.name.toLowerCase().includes('vegan')) return false;
-            }
-
-            if (preferences?.dietType === 'vegetarian') {
-                const hasMeat = ['fleisch', 'chicken', 'hähn', 'rind', 'schwein', 'pute', 'wurst', 'speck'].some((m) =>
-                    meal.name.toLowerCase().includes(m)
-                );
-                if (hasMeat) return false;
-            }
-
-            return true;
-        })
-        .slice(0, 30); // MAX 30 Meals!
-
-    let mealInfo = '🍽️ Available Meals (INTERNAL DATA - DO NOT OUTPUT THIS LIST TO USER):\n';
-    for (const meal of filteredMeals) {
-        const mensaName = context.mensas.find((m) => m.id === meal.canteenId)?.name?.substring(0, 20) ?? 'Unknown';
-        const price = getStudentPrice(meal);
-        mealInfo += `${meal.id}|${meal.name.substring(0, 40)}@${mensaName}|${price}\n`;
-    }
-
-    let contextInfo = '';
-    if (preferences?.allergies && preferences.allergies.length > 0) {
-        contextInfo += `⚠️ Allergies: ${preferences.allergies.join(',')}\n`;
-    }
-    if (preferences?.dietType && preferences.dietType !== 'none') {
-        contextInfo += `🌱 Diet: ${preferences.dietType}\n`;
-    }
-    if (detectedMoods.length > 0) {
-        contextInfo += `😊 Mood: ${detectedMoods.join(',')}\n`;
-    }
-    const budgetInfo = analyzeBudget(preferences);
-    if (budgetInfo) {
-        contextInfo += `💶 ${budgetInfo}\n`;
-    }
-    const proximityInfo = analyzeMensaProximity(context);
-    if (proximityInfo) {
-        contextInfo += proximityInfo.substring(0, 150) + '\n';
-    }
-
-    return `AI Chef for Berlin student cafeterias.
-
-RULES:
-1. NO allergens in recommendations
-2. Max 3 meals
-3. Short response (2-3 sentences)
-4. Use meal IDs from list
-5. Be helpful and friendly.
-
-${contextInfo}
-${mealInfo}`.trim();
+function hasExplicitLocationClaim(message: string): boolean {
+    const m = normalizeText(message);
+    return (
+        (m.includes('ich bin ') && (m.includes(' an der ') || m.includes(' am ') || m.includes(' bei '))) ||
+        m.includes('bin an der') ||
+        m.includes('bin am') ||
+        m.includes('bin bei') ||
+        m.includes('an der uni') ||
+        m.includes('auf dem campus')
+    );
 }
 
-type ParsedMealRec = { id?: unknown; reason?: unknown };
-type ParsedAiJson = { text?: unknown; meals?: unknown };
+function hasExplicitUniClaim(message: string): boolean {
+    return /\b(fu|tu|hu|htw|ash|hwr|bht)\b/i.test(message);
+}
+
+// ------------------------------------------------------------
+// Standort- und Uni-Erkennung (ohne universityId)
+// ------------------------------------------------------------
+
+function extractLocationIntentWithUniversity(
+    userMessage: string,
+    mensas: Canteen[],
+    universities?: University[]
+): { uniName?: string; mensaIds: string[] } {
+    const lowerMsg = normalizeText(userMessage);
+    if (!universities || universities.length === 0) return { mensaIds: [] };
+
+    const detectedUniversity = universities.find((u) => {
+        const uniNameNorm = normalizeText(u.name);
+        const uniShort = u.shortName ? normalizeText(u.shortName) : '';
+        return (
+            lowerMsg.includes(uniNameNorm) ||
+            (uniShort && lowerMsg.includes(uniShort)) ||
+            lowerMsg.includes(uniNameNorm.split(' ')[0])
+        );
+    });
+
+    if (!detectedUniversity) return { mensaIds: [] };
+
+    const uniNorm = normalizeText(detectedUniversity.name);
+    const uniShort = detectedUniversity.shortName
+        ? normalizeText(detectedUniversity.shortName)
+        : '';
+
+    const relevantMensas: Canteen[] = mensas.filter((m: Canteen) => {
+        const mensaNorm = normalizeText(m.name);
+        return (
+            mensaNorm.includes(uniNorm) ||
+            (uniShort && mensaNorm.includes(uniShort)) ||
+            (lowerMsg.includes('htw') &&
+                (mensaNorm.includes('wilhelminenhof') || mensaNorm.includes('treskowallee'))) ||
+            (lowerMsg.includes('fu') && mensaNorm.includes('dahlem')) ||
+            (lowerMsg.includes('tu') && mensaNorm.includes('marchstr')) ||
+            (lowerMsg.includes('ash') && mensaNorm.includes('hellersdorf')) ||
+            (lowerMsg.includes('hwr') && mensaNorm.includes('lichtenberg'))
+        );
+    });
+
+    return { uniName: detectedUniversity.name, mensaIds: relevantMensas.map((m) => m.id) };
+}
+
+// ------------------------------------------------------------
+// Base-Filter
+// ------------------------------------------------------------
+
+function mealPassesBaseFilters(meal: Meal, context: AIChefContext, locationIds: string[]): boolean {
+    const allergens = context.userPreferences?.allergies || [];
+    const mealText = (meal.name + (meal.additives?.map((a) => a.text).join(' ') || '')).toLowerCase();
+    if (allergens.some((a) => mealText.includes(a.toLowerCase()))) return false;
+
+    if (context.userPreferences?.dietType === 'vegan') {
+        const isVegan =
+            meal.badges?.some((b) => b.name.toLowerCase() === 'vegan') || meal.name.toLowerCase().includes('vegan');
+        if (!isVegan) return false;
+    }
+
+    if (locationIds.length > 0) {
+        if (!meal.canteenId || !locationIds.includes(meal.canteenId ?? '')) return false;
+    }
+
+    return true;
+}
+
+// ------------------------------------------------------------
+// Hauptfunktion
+// ------------------------------------------------------------
 
 export async function getAiChefResponse(
     prompt: string,
     context: AIChefContext,
     history?: AIChefHistoryMessage[]
 ): Promise<AIChefResponse> {
-    if (!API_KEY) {
-        return { text: t('aiChef.errors.missingApiKey') };
-    }
-
-    const systemPrompt = buildSystemPrompt(context, prompt);
-    const safeHistory = (history ?? [])
-        .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-        .slice(-8)
-        .map((m) => ({ role: m.role, content: m.content }));
+    if (!API_KEY) return { text: t('aiChef.errors.missingApiKey') };
 
     const promptLower = prompt.toLowerCase();
+    const moods = detectMood(promptLower);
+    const intents = extractFoodIntents(promptLower);
+    const explicitLoc = hasExplicitLocationClaim(prompt);
+    const explicitUni = hasExplicitUniClaim(prompt);
 
-    // Trigger-Wörter
-    const isRecommendationQuery =
-        promptLower.includes('empfehlung') ||
-        promptLower.includes('vorschlag') ||
-        promptLower.includes('was soll') ||
-        promptLower.includes('was gibt') ||
-        promptLower.includes('zeig') ||
-        promptLower.includes('such') ||
-        promptLower.includes('find') ||
-        promptLower.includes('essen') ||
-        promptLower.includes('gericht') ||
-        promptLower.includes('heute') ||
-        promptLower.includes('nah') ||
-        promptLower.includes('günstig') ||
-        promptLower.includes('vegan') ||
-        promptLower.includes('vegetarisch') ||
-        promptLower.includes('pasta') ||
-        promptLower.includes('burger') ||
-        promptLower.includes('pizza') ||
-        promptLower.includes('piza') || // Typo
-        promptLower.includes('salat') ||
-        promptLower.includes('suppe') ||
-        promptLower.includes('supe') || // Typo
-        promptLower.includes('bowl') ||
-        promptLower.includes('dessert') ||
-        promptLower.includes('kuchen') ||
-        promptLower.includes('pommes') ||
-        promptLower.includes('fries');
+    const { uniName, mensaIds } = extractLocationIntentWithUniversity(prompt, context.mensas, context.universities);
 
-    // Verbesserter Prompt für semantische Genauigkeit
-    const enhancedPrompt =
-        systemPrompt +
-        (isRecommendationQuery && context.meals.length > 0
-            ? `
+    if ((explicitUni || explicitLoc) && mensaIds.length === 0) {
+        return {
+            text:
+                'Ich habe deine Uni/Mensa nicht eindeutig erkannt. Welche Mensa oder welchen Campus meinst du genau? (z.B. „Mensa Wilhelminenhof“, „Treskowallee“, „FU Dahlem“)',
+            recommendedMeals: [],
+        };
+    }
 
-IMPORTANT INSTRUCTION FOR JSON OUTPUT:
-The user is asking for specific meals. You MUST return a VALID JSON object.
+    let filteredMeals = context.meals.filter((meal) => mealPassesBaseFilters(meal, context, mensaIds));
 
-RULES FOR SELECTION:
-1. STRICT RELEVANCE: If the user asks for a specific food (e.g., "Pasta", "Burger", "Schnitzel"), ONLY return meals that strictly match that category. Do NOT recommend Rice or Stew if the user asked for Pasta.
-2. If no meals match the specific request, explain that in the "text" field and suggest the best available alternatives in the "meals" array.
-3. Max 3 meals.
+    if (mensaIds.length > 0) {
+        filteredMeals = filteredMeals.filter((m) => mensaIds.includes(m.canteenId ?? ''));
+    }
 
-JSON format:
-{"text":"Short engaging intro text here","meals":[{"id":"meal_id","reason":"Short reason why (e.g. 'This is a delicious Pasta dish')"}]}
+    filteredMeals.sort((a, b) => {
+        const canteenA = a.canteenId ?? '';
+        const canteenB = b.canteenId ?? '';
+        const scoreA =
+            (context.favoriteMealIds?.includes(a.id) ? 10 : 0) +
+            (context.favoriteCanteenIds?.includes(canteenA) ? 5 : 0);
+        const scoreB =
+            (context.favoriteMealIds?.includes(b.id) ? 10 : 0) +
+            (context.favoriteCanteenIds?.includes(canteenB) ? 5 : 0);
+        return scoreB - scoreA;
+    });
 
-Do NOT use Markdown. Return RAW JSON.`
-            : '');
-
-    const requestBody = {
-        model: MODEL,
-        messages: [{ role: 'system', content: enhancedPrompt }, ...safeHistory, { role: 'user', content: prompt }],
-        max_tokens: 450,
-        temperature: 0.2,
-    };
+    const systemPrompt = `Du bist der AI Chef. Empfiehl Gerichte aus der Liste.
+${moods.length ? `Stimmung: ${moods.join(', ')}.` : ''}
+${mensaIds.length ? `WICHTIG: Empfehle nur Gerichte aus den erlaubten Mensen.` : ''}
+Antworte NUR als JSON: {"text": "Grundtext", "meals": [{"id": "ID", "reason": "Grund"}]}`;
 
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API_KEY}` },
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify({
+                model: MODEL,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    ...(history || []).slice(-5),
+                    { role: 'user', content: prompt },
+                ],
+                temperature: 0.2,
+                response_format: { type: 'json_object' },
+            }),
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('AI Chef API Error:', response.status, errorText);
-            throw new Error(t('aiChef.errors.requestFailed', { status: response.status }));
-        }
-
         const data = await response.json();
-        const aiResponse: unknown = data?.choices?.[0]?.message?.content;
+        const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? '{"text":"","meals":[]}');
 
-        if (typeof aiResponse !== 'string' || aiResponse.trim().length === 0) {
-            throw new Error(t('aiChef.errors.invalidResponse'));
-        }
+        let validRecs = (parsed.meals || [])
+            .map((r: any) => {
+                const m = context.meals.find((meal) => meal.id === r.id);
+                if (!m) return null;
+                if (!mealPassesBaseFilters(m, context, mensaIds)) return null;
+                if (intents.length > 0 && !mealMatchesIntent(m, intents)) return null;
+                return {
+                    mealId: m.id,
+                    reason:
+                        typeof r.reason === 'string'
+                            ? r.reason
+                            : mensaIds.length
+                                ? 'Aus deiner Universitätsmensa ausgewählt.'
+                                : 'Passt zu deiner Suche.',
+                };
+            })
+            .filter(Boolean) as Array<{ mealId: string; reason: string }>;
 
-        let cleanResponse = aiResponse.trim();
+        const pool =
+            intents.length > 0
+                ? filteredMeals.filter((m) => mealMatchesIntent(m, intents))
+                : filteredMeals;
+        const seenIds = new Set(validRecs.map((r) => r.mealId));
 
-        if (isRecommendationQuery && context.meals.length > 0) {
-            try {
-                // Markdown entfernen
-                cleanResponse = cleanResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-
-                const firstBrace = cleanResponse.indexOf('{');
-                const lastBrace = cleanResponse.lastIndexOf('}');
-
-                if (firstBrace !== -1 && lastBrace !== -1) {
-                    const jsonCandidate = cleanResponse.substring(firstBrace, lastBrace + 1);
-                    const parsed: ParsedAiJson = JSON.parse(jsonCandidate);
-
-                    const parsedText = typeof parsed.text === 'string' ? parsed.text : '';
-                    const parsedMeals = Array.isArray(parsed.meals) ? (parsed.meals as ParsedMealRec[]) : [];
-
-                    if (parsedText && parsedMeals.length > 0) {
-                        const intents = extractFoodIntents(prompt);
-                        const matchingPool = intents.length > 0 ? context.meals.filter((meal) => mealMatchesIntent(meal, intents)) : [];
-                        const matchingIds = new Set(matchingPool.map((m) => m.id));
-
-                        const validMeals = parsedMeals
-                            .map((m) => {
-                                const id = typeof m.id === 'string' ? m.id : '';
-                                const reason = typeof m.reason === 'string' ? m.reason : '';
-                                return { mealId: id, reason };
-                            })
-                            .filter((m) => Boolean(m.mealId) && context.meals.some((meal) => meal.id === m.mealId));
-
-                        // ✅ HARD relevance filter: if user asked specifically (e.g., pasta) and we have matching meals in context
-                        if (intents.length > 0) {
-                            if (matchingPool.length > 0) {
-                                // 1. Try to find if LLM suggested relevant meals
-                                const strictlyRelevant = validMeals.filter((m) => matchingIds.has(m.mealId));
-
-                                if (strictlyRelevant.length > 0) {
-                                    return { text: parsedText, recommendedMeals: strictlyRelevant.slice(0, 3) };
-                                }
-
-                                // 2. Model suggested wrong stuff (hallucination) -> Force replace with actually matching meals from context
-                                const fallback = matchingPool.slice(0, 3).map((m) => ({
-                                    mealId: m.id,
-                                    reason: `Hier ist ein passendes Gericht für ${friendlyIntentLabel(intents)}.`,
-                                }));
-
-                                return {
-                                    text: `Ich habe ${friendlyIntentLabel(intents)} für dich gefunden:`,
-                                    recommendedMeals: fallback,
-                                };
-                            } else {
-                                // 3. User asked for something (e.g. Pizza) but it DOES NOT exist in today's meals.
-                                // Do NOT return random validMeals as "alternatives" silently.
-                                return {
-                                    text: `Ich konnte heute leider keine ${friendlyIntentLabel(intents)} finden. 😔`,
-                                    recommendedMeals: [],
-                                };
-                            }
-                        }
-
-                        if (validMeals.length > 0) {
-                            return { text: parsedText, recommendedMeals: validMeals.slice(0, 3) };
-                        }
-                    }
-                }
-            } catch (parseError) {
-                console.log('JSON Parse failed, falling back to clean text:', parseError);
+        for (const m of pool) {
+            if (validRecs.length >= 10) break;
+            if (!seenIds.has(m.id)) {
+                validRecs.push({
+                    mealId: m.id,
+                    reason: context.favoriteMealIds?.includes(m.id)
+                        ? 'Einer deiner Favoriten!'
+                        : mensaIds.length
+                            ? 'Von deiner Uni-Mensa empfohlen.'
+                            : 'Passt zu deiner Suche.',
+                });
+                seenIds.add(m.id);
             }
         }
 
-        // ✅ Fallback: ALWAYS scan text for ID patterns.
-        // Regex to catch:
-        // 1. "ID: 123", "ID 123", "id:123"
-        // 2. "(123456)" or "[123456]" (common AI output for IDs)
-        // 3. "Meal 123456"
-        const idRegex = /(?:ID|id|Meal|Gericht)[\s:]*([0-9]+)|[\(\[]([0-9]{6,})[\)\]]/gi;
-        const foundIds = new Set<string>();
-        let match;
-        while ((match = idRegex.exec(cleanResponse)) !== null) {
-            // match[1] is from "ID: 123", match[2] is from "(123456)"
-            const id = match[1] || match[2];
-            if (id) foundIds.add(id);
+        if (mensaIds.length > 0) {
+            validRecs = validRecs.filter((r) => {
+                const meal = context.meals.find((m) => m.id === r.mealId);
+                return meal && mensaIds.includes(meal.canteenId ?? '');
+            });
         }
 
-        if (foundIds.size > 0) {
-            const recoveredMeals = Array.from(foundIds)
-                .map((id) => ({
-                    mealId: id,
-                    reason: t('aiChef.suggestions.fallbackReason'), // "Passendes Gericht aus der Nachricht"
-                }))
-                .filter((m) => context.meals.some((meal) => meal.id === m.mealId));
-
-            if (recoveredMeals.length > 0) {
-                return { text: cleanResponse, recommendedMeals: recoveredMeals.slice(0, 3) };
-            }
+        if (validRecs.length === 0) {
+            const locHint = mensaIds.length > 0 ? ' an deiner Uni' : '';
+            return {
+                text: `Ich habe heute leider keine passenden Gerichte${locHint} gefunden.`,
+                recommendedMeals: [],
+            };
         }
 
-        return { text: cleanResponse };
-    } catch (error) {
-        console.error('AI Chef error:', error);
-        throw new Error(t('aiChef.errors.generic'));
+        return {
+            text:
+                parsed.text ||
+                (uniName
+                    ? `Hier sind einige Gerichte aus der ${uniName}.`
+                    : 'Hier sind einige Gerichte, die dir gefallen könnten.'),
+            recommendedMeals: validRecs,
+        };
+    } catch {
+        return { text: 'Ich konnte gerade keine passenden Gerichte finden.' };
     }
 }

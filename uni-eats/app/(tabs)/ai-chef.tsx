@@ -25,6 +25,8 @@ import { useLocation } from '@/hooks/useLocation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useProfile } from '@/contexts/ProfileContext';
 import { AIMealCard } from '@/components/AIMealCard';
+import {useUniversities} from "@/hooks/useUniversities";
+
 
 type Message = {
   id: string;
@@ -51,6 +53,8 @@ export default function AiChefScreen() {
   const { t } = useTranslation();
   const { profile } = useProfile();
 
+  const { data: universities } = useUniversities();
+
   const initialMessages = useMemo<Message[]>(
       () => [
         { id: 'ai-1', text: t('aiChef.messages.greeting'), sender: 'assistant' },
@@ -59,6 +63,7 @@ export default function AiChefScreen() {
       [t]
   );
 
+
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,6 +71,7 @@ export default function AiChefScreen() {
   const flatListRef = useRef<FlatList<Message>>(null);
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
+
 
   const { data: mensas, isLoading: isLoadingMensas, isError: isMensasError } = useMensas();
   const { data: meals, isLoading: isLoadingMeals, isError: isMealsError } = useMeals();
@@ -192,24 +198,27 @@ export default function AiChefScreen() {
           {
             mensas: mensas ?? [],
             meals: meals ?? [],
+            universities: universities ?? [],
             favoriteCanteenIds,
             favoriteMealIds,
-            userPreferences: {
-              allergies: profile?.allergies || [],
-              dietType: profile?.dietType || 'none',
-            },
             userLocation: location ?? undefined,
             contextStatus: { isLoadingContext, isErrorContext },
           },
-          history
+          buildHistory()
       );
+
+
+
+
+      const numberMatch = finalText.match(/(\d+)\s*(Gerichte|Essen|Vorschläge)/i);
+      const requestedCount = numberMatch ? parseInt(numberMatch[1], 10) : 3;
 
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         text: response.text,
         sender: 'assistant',
         recommendedMeals: response.recommendedMeals,
-        visibleMealsCount: 3, // ✅ start with 3
+        visibleMealsCount: 3, // Mindestens 3, oder die gewünschte Zahl
       };
 
       setMessages((prev) => [...prev, aiMsg]);
