@@ -1,6 +1,7 @@
 import { StyleSheet, TextInput, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 
 interface SearchBarProps {
@@ -13,16 +14,18 @@ interface SearchBarProps {
 }
 
 export function SearchBar({
-  placeholder = 'Search for meals or mensas',
+  placeholder,
   value,
   onChangeText,
   onClear,
   onFocus,
   onBlur,
 }: SearchBarProps) {
+  const { t } = useTranslation();
   const textColor = useThemeColor({}, 'text');
   const backgroundColor = useThemeColor({ light: '#f5f5f5', dark: '#1a1a1a' }, 'background');
   const placeholderColor = useThemeColor({ light: '#999', dark: '#666' }, 'icon');
+  const resolvedPlaceholder = placeholder ?? t('search.placeholder');
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -39,7 +42,7 @@ export function SearchBar({
             color: textColor,
           },
         ]}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         placeholderTextColor={placeholderColor}
         value={value}
         onChangeText={onChangeText}

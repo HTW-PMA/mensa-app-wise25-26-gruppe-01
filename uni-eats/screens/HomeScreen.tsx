@@ -9,6 +9,8 @@ import { Colors, Fonts } from '@/constants/theme';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 import { useLocation, calculateDistance } from '@/hooks/useLocation';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useFavoritesContext } from '@/contexts/FavoritesContext';
 
 // Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
 export interface CanteenWithMeals extends Canteen {
@@ -16,7 +18,13 @@ export interface CanteenWithMeals extends Canteen {
 }
 
 // Filter List Definition
-const FILTERS = ['All', 'Vegetarian', 'Vegan', 'Halal', 'Glutenfrei'];
+const FILTERS = [
+  { value: 'all', labelKey: 'home.filters.all' },
+  { value: 'vegetarian', labelKey: 'home.filters.vegetarian' },
+  { value: 'vegan', labelKey: 'home.filters.vegan' },
+  { value: 'halal', labelKey: 'home.filters.halal' },
+  { value: 'glutenfree', labelKey: 'home.filters.glutenFree' },
+];
 
 /**
  * Prüft ob eine Mensa heute geschlossen ist
@@ -50,7 +58,10 @@ const isCanteenClosed = (businessDays?: Canteen['businessDays']): boolean => {
 
 export function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { favoriteMeals } = useFavoritesContext();
   const [canteens, setCanteens] = useState<CanteenWithMeals[]>([]);
+  const [menusToday, setMenusToday] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -60,7 +71,7 @@ export function HomeScreen() {
   // Google Ratings Hook
   const { enrichCanteensWithRatings } = useGoogleRatings(canteens);
 
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('all');
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -82,12 +93,15 @@ export function HomeScreen() {
       const today = new Date().toISOString().split('T')[0];
       const canteensWithMealsToday = new Set<string>();
       
-      const menus = Array.isArray(menuResponse) ? menuResponse : [];
-      menus.forEach((menu: any) => {
+      const menusRaw = Array.isArray(menuResponse) ? menuResponse : menuResponse?.menue;
+      const menus = Array.isArray(menusRaw) ? menusRaw : [];
+      const menusForToday = menus.filter((menu: any) => menu.date === today);
+      menusForToday.forEach((menu: any) => {
         if (menu.date === today && menu.meals && menu.meals.length > 0) {
           canteensWithMealsToday.add(menu.canteenId);
         }
       });
+      setMenusToday(menusForToday);
 
       // Erweitere Canteens mit hasMealsToday Info
       const enrichedData = canteenData.map(canteen => ({
@@ -159,6 +173,30 @@ export function HomeScreen() {
     return enriched;
   }, [canteens, enrichCanteensWithRatings, location]);
 
+  const hasFavoriteMealAvailable = useMemo(() => {
+    if (favoriteMeals.length === 0) return false;
+    if (menusToday.length === 0) return false;
+
+    const favoriteMealKeySet = new Set(
+      favoriteMeals.map((favorite) => `${favorite.canteenId}::${favorite.mealId}`)
+    );
+
+    return menusToday.some((menu: any) => {
+      if (!Array.isArray(menu.meals)) return false;
+      return menu.meals.some((meal: any) => {
+        const id =
+          meal?.id ??
+          meal?._id ??
+          meal?.ID ??
+          meal?.mealId ??
+          meal?.mealID;
+        const canteenId = menu?.canteenId ?? menu?.canteenID ?? menu?.canteen_id;
+        if (!id || !canteenId) return false;
+        return favoriteMealKeySet.has(`${String(canteenId)}::${String(id)}`);
+      });
+    });
+  }, [menusToday, favoriteMeals]);
+
   return (
       <View style={[styles.container, { backgroundColor }]}>
 
@@ -177,14 +215,10 @@ export function HomeScreen() {
                                 </View>
 
                     <Pressable
-
                         onPress={() => router.push('/notifications')}
-
                         style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}>
-
-        
               <Ionicons name="notifications-outline" size={26} color={iconColor} />
-              <View style={styles.notificationBadge} />
+              {hasFavoriteMealAvailable && <View style={styles.notificationBadge} />}
             </Pressable>
           </View>
 
@@ -196,21 +230,21 @@ export function HomeScreen() {
           >
             {FILTERS.map((filter) => (
                 <Pressable
-                    key={filter}
-                    onPress={() => setActiveFilter(filter)}
+                    key={filter.value}
+                    onPress={() => setActiveFilter(filter.value)}
                     style={[
                       styles.filterItem,
-                      { 
-                        backgroundColor: activeFilter === filter ? Colors.light.tint : filterBg,
-                        borderColor: activeFilter === filter ? Colors.light.tint : borderColor
+                      {
+                        backgroundColor: activeFilter === filter.value ? Colors.light.tint : filterBg,
+                        borderColor: activeFilter === filter.value ? Colors.light.tint : borderColor
                       }
                     ]}
                 >
                   <Text style={[
                     styles.filterText,
-                    { color: activeFilter === filter ? '#fff' : textColor }
+                    { color: activeFilter === filter.value ? '#fff' : textColor }
                   ]}>
-                    {filter}
+                    {t(filter.labelKey)}
                   </Text>
                 </Pressable>
             ))}
@@ -224,7 +258,9 @@ export function HomeScreen() {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.light.tint} />
             }
         >
-          <Text style={[styles.subtitle, { color: textColor }]}>📍 Mensas near you</Text>
+          <Text style={[styles.subtitle, { color: textColor }]}>
+            {t('home.mensasNearYou')}
+          </Text>
 
           {loading && !refreshing ? (
               <View style={styles.centerContainer}>

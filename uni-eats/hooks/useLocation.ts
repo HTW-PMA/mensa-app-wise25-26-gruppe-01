@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
+import { t } from '@/utils/i18n';
 
 export interface UserLocation {
   latitude: number;
@@ -33,7 +34,7 @@ export function useLocation(): UseLocationResult {
       
       if (status !== 'granted') {
         setPermissionDenied(true);
-        setError('Standortzugriff wurde verweigert');
+        setError(t('location.permissionDenied'));
         setLoading(false);
         return;
       }
@@ -51,7 +52,7 @@ export function useLocation(): UseLocationResult {
       });
     } catch (err) {
       console.error('Location error:', err);
-      setError('Standort konnte nicht ermittelt werden');
+      setError(t('location.unavailable'));
     } finally {
       setLoading(false);
     }

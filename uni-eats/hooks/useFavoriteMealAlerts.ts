@@ -8,14 +8,14 @@ import { mensaApi } from '@/services/mensaApi';
  */
 export function useFavoriteMealAlerts() {
   const { user, isAuthenticated } = useAuth();
-  const { favoriteCanteenIds, favoriteMealIds } = useFavoritesContext();
+  const { favoriteMeals } = useFavoritesContext();
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) {
       return;
     }
 
-    if (favoriteCanteenIds.length === 0 || favoriteMealIds.length === 0) {
+    if (favoriteMeals.length === 0) {
       return;
     }
 
@@ -28,8 +28,19 @@ export function useFavoriteMealAlerts() {
         // Fetch all canteens
         const allCanteens = await mensaApi.getCanteens({ loadingtype: 'complete' });
 
+        const favoritesByCanteen = favoriteMeals.reduce<Record<string, Set<string>>>(
+          (acc, favorite) => {
+            if (!acc[favorite.canteenId]) {
+              acc[favorite.canteenId] = new Set<string>();
+            }
+            acc[favorite.canteenId].add(favorite.mealId);
+            return acc;
+          },
+          {}
+        );
+
         // For each favorite canteen
-        for (const canteenId of favoriteCanteenIds) {
+        for (const canteenId of Object.keys(favoritesByCanteen)) {
           const canteen = allCanteens.find((c) => c.id === canteenId);
           if (!canteen) continue;
 
@@ -47,14 +58,16 @@ export function useFavoriteMealAlerts() {
           }
 
           // Check if any favorite meals are available today
-          for (const favoriteMealId of favoriteMealIds) {
+          const favoriteMealIdSet = favoritesByCanteen[canteenId] ?? new Set<string>();
+          for (const favoriteMealId of favoriteMealIdSet) {
             const matchedMeal = mealsForCanteen.find((meal) => meal.id === favoriteMealId);
 
             if (matchedMeal) {
               const alreadyNotified = await notificationService.wasNotifiedToday(
                 user.id,
                 matchedMeal.id,
-                today
+                today,
+                canteen.id
               );
 
               if (!alreadyNotified) {
@@ -66,7 +79,12 @@ export function useFavoriteMealAlerts() {
                     matchedMeal.id
                   );
 
-                  await notificationService.markNotifiedToday(user.id, matchedMeal.id, today);
+                  await notificationService.markNotifiedToday(
+                    user.id,
+                    matchedMeal.id,
+                    today,
+                    canteen.id
+                  );
                   console.log(`✅ Notified user about ${matchedMeal.name} at ${canteen.name}`);
                 } catch (e) {
                   console.warn('⚠️ Notifications not available, skipping:', e);
@@ -81,5 +99,5 @@ export function useFavoriteMealAlerts() {
     };
 
     checkFavoriteMeals();
-  }, [isAuthenticated, user?.id, favoriteCanteenIds.join(','), favoriteMealIds.join(',')]);
+  }, [isAuthenticated, user?.id, favoriteMeals]);
 }

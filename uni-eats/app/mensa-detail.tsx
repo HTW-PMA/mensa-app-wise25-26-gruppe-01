@@ -20,6 +20,7 @@ import { useLocation, calculateDistance, formatDistance } from '@/hooks/useLocat
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const formatLocalDateKey = (date: Date): string => {
   const year = date.getFullYear();
@@ -33,6 +34,7 @@ export default function MensaDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
+  const { t, locale } = useTranslation();
 
   // Theme Colors
   const backgroundColor = useThemeColor({ light: '#F5F5F5', dark: '#000000' }, 'background');
@@ -70,6 +72,7 @@ export default function MensaDetailScreen() {
   }, [canteen, enrichCanteensWithRatings]);
 
   const todayKey = useMemo(() => formatLocalDateKey(today), [today]);
+  const dateLocale = locale === 'de' ? 'de-DE' : 'en-GB';
 
   const weekDates = useMemo(() => {
     const baseDate = new Date(today);
@@ -79,12 +82,12 @@ export default function MensaDetailScreen() {
       date.setDate(baseDate.getDate() + index);
       return {
         key: formatLocalDateKey(date),
-        weekday: date.toLocaleDateString('en-GB', { weekday: 'short' }),
-        label: date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        weekday: date.toLocaleDateString(dateLocale, { weekday: 'short' }),
+        label: date.toLocaleDateString(dateLocale, { day: '2-digit', month: 'short' }),
         date,
       };
     });
-  }, [today]);
+  }, [today, dateLocale]);
 
   const selectedDateInfo = useMemo(
       () => weekDates.find((day) => day.key === selectedDate),
@@ -92,11 +95,11 @@ export default function MensaDetailScreen() {
   );
 
   const isSelectedToday = selectedDate === todayKey;
-  const mealsCountLabel = mealsError
-      ? '–'
+    const mealsCountLabel = mealsError
+      ? t('common.notAvailable')
       : loadingMeals
-          ? 'Loading'
-          : `${meals.length} items`;
+          ? t('common.loading')
+          : t('mensaDetail.itemsCount', { count: meals.length });
 
   // Daten laden
   const loadCanteen = useCallback(async () => {
@@ -118,7 +121,7 @@ export default function MensaDetailScreen() {
       logStep(`Canteen loaded: ${canteenData?.name || 'NOT FOUND'} | canteenData: ${JSON.stringify(canteenData)}`);
 
       if (!canteenData) {
-        setCanteenError('Mensa not found');
+        setCanteenError(t('mensaDetail.notFound'));
         setCanteen(null);
       } else {
         console.log('📢 Setting canteen:', canteenData);
@@ -127,12 +130,12 @@ export default function MensaDetailScreen() {
     } catch (err) {
       console.error('Error loading canteen:', err);
       logStep('ERROR occurred');
-      setCanteenError('Fehler beim Laden der Mensa');
+      setCanteenError(t('mensaDetail.loadError'));
       setCanteen(null);
     } finally {
       setLoadingCanteen(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   const loadMeals = useCallback(
       async (dateKey: string) => {
@@ -162,12 +165,12 @@ export default function MensaDetailScreen() {
           console.error('Error loading meals:', err);
           logStep('ERROR occurred');
           setMeals([]);
-          setMealsError('Fehler beim Laden der Gerichte');
+          setMealsError(t('mensaDetail.mealsLoadError'));
         } finally {
           setLoadingMeals(false);
         }
       },
-      [id]
+      [id, t]
   );
 
   useEffect(() => {
@@ -205,7 +208,7 @@ export default function MensaDetailScreen() {
     console.log('🔍 getRating called, enrichedCanteen:', enrichedCanteen);
     if (!enrichedCanteen) {
       console.log('⚠️  enrichedCanteen is null, returning fallback');
-      return { rating: '–', count: 0 };
+      return { rating: t('common.notAvailable'), count: 0 };
     }
     if (enrichedCanteen?.googleRating) {
       console.log('✅ Using googleRating:', enrichedCanteen.googleRating);
@@ -222,7 +225,7 @@ export default function MensaDetailScreen() {
       };
     }
     console.log('⚠️  No rating found, returning fallback');
-    return { rating: '–', count: 0 };
+    return { rating: t('common.notAvailable'), count: 0 };
   };
 
   const { rating, count: reviewCount } = getRating();
@@ -230,7 +233,7 @@ export default function MensaDetailScreen() {
   // Berechne Distanz basierend auf Live-Standort
   const getDistance = (): string => {
     if (!location || !enrichedCanteen?.address?.geoLocation) {
-      return enrichedCanteen?.address?.district || '–';
+      return enrichedCanteen?.address?.district || t('common.notAvailable');
     }
     const geoLoc = enrichedCanteen.address.geoLocation;
     if (!geoLoc.latitude || !geoLoc.longitude) {
@@ -248,7 +251,7 @@ export default function MensaDetailScreen() {
   // Öffnungszeiten für heute ermitteln
   const getTodayOpeningHours = (): string => {
     if (!enrichedCanteen?.businessDays || enrichedCanteen.businessDays.length === 0) {
-      return 'Keine Zeiten';
+      return t('mensaDetail.noHours');
     }
 
     const weekdayMap: Record<number, string[]> = {
@@ -267,7 +270,7 @@ export default function MensaDetailScreen() {
     );
 
     if (!todayEntry || !todayEntry.businessHours || todayEntry.businessHours.length === 0) {
-      return 'Closed';
+      return t('mensaDetail.closed');
     }
 
     // Priorität: Mittagstisch > Mensa > erste verfügbare
@@ -280,9 +283,9 @@ export default function MensaDetailScreen() {
     const hour = selectedHour || todayEntry.businessHours[0];
 
     if (!hour.openAt || !hour.closeAt) {
-      return 'Closed';
+      return t('mensaDetail.closed');
     }
-    return `${hour.openAt}–${hour.closeAt}`;
+    return t('mensaDetail.hoursFormat', { open: hour.openAt, close: hour.closeAt });
   };
 
   // Loading State
@@ -290,7 +293,7 @@ export default function MensaDetailScreen() {
     return (
         <View style={[styles.centerContainer, { backgroundColor, paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color={Colors.light.tint} />
-          <Text style={[styles.loadingText, { color: subTextColor }]}>Loading...</Text>
+          <Text style={[styles.loadingText, { color: subTextColor }]}>{t('common.loading')}</Text>
         </View>
     );
   }
@@ -300,9 +303,9 @@ export default function MensaDetailScreen() {
     return (
         <View style={[styles.centerContainer, { backgroundColor, paddingTop: insets.top }]}>
           <Ionicons name="alert-circle-outline" size={48} color="#E57373" />
-          <Text style={[styles.errorText, { color: textColor }]}>{canteenError || 'Mensa not found'}</Text>
+          <Text style={[styles.errorText, { color: textColor }]}>{canteenError || t('mensaDetail.notFound')}</Text>
           <Pressable style={styles.retryButton} onPress={() => router.back()}>
-            <Text style={styles.retryButtonText}>Go Back</Text>
+            <Text style={styles.retryButtonText}>{t('common.goBack')}</Text>
           </Pressable>
         </View>
     );
@@ -361,7 +364,9 @@ export default function MensaDetailScreen() {
                 <View style={styles.closedOverlay}>
                   <View style={styles.closedBadge}>
                     <Ionicons name="close-circle" size={20} color="#fff" />
-                    <Text style={styles.closedBadgeText}>{isSelectedToday ? 'Closed Today' : 'Closed'}</Text>
+                    <Text style={styles.closedBadgeText}>
+                      {isSelectedToday ? t('mensaDetail.closedToday') : t('mensaDetail.closed')}
+                    </Text>
                   </View>
                 </View>
             )}
@@ -369,7 +374,7 @@ export default function MensaDetailScreen() {
 
           {/* Mensa Info - IMMER anzeigen */}
           <View style={[styles.infoContainer, { backgroundColor: contentBackgroundColor, borderBottomColor: borderColor }]}>
-            <Text style={[styles.mensaName, { color: textColor }]}>{enrichedCanteen?.name || 'Loading...'}</Text>
+            <Text style={[styles.mensaName, { color: textColor }]}>{enrichedCanteen?.name || t('common.loading')}</Text>
 
             <View style={styles.metaRow}>
               {/* Rating */}
@@ -444,10 +449,10 @@ export default function MensaDetailScreen() {
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>
               {isSelectedToday
-                  ? 'Today'
+                  ? t('mensaDetail.today')
                   : selectedDateInfo
                       ? `${selectedDateInfo.weekday}, ${selectedDateInfo.label}`
-                      : 'Dishes'}
+                      : t('mensaDetail.dishes')}
             </Text>
             <Text style={[styles.sectionCount, { color: subTextColor }]}>
               {mealsCountLabel}
@@ -459,12 +464,12 @@ export default function MensaDetailScreen() {
               /* Loading State */
               <View style={styles.closedState}>
                 <ActivityIndicator size="large" color={Colors.light.tint} />
-                <Text style={[styles.closedTitle, { color: subTextColor }]}>Loading Dishes...</Text>
+                <Text style={[styles.closedTitle, { color: subTextColor }]}>{t('mensaDetail.loadingDishes')}</Text>
               </View>
           ) : mealsError ? (
               <View style={styles.closedState}>
                 <Ionicons name="alert-circle-outline" size={48} color="#E57373" />
-                <Text style={[styles.closedTitle, { color: textColor }]}>Could not load dishes</Text>
+                <Text style={[styles.closedTitle, { color: textColor }]}>{t('mensaDetail.dishesLoadError')}</Text>
                 <Text style={[styles.closedSubtitle, { color: subTextColor }]}>{mealsError}</Text>
               </View>
           ) : meals.length === 0 ? (
@@ -473,12 +478,14 @@ export default function MensaDetailScreen() {
                 <View style={[styles.closedIconContainer, { backgroundColor: colorScheme === 'dark' ? '#331010' : '#FFEBEE' }]}>
                   <Ionicons name="time-outline" size={64} color="#E57373" />
                 </View>
-                <Text style={[styles.closedTitle, { color: textColor }]}>{isSelectedToday ? 'Closed Today' : 'Closed'}</Text>
+                <Text style={[styles.closedTitle, { color: textColor }]}>
+                  {isSelectedToday ? t('mensaDetail.closedToday') : t('mensaDetail.closed')}
+                </Text>
                 <Text style={[styles.closedSubtitle, { color: subTextColor }]}>
-                  This canteen has no dishes available for this day.
+                  {t('mensaDetail.noDishes')}
                 </Text>
                 <Text style={[styles.closedHint, { color: subTextColor }]}>
-                  Try another date or check a different canteen nearby.
+                  {t('mensaDetail.tryAnotherDate')}
                 </Text>
               </View>
           ) : (
@@ -502,6 +509,7 @@ export default function MensaDetailScreen() {
                               co2Bilanz: meal.co2Bilanz?.toString() || '',
                               waterBilanz: meal.waterBilanz?.toString() || '',
                               canteenName: enrichedCanteen?.name || '',
+                              canteenId: enrichedCanteen?.id || id || '',
                             },
                           });
                         }}
@@ -778,3 +786,5 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 });
+
+

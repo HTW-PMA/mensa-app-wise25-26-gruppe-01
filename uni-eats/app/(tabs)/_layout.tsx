@@ -6,9 +6,11 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { t } = useTranslation();
 
   return (
     <Tabs
@@ -20,35 +22,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('tabs.home'),
           tabBarIcon: ({ color }) => <Ionicons size={28} name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Search',
+          title: t('tabs.search'),
           tabBarIcon: ({ color }) => <Ionicons size={28} name="search" color={color} />,
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
-          title: 'Map',
+          title: t('tabs.map'),
           tabBarIcon: ({ color }) => <Ionicons size={28} name="map" color={color} />,
         }}
       />
       <Tabs.Screen
         name="ai-chef"
         options={{
-          title: 'AI Chef',
+          title: t('tabs.aiChef'),
           tabBarIcon: ({ color }) => <Ionicons size={28} name="bulb" color={color} />,
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
-          title: 'Account',
+          title: t('tabs.account'),
           tabBarIcon: ({ color }) => <Ionicons size={28} name="person" color={color} />,
         }}
       />

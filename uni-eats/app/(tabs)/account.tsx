@@ -14,9 +14,11 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AccountMenuItem } from '@/components/AccountMenuItem';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const APP_VERSION = '1.0.0';
 
@@ -24,12 +26,14 @@ export default function AccountScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { favoriteMealIds, favoriteCanteenIds } = useFavoritesContext();
+  const { t } = useTranslation();
+  const { locale, setLanguage } = useLanguage();
+  const { favoriteMeals, favoriteCanteenIds } = useFavoritesContext();
   const { user, signOut, isLoading } = useAuth();
 
   // Berechne Favoriten-Anzahl aus Context (Multi-Canteen Support)
   const favoritesCount = {
-    meals: favoriteMealIds.length,
+    meals: favoriteMeals.length,
     mensas: favoriteCanteenIds.length,
   };
 
@@ -44,7 +48,7 @@ export default function AccountScreen() {
 
   const handleEditProfile = () => {
     // TODO: Navigiere zu Edit-Profil-Seite oder öffne Modal
-    Alert.alert('Edit Profile', 'Edit-Profil-Seite wird noch implementiert');
+    Alert.alert(t('account.editProfileTitle'), t('account.editProfileMessage'));
   };
 
   const handleFavorites = () => {
@@ -61,23 +65,23 @@ export default function AccountScreen() {
 
   const handleSettings = () => {
     // TODO: Navigiere zu App-Einstellungen
-    Alert.alert('Settings', 'Einstellungen werden noch implementiert');
+    Alert.alert(t('account.settingsTitle'), t('account.settingsMessage'));
   };
 
   const handleSignOut = () => {
     Alert.alert(
-      'Sign Out',
-      'Möchtest du dich wirklich abmelden?',
+      t('account.signOutTitle'),
+      t('account.signOutPrompt'),
       [
-        { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+        { text: t('common.cancel'), onPress: () => {}, style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: t('account.signOutButton'),
           onPress: async () => {
             try {
               await signOut();
               // Navigation happens automatically via RootLayoutNav
             } catch (error) {
-              Alert.alert('Error', 'Fehler beim Abmelden');
+              Alert.alert(t('common.errorTitle'), t('account.signOutError'));
             }
           },
           style: 'destructive',
@@ -130,12 +134,12 @@ export default function AccountScreen() {
             {/* User Info */}
             <View style={styles.userInfo}>
               <ThemedText style={styles.userName}>
-                {user?.name || 'User'}
+                {user?.name || t('account.defaultName')}
               </ThemedText>
               <ThemedText
                 style={[styles.userEmail, { color: subtitleGrayColor }]}
               >
-                {user?.email || 'email@university.edu'}
+                {user?.email || t('account.defaultEmail')}
               </ThemedText>
             </View>
 
@@ -145,7 +149,7 @@ export default function AccountScreen() {
               style={styles.editButton}
             >
               <ThemedText style={styles.editButtonText}>
-                Edit
+                {t('account.edit')}
               </ThemedText>
             </TouchableOpacity>
           </View>
@@ -155,35 +159,86 @@ export default function AccountScreen() {
         <View style={styles.menuSection}>
           <AccountMenuItem
             icon="favorite-outline"
-            title="My Favorites"
-            subtitle={`${favoritesCount.meals} meals, ${favoritesCount.mensas} ${favoritesCount.mensas === 1 ? 'mensa' : 'mensas'}`}
+            title={t('account.menu.favoritesTitle')}
+            subtitle={t('account.menu.favoritesSubtitle', {
+              meals: favoritesCount.meals,
+              mensas: favoritesCount.mensas,
+              mensaLabel:
+                favoritesCount.mensas === 1
+                  ? t('account.menu.mensaSingle')
+                  : t('account.menu.mensaPlural'),
+            })}
             onPress={handleFavorites}
             showDivider={true}
           />
 
           <AccountMenuItem
             icon="person"
-            title="Profile"
-            subtitle="Personal info and preferences"
+            title={t('account.menu.profileTitle')}
+            subtitle={t('account.menu.profileSubtitle')}
             onPress={handleProfile}
             showDivider={true}
           />
 
           <AccountMenuItem
             icon="help-outline"
-            title="Help"
-            subtitle="FAQ and support"
+            title={t('account.menu.helpTitle')}
+            subtitle={t('account.menu.helpSubtitle')}
             onPress={handleHelp}
             showDivider={true}
           />
 
           <AccountMenuItem
             icon="settings"
-            title="Settings"
-            subtitle="App preferences"
+            title={t('account.menu.settingsTitle')}
+            subtitle={t('account.menu.settingsSubtitle')}
             onPress={handleSettings}
             showDivider={false}
           />
+        </View>
+
+        <View style={styles.languageSection}>
+          <ThemedText style={styles.languageTitle}>{t('account.languageTitle')}</ThemedText>
+          <View style={styles.languageOptions}>
+            <TouchableOpacity
+              onPress={() => setLanguage('en')}
+              style={[
+                styles.languageOption,
+                {
+                  backgroundColor: locale === 'en' ? Colors.light.tint : 'transparent',
+                  borderColor: locale === 'en' ? Colors.light.tint : dividerColor,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.languageOptionText,
+                  { color: locale === 'en' ? '#FFFFFF' : subtitleGrayColor },
+                ]}
+              >
+                {t('account.languageEnglish')}
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setLanguage('de')}
+              style={[
+                styles.languageOption,
+                {
+                  backgroundColor: locale === 'de' ? Colors.light.tint : 'transparent',
+                  borderColor: locale === 'de' ? Colors.light.tint : dividerColor,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.languageOptionText,
+                  { color: locale === 'de' ? '#FFFFFF' : subtitleGrayColor },
+                ]}
+              >
+                {t('account.languageGerman')}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Sign Out Button */}
@@ -200,7 +255,7 @@ export default function AccountScreen() {
               style={styles.signOutIcon}
             />
             <ThemedText style={styles.signOutButtonText}>
-              Sign Out
+              {t('account.signOutButton')}
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -208,7 +263,7 @@ export default function AccountScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <ThemedText style={[styles.footerText, { color: subtitleGrayColor }]}>
-            UniEats v{APP_VERSION}
+            {t('account.version', { version: APP_VERSION })}
           </ThemedText>
         </View>
       </ScrollView>
@@ -300,6 +355,30 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
+  languageSection: {
+    paddingHorizontal: 16,
+    marginTop: 24,
+  },
+  languageTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    marginBottom: 12,
+  },
+  languageOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  languageOption: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  languageOptionText: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+  },
+
   // Sign Out Section Styles
   signOutSection: {
     marginTop: 32,
@@ -345,3 +424,4 @@ const styles = StyleSheet.create({
 
   },
 });
+

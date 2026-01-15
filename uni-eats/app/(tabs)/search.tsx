@@ -1,35 +1,86 @@
-import { StyleSheet, FlatList, Pressable, View, ActivityIndicator, RefreshControl } from 'react-native';
+﻿import { StyleSheet, FlatList, Pressable, View, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SearchBar } from '@/components/SearchBar';
 import { useSearch } from '@/hooks/useSearch';
 import { POPULAR_SEARCHES, SearchResult } from '@/utils/searchHelpers';
-import { Colors, Fonts } from '@/constants/theme';
+import { Fonts } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useMensas } from '@/hooks/useMensas';
+import { useLocation, calculateDistance } from '@/hooks/useLocation';
+import { getCanteenLogo } from '@/utils/getCanteenLogo';
+
+const POPULAR_TAG_EMOJIS: Record<string, string> = {
+  'search.popularTags.vegan': '\u{1F957}',
+  'search.popularTags.pasta': '\u{1F35D}',
+  'search.popularTags.salad': '\u{1F957}',
+  'search.popularTags.pizza': '\u{1F355}',
+  'search.popularTags.soup': '\u{1F372}',
+  'search.popularTags.burger': '\u{1F354}',
+  'search.popularTags.asian': '\u{1F35C}',
+  'search.popularTags.vegetarian': '\u{1F955}',
+};
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const {
     searchQuery,
     setSearchQuery,
     results,
     isLoading,
     isError,
-    recentSearches,
     addRecentSearch,
-    removeRecentSearch,
-    clearRecentSearches,
   } = useSearch();
+  const { data: mensas } = useMensas();
+  const { location } = useLocation();
 
   const [refreshing, setRefreshing] = useState(false);
-  const textColor = useThemeColor({}, 'text');
   const secondaryTextColor = useThemeColor({ light: '#666', dark: '#999' }, 'icon');
-  const backgroundColor = useThemeColor({ light: '#f9f9f9', dark: '#0a0a0a' }, 'background');
   const tintColor = useThemeColor({}, 'tint');
+  const dividerColor = useThemeColor({ light: '#e5e5e5', dark: '#2a2a2a' }, 'border');
+
+  const closestMensas = useMemo(() => {
+    if (!mensas || mensas.length === 0) return [];
+    if (!location) return mensas.slice(0, 2);
+
+    const withDistance = mensas.map((canteen) => {
+      const geoLoc = canteen.address?.geoLocation;
+      const lat = typeof geoLoc?.latitude === 'number' ? geoLoc.latitude : parseFloat(String(geoLoc?.latitude));
+      const lon = typeof geoLoc?.longitude === 'number' ? geoLoc.longitude : parseFloat(String(geoLoc?.longitude));
+
+      if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
+        const distance = calculateDistance(
+          location.latitude,
+          location.longitude,
+          lat,
+          lon
+        );
+        return { ...canteen, distance };
+      }
+
+      return canteen;
+    });
+
+    const sorted = [...withDistance].sort((a, b) => {
+      const aDistance = typeof a.distance === 'number' ? a.distance : Number.POSITIVE_INFINITY;
+      const bDistance = typeof b.distance === 'number' ? b.distance : Number.POSITIVE_INFINITY;
+      return aDistance - bDistance;
+    });
+
+    return sorted.slice(0, 2);
+  }, [mensas, location]);
+
+  const formatDistanceKm = (distance?: number) => {
+    if (typeof distance !== 'number') return t('common.distanceUnavailable');
+    return `${distance.toFixed(1)} km`;
+  };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -58,10 +109,6 @@ export default function SearchScreen() {
   const handlePopularTagPress = (tag: string) => {
     setSearchQuery(tag);
     addRecentSearch(tag);
-  };
-
-  const handleRecentSearchPress = (query: string) => {
-    setSearchQuery(query);
   };
 
   const onRefresh = useCallback(() => {
@@ -101,54 +148,9 @@ export default function SearchScreen() {
     </Pressable>
   );
 
-  const renderRecentSearch = ({ item }: { item: string }) => (
-    <Pressable
-      style={({ pressed }) => [
-        styles.recentSearchItem,
-        { 
-          opacity: pressed ? 0.7 : 1,
-          backgroundColor: backgroundColor,
-        },
-      ]}
-      onPress={() => handleRecentSearchPress(item)}
-    >
-      <View style={[styles.recentSearchIconContainer, { backgroundColor: tintColor + '15' }]}>
-        <Ionicons name="search" size={20} color={secondaryTextColor} />
-      </View>
-      <ThemedText style={styles.recentSearchText}>{item}</ThemedText>
-      <Pressable
-        onPress={(e) => {
-          e.stopPropagation();
-          removeRecentSearch(item);
-        }}
-        hitSlop={10}
-        style={styles.deleteButton}
-      >
-        <Ionicons name="close" size={20} color={secondaryTextColor} />
-      </Pressable>
-    </Pressable>
-  );
-
-  const renderPopularTag = ({ item }: { item: string }) => (
-    <Pressable
-      style={({ pressed }) => [
-        styles.popularTag,
-        {
-          opacity: pressed ? 0.8 : 1,
-          backgroundColor: backgroundColor === '#f9f9f9' ? '#e8f5e9' : '#1a2e1a',
-        },
-      ]}
-      onPress={() => handlePopularTagPress(item)}
-    >
-      <ThemedText style={styles.popularTagText}>
-        {item}
-      </ThemedText>
-    </Pressable>
-  );
-
   const showResults = searchQuery.length > 0;
   const showEmpty = showResults && results.length === 0 && !isLoading;
-  const showRecentSection = !showResults && recentSearches.length > 0;
+  const showCurrentSection = !showResults && closestMensas.length > 0;
   const showPopularSection = !showResults;
 
   return (
@@ -158,7 +160,7 @@ export default function SearchScreen() {
           value={searchQuery}
           onChangeText={handleSearch}
           onClear={handleClearSearch}
-          placeholder="Search for meals or mensas"
+          placeholder={t('search.placeholder')}
         />
       </SafeAreaView>
 
@@ -175,12 +177,12 @@ export default function SearchScreen() {
               <View style={styles.emptyContainer}>
                 <Ionicons name="search" size={48} color={secondaryTextColor} />
                 <ThemedText style={[styles.emptyText, { color: secondaryTextColor }]}>
-                  No results found
+                  {t('search.emptyTitle')}
                 </ThemedText>
                 <ThemedText
                   style={[styles.emptySubtext, { color: secondaryTextColor }]}
                 >
-                  Try a different search term
+                  {t('search.emptySubtitle')}
                 </ThemedText>
               </View>
             ) : null
@@ -202,23 +204,35 @@ export default function SearchScreen() {
           }
           ListHeaderComponent={
             <>
-              {showRecentSection && (
+              {showCurrentSection && (
                 <View style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                      Recent Searches
-                    </ThemedText>
-                    <Pressable onPress={clearRecentSearches} hitSlop={10}>
-                      <ThemedText style={[styles.clearAllText, { color: '#4CAF50' }]}>
-                        Clear all
-                      </ThemedText>
-                    </Pressable>
-                  </View>
-                  <View style={styles.recentSearchesContainer}>
-                    {recentSearches.map((search) => (
-                      <View key={search}>
-                        {renderRecentSearch({ item: search })}
-                      </View>
+                  <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                    {t('search.currentTitle')}
+                  </ThemedText>
+                  <View style={styles.listContainer}>
+                    {closestMensas.map((canteen, index) => (
+                      <Pressable
+                        key={canteen.id}
+                        style={({ pressed }) => [
+                          styles.listRow,
+                          { borderBottomColor: dividerColor },
+                          index === closestMensas.length - 1 && styles.listRowLast,
+                          pressed && styles.listRowPressed,
+                        ]}
+                        onPress={() => router.push(`/mensa-detail?id=${canteen.id}`)}
+                      >
+                        <Image
+                          source={getCanteenLogo(canteen.name)}
+                          style={styles.currentLogo}
+                          contentFit="contain"
+                        />
+                        <View style={styles.currentTextContainer}>
+                          <ThemedText style={styles.currentTitle}>{canteen.name}</ThemedText>
+                          <ThemedText style={[styles.currentSubtitle, { color: secondaryTextColor }]}>
+                            {t('search.closestToYou', { distance: formatDistanceKm(canteen.distance) })}
+                          </ThemedText>
+                        </View>
+                      </Pressable>
                     ))}
                   </View>
                 </View>
@@ -226,17 +240,29 @@ export default function SearchScreen() {
 
               {showPopularSection && (
                 <View style={styles.section}>
-                  <View style={styles.popularSectionHeader}>
-                    <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                      Popular Searches
-                    </ThemedText>
-                  </View>
-                  <View style={styles.popularTagsContainer}>
-                    {POPULAR_SEARCHES.map((tag) => (
-                      <View key={tag}>
-                        {renderPopularTag({ item: tag })}
-                      </View>
-                    ))}
+                  <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                    {t('search.popularCategoriesTitle')}
+                  </ThemedText>
+                  <View style={styles.listContainer}>
+                    {POPULAR_SEARCHES.map((tagKey, index) => {
+                      const label = t(tagKey);
+                      const emoji = POPULAR_TAG_EMOJIS[tagKey] || '\u{1F37D}\u{FE0F}';
+                      return (
+                        <Pressable
+                          key={tagKey}
+                          style={({ pressed }) => [
+                            styles.listRow,
+                            { borderBottomColor: dividerColor },
+                            index === POPULAR_SEARCHES.length - 1 && styles.listRowLast,
+                            pressed && styles.listRowPressed,
+                          ]}
+                          onPress={() => handlePopularTagPress(label)}
+                        >
+                          <ThemedText style={styles.popularEmoji}>{emoji}</ThemedText>
+                          <ThemedText style={styles.popularLabel}>{label}</ThemedText>
+                        </Pressable>
+                      );
+                    })}
                   </View>
                 </View>
               )}
@@ -249,7 +275,7 @@ export default function SearchScreen() {
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={24} color="red" />
           <ThemedText style={styles.errorText}>
-            Failed to load data. Please try again.
+            {t('search.loadError')}
           </ThemedText>
         </View>
       )}
@@ -265,70 +291,55 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   section: {
-    marginVertical: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  popularSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 20,
+    marginTop: 18,
   },
   sectionTitle: {
     fontSize: 20,
     fontFamily: Fonts.bold,
-  },
-  clearAllText: {
-    fontSize: 16,
-    fontFamily: Fonts.regular,
-  },
-  recentSearchesContainer: {
     paddingHorizontal: 16,
+    marginBottom: 10,
   },
-  recentSearchItem: {
+  listContainer: {
+    paddingHorizontal: 0,
+  },
+  listRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
   },
-  recentSearchIconContainer: {
+  listRowLast: {
+    borderBottomWidth: 0,
+  },
+  listRowPressed: {
+    opacity: 0.6,
+  },
+  currentLogo: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
     marginRight: 12,
   },
-  recentSearchText: {
+  currentTextContainer: {
     flex: 1,
+  },
+  currentTitle: {
     fontSize: 16,
+    fontFamily: Fonts.bold,
+  },
+  currentSubtitle: {
+    fontSize: 13,
     fontFamily: Fonts.regular,
+    marginTop: 2,
   },
-  deleteButton: {
-    padding: 4,
+  popularEmoji: {
+    fontSize: 20,
+    marginRight: 12,
   },
-  popularTagsContainer: {
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  popularTag: {
-    paddingVertical: 6,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-  },
-  popularTagText: {
-    fontSize: 15,
+  popularLabel: {
+    fontSize: 16,
     fontFamily: Fonts.regular,
   },
   resultItem: {
@@ -392,3 +403,5 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
 });
+
+

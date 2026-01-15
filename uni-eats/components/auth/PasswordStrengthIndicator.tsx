@@ -3,13 +3,16 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { PasswordStrength } from '@/utils/validation';
 import { Fonts } from '@/constants/theme';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface PasswordStrengthIndicatorProps {
   strength: PasswordStrength;
 }
 
 export function PasswordStrengthIndicator({ strength }: PasswordStrengthIndicatorProps) {
+  const { t } = useTranslation();
   const bars = [0, 1, 2, 3];
+  const label = t(`validation.passwordStrength.${strength.label}`);
 
   return (
     <View style={styles.container}>
@@ -28,7 +31,7 @@ export function PasswordStrengthIndicator({ strength }: PasswordStrengthIndicato
         ))}
       </View>
       <ThemedText style={[styles.label, { color: strength.color }]}>
-        {strength.label.charAt(0).toUpperCase() + strength.label.slice(1)}
+        {label}
       </ThemedText>
     </View>
   );

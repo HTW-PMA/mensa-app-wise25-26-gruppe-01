@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
+﻿import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
@@ -8,8 +8,9 @@ import { formatDistance } from '@/hooks/useLocation';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { getCanteenLogo } from '@/utils/getCanteenLogo';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
+import { useTranslation } from '@/hooks/useTranslation';
 
-// Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
+// Extended Canteen type with info about meals today
 interface CanteenWithMeals extends Canteen {
   hasMealsToday?: boolean;
 }
@@ -20,38 +21,37 @@ interface MensaCardProps {
 }
 
 /**
- * Formatiert die Öffnungszeiten für die Anzeige
- * Priorität: Mittagstisch > Mensa > Backshop > erste verfügbare
+ * Format opening hours for display.
+ * Priority: lunch counter > mensa > bakery > first available.
  */
 const formatHours = (hours?: BusinessHour[]): string | null => {
   if (!hours || hours.length === 0) return null;
-  
-  // Prioritätenliste: Mittagstisch ist am relevantesten für Mensa-Besucher
+
   const priority = ['Mittagstisch', 'Mensa', 'Backshop'];
-  
+
   let selectedHour: BusinessHour | undefined;
   for (const type of priority) {
-    selectedHour = hours.find(h => h.businessHourType === type);
+    selectedHour = hours.find((entry) => entry.businessHourType === type);
     if (selectedHour) break;
   }
-  
-  // Fallback: erste verfügbare Öffnungszeit
+
   const hour = selectedHour || hours[0];
   const { openAt, closeAt } = hour;
   if (!openAt || !closeAt) return null;
-  return `${openAt}–${closeAt}`;
+  return `${openAt} - ${closeAt}`;
 };
 
 /**
- * Ermittelt die heutigen Öffnungszeiten basierend auf dem Wochentag
- * Unterstützt beide Formate: Abkürzungen (Mo, Di...) und volle Namen (Montag, Dienstag...)
+ * Get business hours for today.
  */
-const getTodayBusinessHours = (businessDays?: Canteen['businessDays']): { hours: string; isClosed: boolean } => {
+const getTodayBusinessHours = (
+  businessDays: Canteen['businessDays'] | undefined,
+  t: (key: string, options?: Record<string, any>) => string
+): { hours: string; isClosed: boolean } => {
   if (!businessDays || businessDays.length === 0) {
-    return { hours: 'Keine Zeiten verfügbar', isClosed: true };
+    return { hours: t('mensaCard.noHours'), isClosed: true };
   }
-  
-  // Mapping: JS getDay() Index -> [Abkürzung, Voller Name]
+
   const weekdayMap: Record<number, string[]> = {
     0: ['So', 'Sonntag'],
     1: ['Mo', 'Montag'],
@@ -61,57 +61,52 @@ const getTodayBusinessHours = (businessDays?: Canteen['businessDays']): { hours:
     5: ['Fr', 'Freitag'],
     6: ['Sa', 'Samstag'],
   };
-  
+
   const todayIndex = new Date().getDay();
   const todayVariants = weekdayMap[todayIndex];
-  
-  // Suche nach heutigem Tag (beide Formate)
-  const todayEntry = businessDays.find(day => 
-    todayVariants.includes(day.day ?? '')
-  );
-  
+
+  const todayEntry = businessDays.find((day) => todayVariants.includes(day.day ?? ''));
+
   if (todayEntry) {
     const hours = formatHours(todayEntry.businessHours);
     if (hours) {
       return { hours, isClosed: false };
     }
-    // Heute existiert im Plan, aber keine Öffnungszeiten = geschlossen
-    return { hours: 'Heute geschlossen', isClosed: true };
+    return { hours: t('mensaCard.todayClosed'), isClosed: true };
   }
-  
-  // Fallback: Zeige ersten Tag mit Öffnungszeiten
+
   for (const day of businessDays) {
     const hours = formatHours(day.businessHours);
     if (hours) {
-      return { hours: `${day.day}: ${hours}`, isClosed: true };
+      return {
+        hours: t('mensaCard.hoursFallback', {
+          day: day.day ?? t('common.notAvailable'),
+          hours,
+        }),
+        isClosed: true,
+      };
     }
   }
-  
-  return { hours: 'Keine Zeiten verfügbar', isClosed: true };
+
+  return { hours: t('mensaCard.noHours'), isClosed: true };
 };
 
 export function MensaCard({ canteen, onPress }: MensaCardProps) {
-  // Nutze FavoritesContext statt lokalem State für Persistenz
+  const { t } = useTranslation();
   const { isFavoriteCanteen, toggleFavoriteCanteen } = useFavoritesContext();
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
   const canteenIsFavorited = isFavoriteCanteen(canteen.id);
 
-  // Rating und Review-Anzahl aus API-Daten (mit Mock-Fallback)
-  // Generiere konsistenten Mock-Wert basierend auf Mensa-ID für Demos
   const getMockRating = (id: string): number => {
     const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return 3.5 + (hash % 15) / 10; // Ergibt Werte zwischen 3.5 und 4.9
+    return 3.5 + (hash % 15) / 10;
   };
   const getMockReviewCount = (id: string): number => {
     const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return 50 + (hash % 200); // Ergibt Werte zwischen 50 und 249
+    return 50 + (hash % 200);
   };
 
-  /**
-   * Handler für Like-Button Toggle
-   * Speichert Favoriten persistent im FavoritesContext/AsyncStorage
-   */
   const handleToggleFavorite = async () => {
     try {
       setIsTogglingFavorite(true);
@@ -123,40 +118,36 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
     }
   };
 
-  // Nutze Google Places Rating falls verfügbar, sonst API-Rating, sonst Mock
   const hasRealRating = canteen.rating !== undefined && canteen.rating !== null;
   const hasGoogleRating = canteen.googleRating !== undefined && canteen.googleRating !== null;
-  const displayRating = hasGoogleRating 
+  const displayRating = hasGoogleRating
     ? canteen.googleRating!
-    : hasRealRating 
+    : hasRealRating
       ? canteen.rating!
       : getMockRating(canteen.id);
-  const rating = Math.min(displayRating, 5.0).toFixed(1); // Maximal 5.0 Sterne
-  
+  const rating = Math.min(displayRating, 5.0).toFixed(1);
+
   const reviewCount = canteen.googleReviewCount && canteen.googleReviewCount > 0
     ? canteen.googleReviewCount
-    : canteen.reviewCount && canteen.reviewCount > 0 
-      ? canteen.reviewCount 
+    : canteen.reviewCount && canteen.reviewCount > 0
+      ? canteen.reviewCount
       : getMockReviewCount(canteen.id);
 
-  // Öffnungszeiten für heute
-  const { hours: openingHours, isClosed: isClosedByHours } = getTodayBusinessHours(canteen.businessDays);
-  
-  // Eine Mensa ist "closed" wenn sie keine Öffnungszeiten hat ODER keine Gerichte heute
+  const { hours: openingHours, isClosed: isClosedByHours } = getTodayBusinessHours(canteen.businessDays, t);
+
   const isClosed = isClosedByHours || canteen.hasMealsToday === false;
 
-  // Distanz anzeigen wenn verfügbar, sonst Bezirk/Stadt
-  const distanceText = canteen.distance !== undefined 
+  const distanceText = canteen.distance !== undefined
     ? formatDistance(canteen.distance)
     : null;
   const locationFallback =
     canteen.address?.district ||
     canteen.address?.city ||
     canteen.address?.street ||
-    '–';
-  
-  // Temporary tags for design examples (to be integrated with the Menu API later)
-  const badges = ['Fast Service', 'Vegan'];
+    t('common.notAvailable');
+
+  const badges = [t('mensaCard.badges.fastService'), t('mensaCard.badges.vegan')];
+  const separator = t('common.separator');
 
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#1c1c1e' }, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -167,14 +158,13 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
   return (
     <Pressable
       style={({ pressed }) => [
-        styles.container, 
+        styles.container,
         { backgroundColor },
-        pressed && styles.pressed
+        pressed && styles.pressed,
       ]}
       onPress={onPress}
     >
       <View style={[styles.cardContent, { backgroundColor, borderColor }]}>
-
         <View style={styles.imageContainer}>
           <Image
             source={getCanteenLogo(canteen.name)}
@@ -182,13 +172,11 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
             contentFit="contain"
             transition={300}
           />
-          {/* Closed overlay when mensa is closed */}
           {isClosed && (
             <View style={styles.closedOverlay}>
-              <Text style={styles.closedOverlayText}>Closed</Text>
+              <Text style={styles.closedOverlayText}>{t('mensaCard.closed')}</Text>
             </View>
           )}
-          {/* Badge display on the image - hide when closed */}
           {!isClosed && (
             <View style={styles.badgeOverlay}>
               {badges.slice(0, 2).map((badge, index) => (
@@ -200,23 +188,21 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
           )}
         </View>
 
-
         <View style={styles.contentContainer}>
-
           <View style={styles.headerRow}>
             <Text style={[styles.name, { color: textColor }]} numberOfLines={1}>
               {canteen.name}
             </Text>
             <Pressable
-              onPress={(e) => {
-                e.stopPropagation(); // Prevent card clicks and toggle only hearts
+              onPress={(event) => {
+                event.stopPropagation();
                 handleToggleFavorite();
               }}
               hitSlop={10}
               disabled={isTogglingFavorite}
             >
               <Ionicons
-                name={canteenIsFavorited ? "heart" : "heart-outline"}
+                name={canteenIsFavorited ? 'heart' : 'heart-outline'}
                 size={24}
                 color={canteenIsFavorited ? Colors.light.tint : iconColor}
                 style={{ opacity: canteenIsFavorited ? 1 : 0.6 }}
@@ -232,7 +218,7 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
               </Text>
             </View>
 
-            <Text style={styles.separator}>•</Text>
+            <Text style={styles.separator}>{separator}</Text>
 
             <View style={styles.infoItem}>
               <Ionicons name="location-sharp" size={16} color={distanceText ? Colors.light.tint : subTextColor} />
@@ -242,7 +228,6 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
             </View>
           </View>
 
-          {/* Show opening hours only when open */}
           {!isClosed && (
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
@@ -253,7 +238,6 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
               </View>
             </View>
           )}
-
         </View>
       </View>
     </Pressable>
@@ -315,93 +299,90 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-    closedOverlayText: {
-      color: '#fff',
-      fontSize: 18,
-      fontFamily: Fonts.bold,
-      textTransform: 'uppercase',
-      letterSpacing: 2,
-    },
-    badgeOverlay: {
-      position: 'absolute',
-      bottom: 10,
-      left: 10,
-      flexDirection: 'row',
-      gap: 6,
-    },
-    badgeContainer: {
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 10,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    badgeText: {
-      color: '#fff',
-      fontSize: 10,
-      fontFamily: Fonts.bold,
-      includeFontPadding: false,
-    },
-      contentContainer: {
-        padding: 12,
-        paddingVertical: 14,
-        gap: 6,
-      },
-    
-      headerRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 2,
-      },
-      name: {
-        fontFamily: Fonts.bold,
-        fontSize: 20,
-        flex: 1,
-        marginRight: 8,
-        lineHeight: 26,
-        includeFontPadding: false,
-        textAlignVertical: 'center',
-      },
-    
-    infoRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-  
-    },
-    infoItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    separator: {
-      marginHorizontal: 6,
-      color: '#ccc',
-      fontSize: 12,
-      includeFontPadding: false,
-  
-    },
-    infoText: {
-      fontFamily: Fonts.regular,
-      fontSize: 14,
-      color: '#666',
-      lineHeight: 20,
-      includeFontPadding: false
-    },
-    closedText: {
-      color: '#E57373',
-    },
-    distanceText: {
-      fontFamily: Fonts.bold,
-      color: Colors.light.tint,
-    },
-    ratingText: {
-      fontFamily: Fonts.bold,
-      color: '#333',
-      fontSize: 14,
-      lineHeight: 20,
-      includeFontPadding: false,
-    },
-  });
-  
+  closedOverlayText: {
+    color: '#fff',
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+  },
+  badgeOverlay: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  badgeContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    includeFontPadding: false,
+  },
+  contentContainer: {
+    padding: 12,
+    paddingVertical: 14,
+    gap: 6,
+  },
+
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  name: {
+    fontFamily: Fonts.bold,
+    fontSize: 20,
+    flex: 1,
+    marginRight: 8,
+    lineHeight: 26,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  separator: {
+    marginHorizontal: 6,
+    color: '#ccc',
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  infoText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    includeFontPadding: false,
+  },
+  closedText: {
+    color: '#E57373',
+  },
+  distanceText: {
+    fontFamily: Fonts.bold,
+    color: Colors.light.tint,
+  },
+  ratingText: {
+    fontFamily: Fonts.bold,
+    color: '#333',
+    fontSize: 14,
+    lineHeight: 20,
+    includeFontPadding: false,
+  },
+});

@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthInput } from '@/components/auth/AuthInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 import { validateEmail, getFieldError } from '@/utils/validation';
 import { handleFirebaseError } from '@/utils/firebaseErrors';
@@ -25,6 +26,7 @@ export default function LoginScreen() {
   const { signIn } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,7 +67,7 @@ export default function LoginScreen() {
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
           </Pressable>
-          <ThemedText style={styles.headerTitle}>Sign In</ThemedText>
+          <ThemedText style={styles.headerTitle}>{t('auth.login.title')}</ThemedText>
           <View style={styles.headerRight} />
         </View>
 
@@ -77,9 +79,9 @@ export default function LoginScreen() {
         >
           {/* Welcome Text */}
           <View style={styles.welcomeSection}>
-            <ThemedText style={styles.welcomeTitle}>Welcome back!</ThemedText>
+            <ThemedText style={styles.welcomeTitle}>{t('auth.login.welcomeTitle')}</ThemedText>
             <ThemedText style={[styles.welcomeSubtitle, { color: isDark ? '#9BA1A6' : '#666' }]}>
-              Sign in to access your favorites and personalized recommendations.
+              {t('auth.login.welcomeSubtitle')}
             </ThemedText>
           </View>
 
@@ -94,9 +96,9 @@ export default function LoginScreen() {
           {/* Form */}
           <View style={styles.form}>
             <AuthInput
-              label="Email"
+              label={t('auth.login.emailLabel')}
               icon="email"
-              placeholder="Enter your email"
+              placeholder={t('auth.login.emailPlaceholder')}
               keyboardType="email-address"
               autoComplete="email"
               value={email}
@@ -109,9 +111,9 @@ export default function LoginScreen() {
             />
 
             <AuthInput
-              label="Password"
+              label={t('auth.login.passwordLabel')}
               icon="lock"
-              placeholder="Enter your password"
+              placeholder={t('auth.login.passwordPlaceholder')}
               secureTextEntry
               autoComplete="password"
               value={password}
@@ -125,10 +127,15 @@ export default function LoginScreen() {
             {/* Forgot Password */}
             <Pressable
               style={styles.forgotPassword}
-              onPress={() => Alert.alert('Coming Soon', 'Password reset will be available soon.')}
+              onPress={() =>
+                Alert.alert(
+                  t('auth.login.resetComingSoonTitle'),
+                  t('auth.login.resetComingSoonMessage')
+                )
+              }
             >
               <ThemedText style={[styles.forgotPasswordText, { color: Colors.light.tint }]}>
-                Forgot Password?
+                {t('auth.login.forgotPassword')}
               </ThemedText>
             </Pressable>
           </View>
@@ -146,18 +153,18 @@ export default function LoginScreen() {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <ThemedText style={styles.signInButtonText}>Sign In</ThemedText>
+              <ThemedText style={styles.signInButtonText}>{t('auth.login.submit')}</ThemedText>
             )}
           </Pressable>
 
           {/* Sign Up Link */}
           <View style={styles.signUpContainer}>
             <ThemedText style={[styles.signUpText, { color: isDark ? '#9BA1A6' : '#666' }]}>
-              Don't have an account?{' '}
+              {t('auth.login.noAccount')}{' '}
             </ThemedText>
             <Pressable onPress={() => router.replace('/register' as any)}>
               <ThemedText style={[styles.signUpLink, { color: Colors.light.tint }]}>
-                Sign Up
+                {t('auth.login.signUp')}
               </ThemedText>
             </Pressable>
           </View>
