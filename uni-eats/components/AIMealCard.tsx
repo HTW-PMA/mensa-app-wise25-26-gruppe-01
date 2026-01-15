@@ -76,6 +76,29 @@ export const AIMealCard = ({ meal, canteenName, reason }: AIMealCardProps) => {
     const { t } = useTranslation();
     const { profile } = useProfile();
 
+    // 🧠 Allergene prüfen (kompatibel mit deinem Profilmodell)
+    const allergies: string[] =
+        (profile as any)?.userPreferences?.allergies ||
+        (profile as any)?.allergies ||
+        [];
+
+    const mealText = `${meal.name} ${(meal.additives?.map((a) => a.text).join(' ') ?? '')}`.toLowerCase();
+    const detectedAllergens = allergies.filter((a: string) =>
+        mealText.includes(a.toLowerCase())
+    );
+
+    const hasAllergenConflict = detectedAllergens.length > 0;
+    const allergenText = detectedAllergens.join(', ');
+
+    // 🎨 Dynamische Farben & Texte
+    const reasonBgColor = hasAllergenConflict ? '#FFF4E5' : '#ECFDF5'; // orange vs grün
+    const reasonTextColor = hasAllergenConflict ? '#B45309' : '#065F46'; // orange vs grün
+    const reasonText = hasAllergenConflict
+        ? ` Achtung: Enthält ${allergenText}`
+        : reason || 'Passt zu deiner Suche.';
+
+
+
     const backgroundColor = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'background');
     const textColor = useThemeColor({ light: '#000000', dark: '#FFFFFF' }, 'text');
     const subTextColor = useThemeColor({ light: '#666666', dark: '#9BA1A6' }, 'text');
@@ -121,9 +144,16 @@ export const AIMealCard = ({ meal, canteenName, reason }: AIMealCardProps) => {
         <View style={styles.wrapper}>
             {/* AI Reason Bubble (Chef's Note) */}
             {reason && (
-                <View style={[styles.reasonContainer, { backgroundColor: reasonBg }]}>
-                    <Ionicons name="sparkles" size={14} color={reasonColor} style={{ marginTop: 2 }} />
-                    <Text style={[styles.reasonText, { color: reasonColor }]}>{reason}</Text>
+                <View style={[styles.reasonContainer, { backgroundColor: reasonBgColor }]}>
+                    <Ionicons
+                        name={hasAllergenConflict ? 'warning' : 'sparkles'}
+                        size={14}
+                        color={reasonTextColor}
+                        style={{ marginTop: 2 }}
+                    />
+                    <Text style={[styles.reasonText, { color: reasonTextColor }]} numberOfLines={2}>
+                        {reasonText}
+                    </Text>
                 </View>
             )}
 

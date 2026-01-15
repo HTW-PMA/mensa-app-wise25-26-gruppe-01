@@ -29,9 +29,21 @@ export type AIChefResponse = {
 };
 
 // ------------------------------------------------------------
+// 🗺️ Campus-Mapping für Uni-Kürzel → typische Mensen/Campus-Namen
+// ------------------------------------------------------------
+const CAMPUS_MAP: Record<string, string[]> = {
+    htw: ['wilhelminenhof', 'treskowallee'],
+    fu: ['dahlem', 'silberlaube'],
+    tu: ['marchstr', 'hauptgebaeude', 'hauptgebäude'],
+    ash: ['hellersdorf'],
+    hwr: ['lichtenberg', 'schöneberg'],
+    hu: ['adlershof', 'nord', 'süd'],
+    bht: ['luxemburger', 'platanenstraße'],
+};
+
+// ------------------------------------------------------------
 // Hilfsfunktionen
 // ------------------------------------------------------------
-
 const MOOD_KEYWORDS = {
     tired: ['müde', 'erschöpft', 'schlapp', 'energielos', 'kraft', 'power', 'tired'],
     stressed: ['gestresst', 'stress', 'hektisch', 'zeitdruck', 'eilig', 'schnell'],
@@ -115,9 +127,8 @@ function hasExplicitUniClaim(message: string): boolean {
 }
 
 // ------------------------------------------------------------
-// Standort- und Uni-Erkennung (ohne universityId)
+// Standort- und Uni-Erkennung mit CAMPUS_MAP
 // ------------------------------------------------------------
-
 function extractLocationIntentWithUniversity(
     userMessage: string,
     mensas: Canteen[],
@@ -143,17 +154,14 @@ function extractLocationIntentWithUniversity(
         ? normalizeText(detectedUniversity.shortName)
         : '';
 
+    const campusKeywords = CAMPUS_MAP[uniShort as keyof typeof CAMPUS_MAP] || [];
+
     const relevantMensas: Canteen[] = mensas.filter((m: Canteen) => {
         const mensaNorm = normalizeText(m.name);
         return (
             mensaNorm.includes(uniNorm) ||
             (uniShort && mensaNorm.includes(uniShort)) ||
-            (lowerMsg.includes('htw') &&
-                (mensaNorm.includes('wilhelminenhof') || mensaNorm.includes('treskowallee'))) ||
-            (lowerMsg.includes('fu') && mensaNorm.includes('dahlem')) ||
-            (lowerMsg.includes('tu') && mensaNorm.includes('marchstr')) ||
-            (lowerMsg.includes('ash') && mensaNorm.includes('hellersdorf')) ||
-            (lowerMsg.includes('hwr') && mensaNorm.includes('lichtenberg'))
+            campusKeywords.some((kw) => mensaNorm.includes(kw))
         );
     });
 
@@ -163,7 +171,6 @@ function extractLocationIntentWithUniversity(
 // ------------------------------------------------------------
 // Base-Filter
 // ------------------------------------------------------------
-
 function mealPassesBaseFilters(meal: Meal, context: AIChefContext, locationIds: string[]): boolean {
     const allergens = context.userPreferences?.allergies || [];
     const mealText = (meal.name + (meal.additives?.map((a) => a.text).join(' ') || '')).toLowerCase();
@@ -185,7 +192,6 @@ function mealPassesBaseFilters(meal: Meal, context: AIChefContext, locationIds: 
 // ------------------------------------------------------------
 // Hauptfunktion
 // ------------------------------------------------------------
-
 export async function getAiChefResponse(
     prompt: string,
     context: AIChefContext,
@@ -204,7 +210,7 @@ export async function getAiChefResponse(
     if ((explicitUni || explicitLoc) && mensaIds.length === 0) {
         return {
             text:
-                'Ich habe deine Uni/Mensa nicht eindeutig erkannt. Welche Mensa oder welchen Campus meinst du genau? (z.B. „Mensa Wilhelminenhof“, „Treskowallee“, „FU Dahlem“)',
+                'Ich habe deine Uni/Mensa nicht eindeutig erkannt. Welche Mensa oder welchen Campus meinst du genau?',
             recommendedMeals: [],
         };
     }
