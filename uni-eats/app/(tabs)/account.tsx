@@ -290,7 +290,14 @@ const styles = StyleSheet.create({
 
   // Header Section Styles
   headerSection: {
-    marginTop: 18,
+    ...Platform.select({
+      android: {
+        marginTop: 32,
+      },
+      default: {
+        marginTop: 18,
+      },
+    }),
     paddingHorizontal: 16,
     paddingVertical: 28,
     borderBottomWidth: 0.5,

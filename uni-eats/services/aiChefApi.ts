@@ -338,8 +338,15 @@ export async function getAiChefResponse(
         promptLower.includes('pasta') ||
         promptLower.includes('burger') ||
         promptLower.includes('pizza') ||
+        promptLower.includes('piza') || // Typo
         promptLower.includes('salat') ||
-        promptLower.includes('suppe');
+        promptLower.includes('suppe') ||
+        promptLower.includes('supe') || // Typo
+        promptLower.includes('bowl') ||
+        promptLower.includes('dessert') ||
+        promptLower.includes('kuchen') ||
+        promptLower.includes('pommes') ||
+        promptLower.includes('fries');
 
     // Verbesserter Prompt für semantische Genauigkeit
     const enhancedPrompt =
@@ -419,31 +426,33 @@ Do NOT use Markdown. Return RAW JSON.`
                             .filter((m) => Boolean(m.mealId) && context.meals.some((meal) => meal.id === m.mealId));
 
                         // ✅ HARD relevance filter: if user asked specifically (e.g., pasta) and we have matching meals in context
-                        if (intents.length > 0 && matchingPool.length > 0) {
-                            const strictlyRelevant = validMeals.filter((m) => matchingIds.has(m.mealId));
+                        if (intents.length > 0) {
+                            if (matchingPool.length > 0) {
+                                // 1. Try to find if LLM suggested relevant meals
+                                const strictlyRelevant = validMeals.filter((m) => matchingIds.has(m.mealId));
 
-                            if (strictlyRelevant.length > 0) {
-                                return { text: parsedText, recommendedMeals: strictlyRelevant.slice(0, 3) };
+                                if (strictlyRelevant.length > 0) {
+                                    return { text: parsedText, recommendedMeals: strictlyRelevant.slice(0, 3) };
+                                }
+
+                                // 2. Model suggested wrong stuff (hallucination) -> Force replace with actually matching meals from context
+                                const fallback = matchingPool.slice(0, 3).map((m) => ({
+                                    mealId: m.id,
+                                    reason: `Hier ist ein passendes Gericht für ${friendlyIntentLabel(intents)}.`,
+                                }));
+
+                                return {
+                                    text: `Ich habe ${friendlyIntentLabel(intents)} für dich gefunden:`,
+                                    recommendedMeals: fallback,
+                                };
+                            } else {
+                                // 3. User asked for something (e.g. Pizza) but it DOES NOT exist in today's meals.
+                                // Do NOT return random validMeals as "alternatives" silently.
+                                return {
+                                    text: `Ich konnte heute leider keine ${friendlyIntentLabel(intents)} finden. 😔`,
+                                    recommendedMeals: [],
+                                };
                             }
-
-                            // Model suggested wrong stuff -> replace with actually matching meals from context
-                            const fallback = matchingPool.slice(0, 3).map((m) => ({
-                                mealId: m.id,
-                                reason: `Passt zu ${friendlyIntentLabel(intents)}.`,
-                            }));
-
-                            return {
-                                text: `Ich zeige dir passende ${friendlyIntentLabel(intents)}:`,
-                                recommendedMeals: fallback,
-                            };
-                        }
-
-                        // If user asked specifically but none exist today -> allow alternatives, but be transparent
-                        if (intents.length > 0 && matchingPool.length === 0 && validMeals.length > 0) {
-                            return {
-                                text: `Ich finde heute leider keine passenden ${friendlyIntentLabel(intents)} – hier sind die besten Alternativen:`,
-                                recommendedMeals: validMeals.slice(0, 3),
-                            };
                         }
 
                         if (validMeals.length > 0) {
@@ -453,6 +462,33 @@ Do NOT use Markdown. Return RAW JSON.`
                 }
             } catch (parseError) {
                 console.log('JSON Parse failed, falling back to clean text:', parseError);
+            }
+        }
+
+        // ✅ Fallback: ALWAYS scan text for ID patterns.
+        // Regex to catch:
+        // 1. "ID: 123", "ID 123", "id:123"
+        // 2. "(123456)" or "[123456]" (common AI output for IDs)
+        // 3. "Meal 123456"
+        const idRegex = /(?:ID|id|Meal|Gericht)[\s:]*([0-9]+)|[\(\[]([0-9]{6,})[\)\]]/gi;
+        const foundIds = new Set<string>();
+        let match;
+        while ((match = idRegex.exec(cleanResponse)) !== null) {
+            // match[1] is from "ID: 123", match[2] is from "(123456)"
+            const id = match[1] || match[2];
+            if (id) foundIds.add(id);
+        }
+
+        if (foundIds.size > 0) {
+            const recoveredMeals = Array.from(foundIds)
+                .map((id) => ({
+                    mealId: id,
+                    reason: t('aiChef.suggestions.fallbackReason'), // "Passendes Gericht aus der Nachricht"
+                }))
+                .filter((m) => context.meals.some((meal) => meal.id === m.mealId));
+
+            if (recoveredMeals.length > 0) {
+                return { text: cleanResponse, recommendedMeals: recoveredMeals.slice(0, 3) };
             }
         }
 

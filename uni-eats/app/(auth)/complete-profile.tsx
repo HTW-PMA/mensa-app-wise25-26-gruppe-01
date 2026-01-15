@@ -161,7 +161,7 @@ export default function CompleteProfileScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
+          <View style={[styles.header, { borderBottomWidth: 1, borderBottomColor: borderColor, paddingBottom: 20 }]}>
             <ThemedText style={styles.title}>
               {isEditMode ? t('profile.editTitle') : t('profile.completeTitle')}
             </ThemedText>
@@ -184,7 +184,7 @@ export default function CompleteProfileScreen() {
             <ThemedText style={[styles.sectionHint, { color: textMuted }]}>
               {t('profile.allergiesHint')}
             </ThemedText>
-            <View style={styles.allergyGrid}>
+            <View style={[styles.allergyGrid, { borderBottomWidth: 1, borderBottomColor: borderColor, paddingBottom: 24 }]}>
               {ALLERGEN_OPTIONS.map((allergy) => {
                 const isSelected = allergies.includes(allergy.value);
                 return (
@@ -212,7 +212,7 @@ export default function CompleteProfileScreen() {
 
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>{t('profile.dietTitle')}</ThemedText>
-            <View style={styles.optionList}>
+            <View style={[styles.optionList, { borderBottomWidth: 1, borderBottomColor: borderColor, paddingBottom: 24 }]}>
               {DIET_OPTIONS.map((option) => (
                 <Pressable
                   key={option.value}
@@ -236,7 +236,7 @@ export default function CompleteProfileScreen() {
             <ThemedText style={[styles.sectionHint, { color: textMuted }]}>
               {t('profile.statusHint.general')}
             </ThemedText>
-            <View style={styles.statusRow}>
+            <View style={[styles.statusRow, { borderBottomWidth: needsUniversity ? 1 : 0, borderBottomColor: borderColor, paddingBottom: needsUniversity ? 24 : 0 }]}>
               {STATUS_OPTIONS.map((option) => {
                 const isSelected = status === option.value;
                 return (
@@ -377,16 +377,22 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 24,
+    ...Platform.select({
+      android: { marginTop: 24 },
+      default: { marginTop: 0 },
+    }),
   },
   title: {
     fontSize: 26,
     fontFamily: Fonts.bold,
     marginBottom: 8,
+    includeFontPadding: false,
   },
   subtitle: {
     fontSize: 15,
     fontFamily: Fonts.regular,
     lineHeight: 22,
+    includeFontPadding: false,
   },
   section: {
     marginBottom: 24,
@@ -395,11 +401,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.bold,
     marginBottom: 6,
+    includeFontPadding: false,
   },
   sectionHint: {
     fontSize: 13,
     fontFamily: Fonts.regular,
     marginBottom: 12,
+    includeFontPadding: false,
   },
   allergyGrid: {
     flexDirection: 'row',
@@ -415,6 +423,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontFamily: Fonts.regular,
+    includeFontPadding: false,
   },
   optionList: {
     gap: 8,
@@ -430,11 +439,13 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 15,
     fontFamily: Fonts.regular,
+    includeFontPadding: false,
   },
   optionSubText: {
     fontSize: 12,
     fontFamily: Fonts.regular,
     marginTop: 2,
+    includeFontPadding: false,
   },
   statusRow: {
     gap: 10,
@@ -448,11 +459,13 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 16,
     fontFamily: Fonts.bold,
+    includeFontPadding: false,
   },
   statusHint: {
     fontSize: 12,
     fontFamily: Fonts.regular,
     marginTop: 4,
+    includeFontPadding: false,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -468,6 +481,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Fonts.regular,
     paddingVertical: 6,
+    includeFontPadding: false,
   },
   universityText: {
     flex: 1,
@@ -483,6 +497,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontFamily: Fonts.bold,
+    includeFontPadding: false,
   },
   loadingContainer: {
     flex: 1,
@@ -498,6 +513,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 13,
     fontFamily: Fonts.regular,
+    includeFontPadding: false,
   },
   errorContainer: {
     flexDirection: 'row',
@@ -513,6 +529,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Fonts.regular,
     flex: 1,
+    includeFontPadding: false,
   },
 });
 
