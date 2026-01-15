@@ -4,6 +4,7 @@ import {
   View,
   Pressable,
   Image,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -144,6 +145,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     marginBottom: 8,
     textAlign: 'center',
+    ...Platform.select({
+      ios: {
+        lineHeight: 34,
+        paddingTop: 4,
+      },
+    }),
   },
   subtitle: {
     fontSize: 16,

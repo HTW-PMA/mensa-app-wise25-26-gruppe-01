@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Pressable,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -184,7 +185,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    marginTop: 18
+    ...Platform.select({
+      ios: {
+        marginTop: 0,
+      },
+      android: {
+        marginTop: 18,
+      },
+    }),
   },
   backButton: {
     padding: 8,

@@ -5,6 +5,7 @@ import {
   SafeAreaView,
   View,
   Pressable,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -135,7 +136,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    marginTop: 18,
+    ...Platform.select({
+      ios: {
+        marginTop: 0,
+      },
+      android: {
+        marginTop: 18,
+      },
+    }),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

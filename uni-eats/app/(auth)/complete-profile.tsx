@@ -387,6 +387,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     marginBottom: 8,
     includeFontPadding: false,
+    ...Platform.select({
+      ios: {
+        lineHeight: 32,
+        paddingTop: 4,
+      },
+    }),
   },
   subtitle: {
     fontSize: 15,

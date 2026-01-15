@@ -21,6 +21,7 @@ export default function ProfileScreen() {
   const cardBackground = isDark ? '#1C1C1E' : '#FFFFFF';
   const textColor = isDark ? '#FFFFFF' : '#000000';
   const subTextColor = isDark ? '#9BA1A6' : '#6B7280';
+  const borderColor = isDark ? '#333333' : '#E5E7EB';
   
   const getInitials = (name: string): string => {
     return name
@@ -38,6 +39,19 @@ export default function ProfileScreen() {
         { backgroundColor: isDark ? Colors.dark.background : '#F2F2F7' },
       ]}
     >
+      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+        <Pressable 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+        >
+          <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
+        </Pressable>
+        <ThemedText style={styles.headerTitle}>{t('profile.title')}</ThemedText>
+        <View style={styles.headerRight} />
+      </View>
+
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerContainer}>
           <View style={[styles.avatarContainer, { backgroundColor: Colors.light.tint }]}>
@@ -126,6 +140,34 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  header: {
+    ...Platform.select({
+      ios: {
+        marginTop: 0,
+      },
+      android: {
+        marginTop: 18,
+      },
+    }),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    textAlign: 'center',
+  },
+  headerRight: {
+    width: 40,
+  },
   content: {
     paddingBottom: 40,
   },
@@ -149,6 +191,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 36,
+    lineHeight: 42,
     fontFamily: Fonts.bold,
     color: '#FFFFFF',
   },
