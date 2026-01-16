@@ -8,6 +8,7 @@ import { useProfile } from '@/contexts/ProfileContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Colors } from '@/constants/theme';
 import { selectPriceForStatus } from '@/utils/priceHelpers';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface FavoriteMealCardProps {
   meal: Meal;
@@ -84,25 +85,19 @@ const getBadgeType = (name: string): BadgeType => {
   return 'default';
 };
 
-const getBadgeStyle = (type: BadgeType) => {
-  switch (type) {
-    case 'vegan':
-    case 'vegetarian':
-      return { borderColor: Colors.light.tint, backgroundColor: 'transparent' };
-    case 'popular':
-      return { borderColor: '#666', backgroundColor: '#f5f5f5' };
-    case 'spicy':
-      return { borderColor: '#FF5722', backgroundColor: 'transparent' };
-    case 'dessert':
-      return { borderColor: '#9C27B0', backgroundColor: 'transparent' };
-    default:
-      return { borderColor: '#E0E0E0', backgroundColor: '#f5f5f5' };
-  }
-};
-
 export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: FavoriteMealCardProps) {
   const { t } = useTranslation();
   const { profile } = useProfile();
+  
+  // Theme colors
+  const backgroundColor = useThemeColor({ light: '#ffffff', dark: '#1c1c1e' }, 'background');
+  const textColor = useThemeColor({ light: '#333333', dark: '#ffffff' }, 'text');
+  const subTextColor = useThemeColor({ light: '#666666', dark: '#9ba1a6' }, 'text');
+  const extraSubTextColor = useThemeColor({ light: '#888888', dark: '#8e8e93' }, 'text');
+  const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#2c2c2e' }, 'border');
+  const badgeBg = useThemeColor({ light: '#f5f5f5', dark: '#2c2c2e' }, 'background');
+  const imageBg = useThemeColor({ light: '#f0f0f0', dark: '#2c2c2e' }, 'background');
+
   const resolvedCanteenName = canteenName ?? t('common.notAvailable');
   const selectedPrice = selectPriceForStatus(meal.prices, profile?.status);
   const price =
@@ -119,6 +114,22 @@ export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: Favor
     type: getBadgeType(b.name),
   })) || [];
 
+  const getBadgeStyle = (type: BadgeType) => {
+    switch (type) {
+      case 'vegan':
+      case 'vegetarian':
+        return { borderColor: Colors.light.tint, backgroundColor: 'transparent', textColor: Colors.light.tint };
+      case 'popular':
+        return { borderColor: borderColor, backgroundColor: badgeBg, textColor: textColor };
+      case 'spicy':
+        return { borderColor: '#FF5722', backgroundColor: 'transparent', textColor: '#FF5722' };
+      case 'dessert':
+        return { borderColor: '#9C27B0', backgroundColor: 'transparent', textColor: '#9C27B0' };
+      default:
+        return { borderColor: borderColor, backgroundColor: badgeBg, textColor: textColor };
+    }
+  };
+
   const renderRightActions = () => {
     if (!onRemove) return null;
     
@@ -131,28 +142,32 @@ export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: Favor
 
   const CardContent = (
     <Pressable
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.container, 
+        { backgroundColor, borderColor },
+        pressed && styles.pressed
+      ]}
       onPress={onPress}
     >
       {/* Bild links */}
       <Image
         source={{ uri: imageUrl }}
-        style={styles.image}
+        style={[styles.image, { backgroundColor: imageBg }]}
         contentFit="cover"
         transition={300}
       />
       
       {/* Mittlerer Inhalt */}
       <View style={styles.content}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={[styles.name, { color: textColor }]} numberOfLines={1}>
           {meal.name}
         </Text>
 
-        <Text style={styles.canteenName} numberOfLines={1}>
+        <Text style={[styles.canteenName, { color: extraSubTextColor }]} numberOfLines={1}>
           {resolvedCanteenName}
         </Text>
 
-        <Text style={styles.description} numberOfLines={1}>
+        <Text style={[styles.description, { color: subTextColor }]} numberOfLines={1}>
           {description}
         </Text>
         
@@ -175,9 +190,7 @@ export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: Favor
                   <Text 
                     style={[
                       styles.badgeText,
-                      badge.type === 'vegan' || badge.type === 'vegetarian' 
-                        ? { color: Colors.light.tint } 
-                        : {}
+                      { color: badgeStyle.textColor }
                     ]}
                   >
                     {badge.name}
@@ -192,7 +205,7 @@ export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: Favor
       {/* Rechte Seite: Preis & Kalorien */}
       <View style={styles.priceContainer}>
         <Text style={styles.price}>{price}</Text>
-        <Text style={styles.calories}>{calories}</Text>
+        <Text style={[styles.calories, { color: extraSubTextColor }]}>{calories}</Text>
       </View>
     </Pressable>
   );
@@ -212,13 +225,11 @@ export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: Favor
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     
     ...Platform.select({
       ios: {
@@ -240,7 +251,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
     marginRight: 12,
   },
   content: {
@@ -250,19 +260,16 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 16,
-    color: '#333',
     marginBottom: 2,
   },
   description: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 13,
-    color: '#666',
     marginBottom: 6,
   },
   canteenName: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 12,
-    color: '#888',
     marginBottom: 4,
   },
   badgeRow: {
@@ -279,7 +286,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 11,
-    color: '#333',
   },
   priceContainer: {
     alignItems: 'flex-end',
@@ -288,13 +294,12 @@ const styles = StyleSheet.create({
   price: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 16,
-    color: Colors.light.tint,
+    color: '#02AA20', // Always UniEats Green for price
     marginBottom: 2,
   },
   calories: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 12,
-    color: '#999',
   },
   deleteAction: {
     backgroundColor: '#FF4444',

@@ -40,6 +40,7 @@ export default function FavoritesScreen() {
   const { data: mensas } = useMensas({ loadingtype: 'lazy' });
 
   const backgroundColor = isDark ? Colors.dark.background : Colors.light.background;
+  const borderColor = isDark ? Colors.dark.border : '#E5E7EB';
   const sectionTitleColor = isDark ? Colors.dark.text : '#333';
   const canteenNameById = new Map((mensas ?? []).map((canteen) => [canteen.id, canteen.name]));
 
@@ -58,7 +59,7 @@ export default function FavoritesScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: borderColor }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
           </Pressable>
@@ -77,7 +78,7 @@ export default function FavoritesScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: borderColor }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
         </Pressable>

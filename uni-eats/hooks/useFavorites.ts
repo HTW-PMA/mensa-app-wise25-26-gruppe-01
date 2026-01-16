@@ -21,16 +21,16 @@ interface UseFavoritesResult {
  * Unterstützt Multi-Canteen Favoriten (Array von Mensas)
  */
 export function useFavorites(): UseFavoritesResult {
-  const { 
+  const {
     favoriteCanteenIds,
     favoriteMeals: favoriteMealKeys,
     isLoading: contextLoading,
     removeFavoriteCanteen: contextRemoveCanteen,
     removeFavoriteMeal: contextRemoveMeal,
   } = useFavoritesContext();
-  
+
   const { location } = useLocation();
-  
+
   const [favoriteCanteens, setFavoriteCanteens] = useState<Canteen[]>([]);
   const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,7 +52,7 @@ export function useFavorites(): UseFavoritesResult {
       if (favoriteCanteenIds.length > 0) {
         const canteens = await mensaApi.getCanteens({ loadingtype: 'complete' });
         const favCanteens = canteens.filter(c => favoriteCanteenIds.includes(c.id));
-        
+
         // Berechne Distanzen wenn Location verfügbar
         if (location) {
           favCanteens.forEach(canteen => {
@@ -60,10 +60,10 @@ export function useFavorites(): UseFavoritesResult {
               const { latitude, longitude } = canteen.address.geoLocation;
               if (latitude && longitude) {
                 canteen.distance = calculateDistance(
-                  location.latitude,
-                  location.longitude,
-                  latitude,
-                  longitude
+                    location.latitude,
+                    location.longitude,
+                    latitude,
+                    longitude
                 );
               }
             }
@@ -79,24 +79,24 @@ export function useFavorites(): UseFavoritesResult {
         // Hole alle Gerichte mit einem einzigen API-Aufruf
         // Wir laden alle Meals für heute und die nächsten Tage in einem Request
         const allMeals: Meal[] = [];
-        
+
         try {
           // Lade Meals ohne Datumsfilter - die API gibt standardmäßig heutige Meals zurück
           // Für Favoriten reicht das, da wir nur die Metadaten brauchen
           const todayMeals = await mensaApi.getMeals({ loadingtype: 'complete' });
           allMeals.push(...todayMeals);
-          
+
           // Optional: Lade auch Meals für die nächsten Tage (parallel, max 3 Requests)
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
           const dayAfter = new Date();
           dayAfter.setDate(dayAfter.getDate() + 2);
-          
+
           const [tomorrowMeals, dayAfterMeals] = await Promise.all([
             mensaApi.getMeals({ date: tomorrow.toISOString().split('T')[0], loadingtype: 'complete' }).catch(() => []),
             mensaApi.getMeals({ date: dayAfter.toISOString().split('T')[0], loadingtype: 'complete' }).catch(() => []),
           ]);
-          
+
           allMeals.push(...tomorrowMeals, ...dayAfterMeals);
         } catch {
           // Fallback: keine Gerichte verfügbar
@@ -104,7 +104,7 @@ export function useFavorites(): UseFavoritesResult {
 
         // Filtere nach mensa-spezifischen Favoriten
         const favoriteKeySet = new Set(
-          favoriteMealKeys.map((favorite) => `${favorite.canteenId}::${favorite.mealId}`)
+            favoriteMealKeys.map((favorite) => `${favorite.canteenId}::${favorite.mealId}`)
         );
         const favorites = allMeals.filter((meal) => {
           if (!meal.canteenId) return false;

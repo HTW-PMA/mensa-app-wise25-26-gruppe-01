@@ -5,6 +5,7 @@ import { type Canteen } from '@/services/mensaApi';
 import { formatDistance } from '@/hooks/useLocation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Colors } from '@/constants/theme';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface FavoriteCanteenCardProps {
   canteen: Canteen;
@@ -14,19 +15,28 @@ interface FavoriteCanteenCardProps {
 
 export function FavoriteCanteenCard({ canteen, onPress, onRemove }: FavoriteCanteenCardProps) {
   const { t } = useTranslation();
+  
+  const tintColor = useThemeColor({ light: Colors.light.tint, dark: '#2c2c2e' }, 'tint');
+  const textColor = '#FFFFFF';
+  const shadowColor = useThemeColor({ light: Colors.light.tint, dark: '#000000' }, 'tint');
+
   const distanceText = canteen.distance !== undefined 
     ? t('favorites.distanceAway', { distance: formatDistance(canteen.distance) })
     : canteen.address?.district || canteen.address?.city || '';
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.container, 
+        { backgroundColor: tintColor },
+        pressed && styles.pressed
+      ]}
       onPress={onPress}
     >
       <View style={styles.content}>
-        <Text style={styles.name}>{canteen.name}</Text>
+        <Text style={[styles.name, { color: textColor }]}>{canteen.name}</Text>
         {distanceText ? (
-          <Text style={styles.distance}>{distanceText}</Text>
+          <Text style={[styles.distance, { color: 'rgba(255,255,255,0.8)' }]}>{distanceText}</Text>
         ) : null}
       </View>
       
@@ -48,7 +58,6 @@ export function FavoriteCanteenCard({ canteen, onPress, onRemove }: FavoriteCant
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.light.tint,
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
@@ -57,9 +66,9 @@ const styles = StyleSheet.create({
     
     ...Platform.select({
       ios: {
-        shadowColor: Colors.light.tint,
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.1,
         shadowRadius: 8,
       },
       android: {
@@ -77,13 +86,11 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 18,
-    color: '#FFFFFF',
     marginBottom: 4,
   },
   distance: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
   },
   removeButton: {
     padding: 4,
