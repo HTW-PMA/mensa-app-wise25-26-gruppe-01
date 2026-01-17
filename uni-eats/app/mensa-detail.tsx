@@ -29,6 +29,25 @@ const formatLocalDateKey = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeDate = (date: Date): Date => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+const isWeekend = (date: Date): boolean => {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+};
+
+const getNextWeekday = (date: Date): Date => {
+  const next = normalizeDate(date);
+  while (isWeekend(next)) {
+    next.setDate(next.getDate() + 1);
+  }
+  return next;
+};
+
 export default function MensaDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -56,7 +75,9 @@ export default function MensaDetailScreen() {
   const [loadingCanteen, setLoadingCanteen] = useState(true);
   const [loadingMeals, setLoadingMeals] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>(() => formatLocalDateKey(new Date()));
+  const [selectedDate, setSelectedDate] = useState<string>(() =>
+    formatLocalDateKey(getNextWeekday(new Date()))
+  );
   const [today, setToday] = useState<Date>(() => new Date());
   const [canteenError, setCanteenError] = useState<string | null>(null);
   const [mealsError, setMealsError] = useState<string | null>(null);
@@ -75,18 +96,22 @@ export default function MensaDetailScreen() {
   const dateLocale = locale === 'de' ? 'de-DE' : 'en-GB';
 
   const weekDates = useMemo(() => {
-    const baseDate = new Date(today);
-    baseDate.setHours(0, 0, 0, 0);
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(baseDate);
-      date.setDate(baseDate.getDate() + index);
-      return {
+    const dates = [];
+    let current = getNextWeekday(today);
+    for (let index = 0; index < 5; index += 1) {
+      const date = new Date(current);
+      dates.push({
         key: formatLocalDateKey(date),
         weekday: date.toLocaleDateString(dateLocale, { weekday: 'short' }),
         label: date.toLocaleDateString(dateLocale, { day: '2-digit', month: 'short' }),
         date,
-      };
-    });
+      });
+      current.setDate(current.getDate() + 1);
+      while (isWeekend(current)) {
+        current.setDate(current.getDate() + 1);
+      }
+    }
+    return dates;
   }, [today, dateLocale]);
 
   const selectedDateInfo = useMemo(
@@ -182,10 +207,10 @@ export default function MensaDetailScreen() {
   }, [loadMeals, selectedDate]);
 
   useEffect(() => {
-    if (!weekDates.some((day) => day.key === selectedDate)) {
-      setSelectedDate(todayKey);
+    if (!weekDates.some((day) => day.key === selectedDate) && weekDates[0]) {
+      setSelectedDate(weekDates[0].key);
     }
-  }, [todayKey, weekDates, selectedDate]);
+  }, [weekDates, selectedDate]);
 
   useEffect(() => {
     const now = new Date();
