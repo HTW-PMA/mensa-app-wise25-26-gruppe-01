@@ -130,6 +130,14 @@ function RootLayoutNav() {
                     }}
                 />
                 <Stack.Screen
+                    name="language"
+                    options={{
+                        title: t('account.languageTitle'),
+                        headerShown: false,
+                        presentation: 'card',
+                    }}
+                />
+                <Stack.Screen
                     name="meal-detail"
                     options={{
                         title: t('mealDetail.title'),

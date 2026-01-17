@@ -1,12 +1,14 @@
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { FavoriteMealCard } from '@/components/favorites/FavoriteMealCard';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
 import { useMeals } from '@/hooks/useMeals';
 import { useMensas } from '@/hooks/useMensas';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function NotificationsScreen() {
@@ -15,6 +17,7 @@ export default function NotificationsScreen() {
   const { favoriteMeals } = useFavoritesContext();
   const { data: meals, isLoading, isError, error } = useMeals();
   const { data: mensas } = useMensas({ loadingtype: 'lazy' });
+  const textColor = useThemeColor({}, 'text');
 
   const canteenNameById = new Map((mensas ?? []).map((canteen) => [canteen.id, canteen.name]));
   const favoriteMealKeySet = new Set(
@@ -52,9 +55,20 @@ export default function NotificationsScreen() {
       <Stack.Screen options={{ title: t('notifications.title') }} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ThemedView style={styles.container}>
-          <ThemedText type="title" style={styles.title}>
-            {t('notifications.title')}
-          </ThemedText>
+          <View style={styles.header}>
+            <Pressable
+              onPress={() => router.back()}
+              style={styles.backButton}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.goBack')}
+            >
+              <Ionicons name="arrow-back" size={24} color={textColor} />
+            </Pressable>
+            <ThemedText type="title" style={styles.title}>
+              {t('notifications.title')}
+            </ThemedText>
+          </View>
           {isLoading ? (
             <View style={styles.stateContainer}>
               <ActivityIndicator size="large" />
@@ -100,8 +114,22 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  backButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 44,
+    width: 44,
+  },
   title: {
-    marginTop: 8,
+    marginTop: 0,
   },
   listContainer: {
     flex: 1,

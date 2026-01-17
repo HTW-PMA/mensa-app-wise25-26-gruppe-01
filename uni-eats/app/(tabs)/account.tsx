@@ -18,7 +18,6 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 const APP_VERSION = '1.0.0';
 
@@ -27,7 +26,6 @@ export default function AccountScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { t } = useTranslation();
-  const { locale, setLanguage } = useLanguage();
   const { favoriteMeals, favoriteCanteenIds } = useFavoritesContext();
   const { user, signOut, isLoading } = useAuth();
 
@@ -46,11 +44,6 @@ export default function AccountScreen() {
       .slice(0, 2);
   };
 
-  const handleEditProfile = () => {
-    // TODO: Navigiere zu Edit-Profil-Seite oder öffne Modal
-    Alert.alert(t('account.editProfileTitle'), t('account.editProfileMessage'));
-  };
-
   const handleFavorites = () => {
     router.push('/favorites' as any);
   };
@@ -63,9 +56,8 @@ export default function AccountScreen() {
     router.push('/help' as any);
   };
 
-  const handleSettings = () => {
-    // TODO: Navigiere zu App-Einstellungen
-    Alert.alert(t('account.settingsTitle'), t('account.settingsMessage'));
+  const handleLanguage = () => {
+    router.push('/language' as any);
   };
 
   const handleSignOut = () => {
@@ -143,15 +135,6 @@ export default function AccountScreen() {
               </ThemedText>
             </View>
 
-            {/* Edit Button */}
-            <TouchableOpacity
-              onPress={handleEditProfile}
-              style={styles.editButton}
-            >
-              <ThemedText style={styles.editButtonText}>
-                {t('account.edit')}
-              </ThemedText>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -189,56 +172,12 @@ export default function AccountScreen() {
           />
 
           <AccountMenuItem
-            icon="settings"
-            title={t('account.menu.settingsTitle')}
-            subtitle={t('account.menu.settingsSubtitle')}
-            onPress={handleSettings}
+            icon="language"
+            title={t('account.menu.languageTitle')}
+            subtitle={t('account.menu.languageSubtitle')}
+            onPress={handleLanguage}
             showDivider={false}
           />
-        </View>
-
-        <View style={styles.languageSection}>
-          <ThemedText style={styles.languageTitle}>{t('account.languageTitle')}</ThemedText>
-          <View style={styles.languageOptions}>
-            <TouchableOpacity
-              onPress={() => setLanguage('en')}
-              style={[
-                styles.languageOption,
-                {
-                  backgroundColor: locale === 'en' ? Colors.light.tint : 'transparent',
-                  borderColor: locale === 'en' ? Colors.light.tint : dividerColor,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.languageOptionText,
-                  { color: locale === 'en' ? '#FFFFFF' : subtitleGrayColor },
-                ]}
-              >
-                {t('account.languageEnglish')}
-              </ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setLanguage('de')}
-              style={[
-                styles.languageOption,
-                {
-                  backgroundColor: locale === 'de' ? Colors.light.tint : 'transparent',
-                  borderColor: locale === 'de' ? Colors.light.tint : dividerColor,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.languageOptionText,
-                  { color: locale === 'de' ? '#FFFFFF' : subtitleGrayColor },
-                ]}
-              >
-                {t('account.languageGerman')}
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Sign Out Button */}
@@ -338,52 +277,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.regular,
   },
-  editButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  editButtonText: {
-    color: Colors.light.tint,
-
-    fontFamily: Fonts.bold,
-    ...Platform.select({
-      ios: {
-        fontSize: 16,
-      },
-      android: {
-        fontSize: 14,
-
-      }
-    }),
-  },
-
   // Menu Section Styles
   menuSection: {
     marginTop: 1,
-  },
-
-  languageSection: {
-    paddingHorizontal: 16,
-    marginTop: 24,
-  },
-  languageTitle: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    marginBottom: 12,
-  },
-  languageOptions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  languageOption: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  languageOptionText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
   },
 
   // Sign Out Section Styles
