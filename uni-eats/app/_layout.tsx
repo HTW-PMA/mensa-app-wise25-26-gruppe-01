@@ -67,20 +67,21 @@ function RootLayoutNav() {
 
         if (!isAuthenticated) {
             if (!inAuthGroup) {
-                router.replace('/welcome' as any);
+                // Use setTimeout to avoid race conditions during initial navigation
+                setTimeout(() => router.replace('/welcome' as any), 0);
             }
             return;
         }
 
         if (!isProfileComplete) {
             if (!inCompleteProfile) {
-                router.replace('/complete-profile' as any);
+                setTimeout(() => router.replace('/complete-profile' as any), 0);
             }
             return;
         }
 
         if (inAuthGroup) {
-            router.replace('/(tabs)' as any);
+            setTimeout(() => router.replace('/(tabs)' as any), 0);
         }
     }, [
         isAuthenticated,
