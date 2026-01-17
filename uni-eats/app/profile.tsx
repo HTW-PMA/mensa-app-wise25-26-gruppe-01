@@ -3,7 +3,6 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, View, Platform } from 
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Colors, Fonts } from '@/constants/theme';
@@ -17,122 +16,131 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { user } = useAuth();
-  
+
   const cardBackground = isDark ? '#1C1C1E' : '#FFFFFF';
   const textColor = isDark ? '#FFFFFF' : '#000000';
   const subTextColor = isDark ? '#9BA1A6' : '#6B7280';
   const borderColor = isDark ? '#333333' : '#E5E7EB';
-  
+  const iconBg = isDark ? '#2C2C2E' : '#F2F2F7';
+
   const getInitials = (name: string): string => {
     return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+        .split(' ')
+        .map((part) => part[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
   };
 
-  return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        { backgroundColor: isDark ? Colors.dark.background : '#F2F2F7' },
-      ]}
-    >
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
-        <Pressable 
-          style={styles.backButton} 
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-        >
-          <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
-        </Pressable>
-        <ThemedText style={styles.headerTitle}>{t('profile.title')}</ThemedText>
-        <View style={styles.headerRight} />
+  const InfoRow = ({
+                     icon,
+                     title,
+                     value,
+                     isLast = false
+                   }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    value: string;
+    isLast?: boolean;
+  }) => (
+      <View style={styles.rowContainer}>
+        <View style={[styles.infoRow, { backgroundColor: cardBackground }]}>
+          <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
+            <Ionicons name={icon} size={20} color={Colors.light.tint} />
+          </View>
+
+          <View style={[styles.infoContent, !isLast && { borderBottomColor: borderColor, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+            <View style={styles.textContainer}>
+              <ThemedText style={styles.infoTitle}>{title}</ThemedText>
+              <ThemedText
+                  style={[styles.infoValue, { color: textColor }]}
+                  numberOfLines={2}
+              >
+                {value}
+              </ThemedText>
+            </View>
+          </View>
+        </View>
       </View>
+  );
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.headerContainer}>
-          <View style={[styles.avatarContainer, { backgroundColor: Colors.light.tint }]}>
-            <ThemedText style={styles.avatarText}>
-              {user?.name ? getInitials(user.name) : 'UE'}
-            </ThemedText>
-          </View>
-          
-          <ThemedText style={styles.userName}>{user?.name || 'User'}</ThemedText>
-          <ThemedText style={[styles.userEmail, { color: subTextColor }]}>
-            {user?.email || ''}
-          </ThemedText>
-
+  return (
+      <SafeAreaView
+          style={[
+            styles.safeArea,
+            { backgroundColor: isDark ? Colors.dark.background : '#F2F2F7' },
+          ]}
+      >
+        <View style={[styles.header, { borderBottomColor: borderColor }]}>
           <Pressable
-            style={({ pressed }) => [
-              styles.editButton,
-              { 
-                backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF',
-                opacity: pressed ? 0.8 : 1
-              }
-            ]}
-            onPress={() => router.push('/profile-edit' as any)}
+              style={styles.backButton}
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back')}
           >
-            <Ionicons name="pencil" size={16} color={Colors.light.tint} style={{ marginRight: 8 }} />
-            <ThemedText style={[styles.editButtonText, { color: Colors.light.tint }]}>
-              {t('profile.editButton')}
-            </ThemedText>
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
           </Pressable>
+          <ThemedText style={styles.headerTitle}>{t('profile.title')}</ThemedText>
+          <View style={styles.headerRight} />
         </View>
 
-        <View style={styles.cardsContainer}>
-          <View style={[styles.card, { backgroundColor: cardBackground }]}>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: isDark ? '#2C2C2E' : '#F0F9F2' }]}>
-                <Ionicons name="school-outline" size={20} color={Colors.light.tint} />
-              </View>
-              <ThemedText style={styles.cardTitle}>{t('profile.statusTitle')}</ThemedText>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.headerContainer}>
+            <View style={[styles.avatarContainer, { backgroundColor: Colors.light.tint }]}>
+              <ThemedText style={styles.avatarText}>
+                {user?.name ? getInitials(user.name) : 'UE'}
+              </ThemedText>
             </View>
-            <ThemedText style={[styles.cardValue, { color: textColor }]}>
-              {profile?.status ? t(`profile.status.${profile.status}`) : t('profile.notSet')}
+
+            <ThemedText style={styles.userName}>{user?.name || 'User'}</ThemedText>
+            <ThemedText style={[styles.userEmail, { color: subTextColor }]}>
+              {user?.email || ''}
             </ThemedText>
+
+            <Pressable
+                style={({ pressed }) => [
+                  styles.editButton,
+                  {
+                    backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF',
+                    opacity: pressed ? 0.8 : 1
+                  }
+                ]}
+                onPress={() => router.push('/profile-edit' as any)}
+            >
+              <Ionicons name="pencil" size={16} color={Colors.light.tint} style={{ marginRight: 8 }} />
+              <ThemedText style={[styles.editButtonText, { color: Colors.light.tint }]}>
+                {t('profile.editButton')}
+              </ThemedText>
+            </Pressable>
           </View>
 
-          <View style={[styles.card, { backgroundColor: cardBackground }]}>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: isDark ? '#2C2C2E' : '#F0F9F2' }]}>
-                <Ionicons name="business-outline" size={20} color={Colors.light.tint} />
-              </View>
-              <ThemedText style={styles.cardTitle}>{t('profile.universityTitle')}</ThemedText>
+          <View style={styles.listSection}>
+            <View style={[styles.listContainer, { backgroundColor: cardBackground }]}>
+              <InfoRow
+                  icon="school-outline"
+                  title={t('profile.statusTitle')}
+                  value={profile?.status ? t(`profile.status.${profile.status}`) : t('profile.notSet')}
+              />
+              <InfoRow
+                  icon="business-outline"
+                  title={t('profile.universityTitle')}
+                  value={profile?.universityName ?? t('profile.notSet')}
+              />
+              <InfoRow
+                  icon="restaurant-outline"
+                  title={t('profile.dietTitle')}
+                  value={profile?.dietType ? t(`profile.diet.${profile.dietType}`) : t('profile.notSet')}
+              />
+              <InfoRow
+                  icon="alert-circle-outline"
+                  title={t('profile.allergiesTitle')}
+                  value={profile?.allergies?.length ? profile.allergies.join(', ') : t('profile.none')}
+                  isLast={true}
+              />
             </View>
-            <ThemedText style={[styles.cardValue, { color: textColor }]}>
-              {profile?.universityName ?? t('profile.notSet')}
-            </ThemedText>
           </View>
-
-          <View style={[styles.card, { backgroundColor: cardBackground }]}>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: isDark ? '#2C2C2E' : '#F0F9F2' }]}>
-                <Ionicons name="restaurant-outline" size={20} color={Colors.light.tint} />
-              </View>
-              <ThemedText style={styles.cardTitle}>{t('profile.dietTitle')}</ThemedText>
-            </View>
-            <ThemedText style={[styles.cardValue, { color: textColor }]}>
-              {profile?.dietType ? t(`profile.diet.${profile.dietType}`) : t('profile.notSet')}
-            </ThemedText>
-          </View>
-
-          <View style={[styles.card, { backgroundColor: cardBackground }]}>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: isDark ? '#2C2C2E' : '#FFF0F0' }]}>
-                <Ionicons name="alert-circle-outline" size={20} color={Colors.light.tint} />
-              </View>
-              <ThemedText style={styles.cardTitle}>{t('profile.allergiesTitle')}</ThemedText>
-            </View>
-            <ThemedText style={[styles.cardValue, { color: textColor }]}>
-              {profile?.allergies?.length ? profile.allergies.join(', ') : t('profile.none')}
-            </ThemedText>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
   );
 }
 
@@ -225,40 +233,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.bold,
   },
-  cardsContainer: {
+  listSection: {
     paddingHorizontal: 20,
-    gap: 16,
   },
-  card: {
-    padding: 20,
+  listContainer: {
     borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    overflow: 'hidden',
   },
-  cardHeader: {
+  rowContainer: {
+    flexDirection: 'column',
+  },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingLeft: 16,
+    minHeight: 70,
   },
-  iconContainer: {
+  iconBox: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
-  cardTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    opacity: 0.8,
+  infoContent: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingRight: 16,
+    justifyContent: 'center',
   },
-  cardValue: {
+  textContainer: {
+    flexDirection: 'column',
+    gap: 4,
+  },
+  infoTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#8E8E93',
+    textTransform: 'uppercase',
+  },
+  infoValue: {
     fontSize: 16,
     fontFamily: Fonts.regular,
-    paddingLeft: 48, // Align with title text (36 icon + 12 gap)
+    lineHeight: 22,
   },
 });
