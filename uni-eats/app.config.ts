@@ -12,7 +12,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.unieats.app",
+    bundleIdentifier: "com.unieats2.app",
     icon: "./assets/images/icon.png",
   },
   android: {
@@ -27,7 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    package: "com.unieats.app"
+    package: "com.unieats2.app"
   },
   web: {
     output: "static",
