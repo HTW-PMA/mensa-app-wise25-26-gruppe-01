@@ -12,6 +12,8 @@ interface UseFavoritesResult {
   refresh: () => Promise<void>;
   removeFavoriteCanteen: (canteenId: string) => Promise<void>;
   removeFavoriteMeal: (mealId: string, canteenId: string) => Promise<void>;
+  clearFavoriteCanteens: () => Promise<void>;
+  clearFavoriteMeals: () => Promise<void>;
   favoriteMealKeys: Array<{ mealId: string; canteenId: string }>;
   favoriteCanteenIds: string[];
 }
@@ -27,6 +29,8 @@ export function useFavorites(): UseFavoritesResult {
     isLoading: contextLoading,
     removeFavoriteCanteen: contextRemoveCanteen,
     removeFavoriteMeal: contextRemoveMeal,
+    clearFavoriteCanteens: contextClearCanteens,
+    clearFavoriteMeals: contextClearMeals,
   } = useFavoritesContext();
 
   const { location } = useLocation();
@@ -143,13 +147,29 @@ export function useFavorites(): UseFavoritesResult {
   };
 
   const removeFavoriteCanteen = async (canteenId: string) => {
-    await contextRemoveCanteen(canteenId);
+    // Optimistic Update: Remove from UI immediately
     setFavoriteCanteens(prev => prev.filter(c => c.id !== canteenId));
+    // Remove from storage in background
+    await contextRemoveCanteen(canteenId);
   };
 
   const removeFavoriteMeal = async (mealId: string, canteenId: string) => {
-    await contextRemoveMeal(mealId, canteenId);
+    // Optimistic Update: Remove from UI immediately
     setFavoriteMeals(prev => prev.filter(m => !(m.id === mealId && m.canteenId === canteenId)));
+    // Remove from storage in background
+    await contextRemoveMeal(mealId, canteenId);
+  };
+
+  const clearFavoriteCanteens = async () => {
+    // Optimistic Update
+    setFavoriteCanteens([]);
+    await contextClearCanteens();
+  };
+
+  const clearFavoriteMeals = async () => {
+    // Optimistic Update
+    setFavoriteMeals([]);
+    await contextClearMeals();
   };
 
   return {
@@ -161,6 +181,8 @@ export function useFavorites(): UseFavoritesResult {
     refresh,
     removeFavoriteCanteen,
     removeFavoriteMeal,
+    clearFavoriteCanteens,
+    clearFavoriteMeals,
     favoriteMealKeys,
     favoriteCanteenIds,
   };

@@ -12,10 +12,15 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ProfileProvider, useProfile } from '@/contexts/ProfileContext';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useFavoriteMealAlerts } from '@/hooks/useFavoriteMealAlerts';
 import { useTranslation } from '@/hooks/useTranslation';
+
+// Ignore specific logs
+LogBox.ignoreLogs([
+  'Text strings must be rendered within a <Text> component',
+]);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

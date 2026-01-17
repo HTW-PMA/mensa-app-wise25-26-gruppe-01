@@ -87,7 +87,7 @@ export function useGoogleRatings(canteens: Canteen[]) {
   /**
    * Erweitert Canteens mit Google Rating Daten
    */
-  const enrichCanteensWithRatings = (canteenList: Canteen[]): Canteen[] => {
+  const enrichCanteensWithRatings = <T extends Canteen>(canteenList: T[]): T[] => {
     return canteenList.map(canteen => {
       const googleData = ratings[canteen.id];
       if (googleData) {

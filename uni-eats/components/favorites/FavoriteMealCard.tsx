@@ -134,9 +134,7 @@ export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: Favor
     if (!onRemove) return null;
     
     return (
-      <Pressable style={styles.deleteAction} onPress={onRemove}>
-        <Ionicons name="trash-outline" size={24} color="#fff" />
-      </Pressable>
+      <View style={styles.deleteAction} />
     );
   };
 
@@ -172,34 +170,18 @@ export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: Favor
         </Text>
         
         {/* Badges */}
-        {badges.length > 0 && (
+        {badges.length > 0 ? (
           <View style={styles.badgeRow}>
             {badges.map((badge, index) => {
               const badgeStyle = getBadgeStyle(badge.type);
               return (
-                <View 
-                  key={index} 
-                  style={[
-                    styles.badge, 
-                    { 
-                      borderColor: badgeStyle.borderColor,
-                      backgroundColor: badgeStyle.backgroundColor,
-                    }
-                  ]}
-                >
-                  <Text 
-                    style={[
-                      styles.badgeText,
-                      { color: badgeStyle.textColor }
-                    ]}
-                  >
-                    {badge.name}
-                  </Text>
+                <View key={index} style={[styles.badge, { borderColor: badgeStyle.borderColor, backgroundColor: badgeStyle.backgroundColor }]}>
+                  <Text style={[styles.badgeText, { color: badgeStyle.textColor }]}>{badge.name}</Text>
                 </View>
               );
             })}
           </View>
-        )}
+        ) : null}
       </View>
       
       {/* Rechte Seite: Preis & Kalorien */}
@@ -213,7 +195,14 @@ export function FavoriteMealCard({ meal, canteenName, onPress, onRemove }: Favor
   // Wenn onRemove vorhanden ist, wrap mit Swipeable
   if (onRemove) {
     return (
-      <Swipeable renderRightActions={renderRightActions}>
+      <Swipeable 
+        renderRightActions={renderRightActions}
+        onSwipeableOpen={(direction) => {
+          if (direction === 'right' && onRemove) {
+            onRemove();
+          }
+        }}
+      >
         {CardContent}
       </Swipeable>
     );
