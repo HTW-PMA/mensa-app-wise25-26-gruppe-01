@@ -17,14 +17,6 @@ export interface CanteenWithMeals extends Canteen {
   hasMealsToday?: boolean;
 }
 
-// Filter List Definition
-const FILTERS = [
-  { value: 'all', labelKey: 'home.filters.all' },
-  { value: 'vegetarian', labelKey: 'home.filters.vegetarian' },
-  { value: 'vegan', labelKey: 'home.filters.vegan' },
-  { value: 'halal', labelKey: 'home.filters.halal' },
-  { value: 'glutenfree', labelKey: 'home.filters.glutenFree' },
-];
 
 /**
  * Prüft ob eine Mensa heute geschlossen ist
@@ -71,12 +63,9 @@ export function HomeScreen() {
   // Google Ratings Hook
   const { enrichCanteensWithRatings } = useGoogleRatings(canteens);
 
-  const [activeFilter, setActiveFilter] = useState('all');
-
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const iconColor = useThemeColor({}, 'icon');
-  const filterBg = useThemeColor({ light: '#f5f5f5', dark: '#1c1c1e' }, 'background');
   const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#333' }, 'border');
 
   const loadCanteens = async () => {
@@ -221,34 +210,6 @@ export function HomeScreen() {
               {hasFavoriteMealAvailable && <View style={styles.notificationBadge} />}
             </Pressable>
           </View>
-
-          {/* Filter */}
-          <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterScroll}
-          >
-            {FILTERS.map((filter) => (
-                <Pressable
-                    key={filter.value}
-                    onPress={() => setActiveFilter(filter.value)}
-                    style={[
-                      styles.filterItem,
-                      {
-                        backgroundColor: activeFilter === filter.value ? Colors.light.tint : filterBg,
-                        borderColor: activeFilter === filter.value ? Colors.light.tint : borderColor
-                      }
-                    ]}
-                >
-                  <Text style={[
-                    styles.filterText,
-                    { color: activeFilter === filter.value ? '#fff' : textColor }
-                  ]}>
-                    {t(filter.labelKey)}
-                  </Text>
-                </Pressable>
-            ))}
-          </ScrollView>
         </View>
 
         <ScrollView
@@ -355,46 +316,6 @@ const styles = StyleSheet.create({
       }
     }),
   },
-  filterScroll: {
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  filterItem: {
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    backgroundColor: '#f5f5f5',
-    borderWidth: 1,
-    borderColor: '#eee',
-    ...Platform.select({
-      ios: {
-        paddingVertical: 7,
-      },
-      android: {
-        paddingVertical: 0,
-      }
-    }),
-  },
-  filterItemActive: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
-  },
-  filterText: {
-    fontFamily: Fonts.bold,
-
-    color: '#666',
-    lineHeight: 30,
-    ...Platform.select({
-      ios: {
-        fontSize: 16,
-      },
-      android: {
-        fontSize: 14,
-      }
-    }),
-  },
-  filterTextActive: {
-    color: '#fff',
-  },
   scrollContent: {
     paddingBottom: 40,
   },
@@ -408,3 +329,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+

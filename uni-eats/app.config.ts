@@ -3,7 +3,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Uni Eats",
-  slug: "uni-eats",
+  slug: "unieats",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -55,8 +55,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     eas: {
-      projectId: "4001d56b-2ee4-4457-b535-123454c5ce5c"
+      projectId: "820258d6-8338-4456-9372-fef8f7b7b722"
     }
   },
-  owner: "pascal_noack"
+  owner: "pascalnoacks-organization"
 });
