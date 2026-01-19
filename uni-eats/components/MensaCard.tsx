@@ -146,7 +146,6 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
     canteen.address?.street ||
     t('common.notAvailable');
 
-  const badges = [t('mensaCard.badges.fastService'), t('mensaCard.badges.vegan')];
   const separator = t('common.separator');
 
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#1c1c1e' }, 'background');
@@ -175,15 +174,6 @@ export function MensaCard({ canteen, onPress }: MensaCardProps) {
           {isClosed && (
             <View style={styles.closedOverlay}>
               <Text style={styles.closedOverlayText}>{t('mensaCard.closed')}</Text>
-            </View>
-          )}
-          {!isClosed && (
-            <View style={styles.badgeOverlay}>
-              {badges.slice(0, 2).map((badge, index) => (
-                <View key={index} style={styles.badgeContainer}>
-                  <Text style={styles.badgeText}>{badge}</Text>
-                </View>
-              ))}
             </View>
           )}
         </View>
@@ -305,27 +295,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     textTransform: 'uppercase',
     letterSpacing: 2,
-  },
-  badgeOverlay: {
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
-    flexDirection: 'row',
-    gap: 6,
-  },
-  badgeContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-    includeFontPadding: false,
   },
   contentContainer: {
     padding: 12,
