@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Pressable,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -36,6 +37,8 @@ export default function FavoritesScreen() {
     refresh,
     removeFavoriteCanteen,
     removeFavoriteMeal,
+    clearFavoriteCanteens,
+    clearFavoriteMeals,
   } = useFavorites();
   const { data: mensas } = useMensas({ loadingtype: 'lazy' });
 
@@ -52,8 +55,59 @@ export default function FavoritesScreen() {
   };
 
   const handleMealPress = (mealId: string, canteenId?: string) => {
-    // TODO: Navigiere zu Meal-Detail wenn vorhanden
-    console.log('Meal pressed:', mealId, canteenId);
+    const meal = favoriteMeals.find((m) => m.id === mealId && m.canteenId === canteenId);
+    if (!meal) {
+      console.warn('Meal not found in favorites:', mealId, canteenId);
+      return;
+    }
+
+    const canteenName = (canteenId && canteenNameById.get(canteenId)) || '';
+
+    router.push({
+      pathname: '/meal-detail',
+      params: {
+        id: meal.id,
+        name: meal.name,
+        category: meal.category || '',
+        prices: JSON.stringify(meal.prices || []),
+        additives: JSON.stringify(meal.additives || []),
+        badges: JSON.stringify(meal.badges || []),
+        co2Bilanz: meal.co2Bilanz?.toString() || '',
+        waterBilanz: meal.waterBilanz?.toString() || '',
+        canteenName: canteenName,
+        canteenId: meal.canteenId,
+      },
+    });
+  };
+
+  const handleClearCanteens = () => {
+    Alert.alert(
+      t('favorites.clearCanteensTitle') || 'Clear Canteens',
+      t('favorites.clearCanteensMessage') || 'Are you sure you want to remove all favorite canteens?',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { 
+          text: t('common.delete'), 
+          style: 'destructive',
+          onPress: clearFavoriteCanteens
+        }
+      ]
+    );
+  };
+
+  const handleClearMeals = () => {
+    Alert.alert(
+      t('favorites.clearMealsTitle') || 'Clear Meals',
+      t('favorites.clearMealsMessage') || 'Are you sure you want to remove all favorite meals?',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { 
+          text: t('common.delete'), 
+          style: 'destructive',
+          onPress: clearFavoriteMeals
+        }
+      ]
+    );
   };
 
   if (isLoading) {
@@ -121,10 +175,18 @@ export default function FavoritesScreen() {
             {favoriteCanteens.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="star-outline" size={20} color={sectionTitleColor} />
-                  <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-                    {t('favorites.mensasTitle', { count: favoriteCanteens.length })}
-                  </ThemedText>
+                  <View style={styles.sectionHeaderLeft}>
+                    <Ionicons name="star-outline" size={20} color={sectionTitleColor} />
+                    <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+                      {t('favorites.mensasTitle', { count: favoriteCanteens.length })}
+                    </ThemedText>
+                  </View>
+                  <Pressable 
+                    style={({ pressed }) => [styles.resetButton, pressed && styles.resetButtonPressed]} 
+                    onPress={handleClearCanteens}
+                  >
+                    <ThemedText style={styles.resetButtonText}>{t('common.reset') || 'Reset'}</ThemedText>
+                  </Pressable>
                 </View>
                 
                 <View style={styles.canteensList}>
@@ -144,10 +206,18 @@ export default function FavoritesScreen() {
             {favoriteMeals.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="heart-outline" size={20} color={sectionTitleColor} />
-                  <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-                    {t('favorites.mealsTitle', { count: favoriteMeals.length })}
-                  </ThemedText>
+                  <View style={styles.sectionHeaderLeft}>
+                    <Ionicons name="heart-outline" size={20} color={sectionTitleColor} />
+                    <ThemedText style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+                      {t('favorites.mealsTitle', { count: favoriteMeals.length })}
+                    </ThemedText>
+                  </View>
+                  <Pressable 
+                    style={({ pressed }) => [styles.resetButton, pressed && styles.resetButtonPressed]} 
+                    onPress={handleClearMeals}
+                  >
+                    <ThemedText style={styles.resetButtonText}>{t('common.reset') || 'Reset'}</ThemedText>
+                  </Pressable>
                 </View>
                 
                 <View style={styles.mealsList}>
@@ -270,11 +340,30 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   sectionTitle: {
     fontSize: 16,
+    fontFamily: 'GoogleSans-Bold',
+  },
+  resetButton: {
+    backgroundColor: '#FF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  resetButtonPressed: {
+    opacity: 0.8,
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontFamily: 'GoogleSans-Bold',
   },
   emptySection: {
@@ -289,7 +378,6 @@ const styles = StyleSheet.create({
   },
   canteensList: {
     gap: 12,
-    paddingHorizontal: 16,
   },
   mealsList: {
     gap: 0,

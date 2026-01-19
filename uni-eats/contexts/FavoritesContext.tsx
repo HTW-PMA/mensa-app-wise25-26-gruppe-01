@@ -29,6 +29,8 @@ interface FavoritesContextType {
   toggleFavoriteCanteen: (canteenId: string) => Promise<void>;
   toggleFavoriteMeal: (mealId: string, canteenId: string) => Promise<void>;
   clearFavorites: () => void;
+  clearFavoriteCanteens: () => Promise<void>;
+  clearFavoriteMeals: () => Promise<void>;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
@@ -212,6 +214,32 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
     }
   };
 
+  /**
+   * Löscht alle favorisierten Mensen
+   */
+  const clearFavoriteCanteens = async () => {
+    if (!user?.id) return;
+    try {
+      setFavoriteCanteenIds([]);
+      await storage.save(getStorageKeyCanteens(user.id), []);
+    } catch (error) {
+      console.error('Error clearing favorite canteens:', error);
+    }
+  };
+
+  /**
+   * Löscht alle favorisierten Gerichte
+   */
+  const clearFavoriteMeals = async () => {
+    if (!user?.id) return;
+    try {
+      setFavoriteMeals([]);
+      await storage.save(getStorageKeyMeals(user.id), []);
+    } catch (error) {
+      console.error('Error clearing favorite meals:', error);
+    }
+  };
+
   return (
     <FavoritesContext.Provider
       value={{
@@ -227,6 +255,8 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
         toggleFavoriteCanteen,
         toggleFavoriteMeal,
         clearFavorites,
+        clearFavoriteCanteens,
+        clearFavoriteMeals,
       }}
     >
       {children}

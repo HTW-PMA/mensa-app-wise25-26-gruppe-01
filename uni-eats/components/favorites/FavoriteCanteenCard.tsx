@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Pressable, View, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Swipeable } from 'react-native-gesture-handler';
 import { type Canteen } from '@/services/mensaApi';
 import { formatDistance } from '@/hooks/useLocation';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -18,13 +19,19 @@ export function FavoriteCanteenCard({ canteen, onPress, onRemove }: FavoriteCant
   
   const tintColor = useThemeColor({ light: Colors.light.tint, dark: '#2c2c2e' }, 'tint');
   const textColor = '#FFFFFF';
-  const shadowColor = useThemeColor({ light: Colors.light.tint, dark: '#000000' }, 'tint');
 
   const distanceText = canteen.distance !== undefined 
     ? t('favorites.distanceAway', { distance: formatDistance(canteen.distance) })
     : canteen.address?.district || canteen.address?.city || '';
 
-  return (
+  const renderRightActions = () => {
+    if (!onRemove) return null;
+    return (
+      <View style={styles.deleteAction} />
+    );
+  };
+
+  const CardContent = (
     <Pressable
       style={({ pressed }) => [
         styles.container, 
@@ -39,21 +46,25 @@ export function FavoriteCanteenCard({ canteen, onPress, onRemove }: FavoriteCant
           <Text style={[styles.distance, { color: 'rgba(255,255,255,0.8)' }]}>{distanceText}</Text>
         ) : null}
       </View>
-      
-      {onRemove && (
-        <Pressable
-          style={styles.removeButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          hitSlop={10}
-        >
-          <Ionicons name="close-circle" size={24} color="rgba(255,255,255,0.7)" />
-        </Pressable>
-      )}
     </Pressable>
   );
+
+  if (onRemove) {
+    return (
+      <Swipeable 
+        renderRightActions={renderRightActions}
+        onSwipeableOpen={(direction) => {
+          if (direction === 'right' && onRemove) {
+            onRemove();
+          }
+        }}
+      >
+        {CardContent}
+      </Swipeable>
+    );
+  }
+
+  return CardContent;
 }
 
 const styles = StyleSheet.create({
@@ -63,6 +74,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 80, // Ensure consistent height
     
     ...Platform.select({
       ios: {
@@ -92,8 +104,13 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Regular',
     fontSize: 14,
   },
-  removeButton: {
-    padding: 4,
-    marginLeft: 12,
+  deleteAction: {
+    backgroundColor: '#FF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
   },
 });

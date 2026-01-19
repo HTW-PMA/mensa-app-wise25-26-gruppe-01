@@ -66,7 +66,7 @@ export function HomeScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const iconColor = useThemeColor({}, 'icon');
-  const borderColor = useThemeColor({ light: '#e0e0e0', dark: '#333' }, 'border');
+  const borderColor = useThemeColor({ light: '#E5E7EB', dark: '#333333' }, 'border');
 
   const loadCanteens = async () => {
     try {
@@ -125,8 +125,11 @@ export function HomeScreen() {
       enriched = enriched.map(canteen => {
         const geoLoc = canteen.address?.geoLocation;
         // Robuste Prüfung: Stelle sicher dass latitude/longitude valide Zahlen sind
-        const lat = typeof geoLoc?.latitude === 'number' ? geoLoc.latitude : parseFloat(geoLoc?.latitude);
-        const lon = typeof geoLoc?.longitude === 'number' ? geoLoc.longitude : parseFloat(geoLoc?.longitude);
+        const rawLat = geoLoc?.latitude;
+        const rawLon = geoLoc?.longitude;
+        
+        const lat = typeof rawLat === 'number' ? rawLat : parseFloat(rawLat ?? '0');
+        const lon = typeof rawLon === 'number' ? rawLon : parseFloat(rawLon ?? '0');
         
         if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
           const distance = calculateDistance(
@@ -249,21 +252,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-
     backgroundColor: '#fff',
     borderBottomWidth: 1,
+    marginTop: 50,
+    marginBottom:10,
     borderColor: '#f0f0f0',
-    ...Platform.select({
-      ios: {
-        paddingTop: 65,
-        paddingBottom: 25,
-      },
-      android: {
-        paddingTop: 60,
-        paddingBottom: 20,
-      }
-    }),
-
   },
   topBar: {
     flexDirection: 'row',

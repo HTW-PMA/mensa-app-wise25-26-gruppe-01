@@ -177,13 +177,10 @@ export const MealCard = memo(function MealCard({ meal, onPress }: MealCardProps)
         <View style={styles.metaRow}>
           <Text style={[styles.calories, { color: subTextColor }]}>{calories}</Text>
           {hasAllergens && (
-            <>
+            <View style={styles.allergensContainer}>
               <Text style={[styles.separator, { color: subTextColor }]}>{separator}</Text>
-              <Pressable style={styles.allergensLink}>
-                <Ionicons name="alert-circle-outline" size={14} color="#FF9800" />
-                <Text style={styles.allergensText}>{t('common.allergens')}</Text>
-              </Pressable>
-            </>
+              <Pressable style={styles.allergensLink}><Ionicons name="alert-circle-outline" size={14} color="#FF9800" /><Text style={styles.allergensText}>{t('common.allergens')}</Text></Pressable>
+            </View>
           )}
         </View>
 
@@ -284,6 +281,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
+  },
+  allergensContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   calories: {
     fontFamily: 'GoogleSans-Regular',

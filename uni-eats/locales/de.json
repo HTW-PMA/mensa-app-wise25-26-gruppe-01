@@ -3,6 +3,8 @@
     "back": "Zurück",
     "goBack": "Zurück",
     "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "reset": "Zurücksetzen",
     "view": "Anzeigen",
     "errorTitle": "Fehler",
     "loading": "Lädt...",
@@ -259,7 +261,11 @@
       "one": "1 Gericht",
       "other": "%{count} Gerichte"
     },
-    "distanceAway": "%{distance} entfernt"
+    "distanceAway": "%{distance} entfernt",
+    "clearCanteensTitle": "Mensen entfernen",
+    "clearCanteensMessage": "Möchtest du wirklich alle Favoriten-Mensen entfernen?",
+    "clearMealsTitle": "Gerichte entfernen",
+    "clearMealsMessage": "Möchtest du wirklich alle Favoriten-Gerichte entfernen?"
   },
   "help": {
     "title": "Hilfe",

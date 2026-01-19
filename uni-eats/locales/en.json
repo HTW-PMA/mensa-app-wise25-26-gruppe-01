@@ -3,6 +3,8 @@
     "back": "Back",
     "goBack": "Go back",
     "cancel": "Cancel",
+    "delete": "Delete",
+    "reset": "Reset",
     "view": "View",
     "errorTitle": "Error",
     "loading": "Loading...",
@@ -259,7 +261,11 @@
       "one": "1 meal",
       "other": "%{count} meals"
     },
-    "distanceAway": "%{distance} away"
+    "distanceAway": "%{distance} away",
+    "clearCanteensTitle": "Clear Canteens",
+    "clearCanteensMessage": "Are you sure you want to remove all favorite canteens?",
+    "clearMealsTitle": "Clear Meals",
+    "clearMealsMessage": "Are you sure you want to remove all favorite meals?"
   },
   "help": {
     "title": "Help",
