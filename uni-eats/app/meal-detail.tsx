@@ -167,7 +167,7 @@ const getMealImage = (name: string, category?: string): string => {
   }
   
   // Default Fallback
-  return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop';
+  return 'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=160&h=160&fit=crop';
 };
 
 /**
