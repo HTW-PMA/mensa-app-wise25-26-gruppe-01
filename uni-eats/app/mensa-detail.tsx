@@ -13,7 +13,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { mensaApi, type Canteen, type Meal, type BusinessHour } from '@/services/mensaApi';
+import { type Canteen, type Meal, type BusinessHour } from '@/services/mensaApi';
 import { MealCard } from '@/components/MealCard';
 import { Colors } from '@/constants/theme';
 import { useLocation, calculateDistance, formatDistance } from '@/hooks/useLocation';
@@ -21,6 +21,10 @@ import { useGoogleRatings } from '@/hooks/useGoogleRatings';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useMensas } from '@/hooks/useMensas';
+import { useMeals } from '@/hooks/useMeals';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/utils/queryKeys';
 
 const formatLocalDateKey = (date: Date): string => {
   const year = date.getFullYear();
@@ -54,6 +58,7 @@ export default function MensaDetailScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const { t, locale } = useTranslation();
+  const queryClient = useQueryClient();
 
   // Theme Colors
   const backgroundColor = useThemeColor({ light: '#F5F5F5', dark: '#000000' }, 'background');
@@ -62,7 +67,6 @@ export default function MensaDetailScreen() {
   const subTextColor = useThemeColor({ light: '#666666', dark: '#9BA1A6' }, 'text');
   const borderColor = useThemeColor({ light: '#E0E0E0', dark: '#2C2C2E' }, 'border');
   const iconColor = useThemeColor({}, 'icon');
-  const tintColor = useThemeColor({}, 'tint');
   const dateChipBg = useThemeColor({ light: '#333333', dark: '#2C2C2E' }, 'background');
   const dateChipText = useThemeColor({ light: '#f5f5f5', dark: '#E0E0E0' }, 'text');
 
@@ -70,17 +74,33 @@ export default function MensaDetailScreen() {
   const { location } = useLocation();
 
   // State
-  const [canteen, setCanteen] = useState<Canteen | null>(null);
-  const [meals, setMeals] = useState<Meal[]>([]);
-  const [loadingCanteen, setLoadingCanteen] = useState(true);
-  const [loadingMeals, setLoadingMeals] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(() =>
     formatLocalDateKey(getNextWeekday(new Date()))
   );
   const [today, setToday] = useState<Date>(() => new Date());
-  const [canteenError, setCanteenError] = useState<string | null>(null);
-  const [mealsError, setMealsError] = useState<string | null>(null);
+
+  // Use Hooks for Data (Offline Support)
+  // 1. Get Canteen from cached list
+  const { data: allCanteens, isLoading: loadingCanteens } = useMensas({ loadingtype: 'complete' });
+  const canteen = useMemo(() => 
+    allCanteens?.find(c => c.id === id) || null
+  , [allCanteens, id]);
+
+  // 2. Get Meals for selected date (cached)
+
+  // 2. Get Meals for selected date (cached)
+  const { 
+    data: meals, 
+    isLoading: loadingMeals, 
+    isError: mealsErrorState,
+    error: mealsErrorObj 
+  } = useMeals({ 
+    canteenId: id,
+    date: selectedDate 
+  });
+
+  const mealsError = mealsErrorState ? (mealsErrorObj?.message || t('mensaDetail.mealsLoadError')) : null;
 
   // Google Ratings Hook - lädt Ratings im Hintergrund während Meals angezeigt werden
   const { enrichCanteensWithRatings } = useGoogleRatings(canteen ? [canteen] : []);
@@ -124,87 +144,7 @@ export default function MensaDetailScreen() {
       ? t('common.notAvailable')
       : loadingMeals
           ? t('common.loading')
-          : t('mensaDetail.itemsCount', { count: meals.length });
-
-  // Daten laden
-  const loadCanteen = useCallback(async () => {
-    if (!id) return;
-
-    const startTime = Date.now();
-    const logStep = (step: string) => {
-      const elapsed = Date.now() - startTime;
-      console.log(`⏱️  MensaDetail [${elapsed}ms]: ${step}`);
-    };
-
-    try {
-      logStep('START loading canteen');
-      setCanteenError(null);
-      setLoadingCanteen(true);
-
-      logStep('Calling getCanteen...');
-      const canteenData = await mensaApi.getCanteen(id);
-      logStep(`Canteen loaded: ${canteenData?.name || 'NOT FOUND'} | canteenData: ${JSON.stringify(canteenData)}`);
-
-      if (!canteenData) {
-        setCanteenError(t('mensaDetail.notFound'));
-        setCanteen(null);
-      } else {
-        console.log('📢 Setting canteen:', canteenData);
-        setCanteen(canteenData);
-      }
-    } catch (err) {
-      console.error('Error loading canteen:', err);
-      logStep('ERROR occurred');
-      setCanteenError(t('mensaDetail.loadError'));
-      setCanteen(null);
-    } finally {
-      setLoadingCanteen(false);
-    }
-  }, [id, t]);
-
-  const loadMeals = useCallback(
-      async (dateKey: string) => {
-        if (!id) return;
-
-        const startTime = Date.now();
-        const logStep = (step: string) => {
-          const elapsed = Date.now() - startTime;
-          console.log(`⏱️  MensaDetail [${elapsed}ms]: ${step}`);
-        };
-
-        try {
-          logStep(`START loading meals for ${dateKey}`);
-          setMealsError(null);
-          setLoadingMeals(true);
-
-          logStep('Calling getMeals...');
-          const mealsData = await mensaApi.getMeals({
-            canteenId: id,
-            loadingtype: 'complete',
-            date: dateKey,
-          });
-          logStep(`Meals loaded: ${mealsData.length} items`);
-
-          setMeals(mealsData);
-        } catch (err) {
-          console.error('Error loading meals:', err);
-          logStep('ERROR occurred');
-          setMeals([]);
-          setMealsError(t('mensaDetail.mealsLoadError'));
-        } finally {
-          setLoadingMeals(false);
-        }
-      },
-      [id, t]
-  );
-
-  useEffect(() => {
-    loadCanteen();
-  }, [id, loadCanteen]);
-
-  useEffect(() => {
-    loadMeals(selectedDate);
-  }, [loadMeals, selectedDate]);
+          : t('mensaDetail.itemsCount', { count: meals?.length || 0 });
 
   useEffect(() => {
     if (!weekDates.some((day) => day.key === selectedDate) && weekDates[0]) {
@@ -221,35 +161,32 @@ export default function MensaDetailScreen() {
     return () => clearTimeout(timer);
   }, [today]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    Promise.all([loadCanteen(), loadMeals(selectedDate)]).finally(() => {
-      setRefreshing(false);
-    });
-  }, [loadCanteen, loadMeals, selectedDate]);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.mensas.list({ loadingtype: 'complete' }) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.meals.list({ canteenId: id, date: selectedDate }) })
+    ]);
+    setRefreshing(false);
+  }, [queryClient, id, selectedDate]);
 
   // Rating-Anzeige
   const getRating = (): { rating: string; count: number } => {
-    console.log('🔍 getRating called, enrichedCanteen:', enrichedCanteen);
     if (!enrichedCanteen) {
-      console.log('⚠️  enrichedCanteen is null, returning fallback');
       return { rating: t('common.notAvailable'), count: 0 };
     }
     if (enrichedCanteen?.googleRating) {
-      console.log('✅ Using googleRating:', enrichedCanteen.googleRating);
       return {
         rating: enrichedCanteen.googleRating.toFixed(1),
         count: enrichedCanteen.googleReviewCount || 0
       };
     }
     if (enrichedCanteen?.rating) {
-      console.log('✅ Using rating:', enrichedCanteen.rating);
       return {
         rating: enrichedCanteen.rating.toFixed(1),
         count: enrichedCanteen.reviewCount || 0
       };
     }
-    console.log('⚠️  No rating found, returning fallback');
     return { rating: t('common.notAvailable'), count: 0 };
   };
 
@@ -314,7 +251,7 @@ export default function MensaDetailScreen() {
   };
 
   // Loading State
-  if (loadingCanteen && !canteen) {
+  if (loadingCanteens && !canteen) {
     return (
         <View style={[styles.centerContainer, { backgroundColor, paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color={Colors.light.tint} />
@@ -324,7 +261,7 @@ export default function MensaDetailScreen() {
   }
 
   // Error State
-  if (!loadingCanteen && !canteen) {
+  if (!loadingCanteens && !canteen) {
     return (
         <View style={[styles.centerContainer, { backgroundColor, paddingTop: insets.top }]}>
           <Ionicons name="alert-circle-outline" size={48} color="#E57373" />
@@ -379,13 +316,13 @@ export default function MensaDetailScreen() {
                 source={{ uri: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?q=80&w=800&auto=format&fit=crop' }}
                 style={[
                   styles.heroImage,
-                  !loadingMeals && !mealsError && meals.length === 0 && styles.heroImageClosed
+                  !loadingMeals && !mealsError && (!meals || meals.length === 0) && styles.heroImageClosed
                 ]}
                 contentFit="cover"
                 transition={500}
             />
             {/* Closed Overlay when no meals available (nicht während loading) */}
-            {!loadingMeals && !mealsError && meals.length === 0 && (
+            {!loadingMeals && !mealsError && (!meals || meals.length === 0) && (
                 <View style={styles.closedOverlay}>
                   <View style={styles.closedBadge}>
                     <Ionicons name="close-circle" size={20} color="#fff" />
@@ -497,7 +434,7 @@ export default function MensaDetailScreen() {
                 <Text style={[styles.closedTitle, { color: textColor }]}>{t('mensaDetail.dishesLoadError')}</Text>
                 <Text style={[styles.closedSubtitle, { color: subTextColor }]}>{mealsError}</Text>
               </View>
-          ) : meals.length === 0 ? (
+          ) : !meals || meals.length === 0 ? (
               /* Closed State - No meals available today */
               <View style={styles.closedState}>
                 <View style={[styles.closedIconContainer, { backgroundColor: colorScheme === 'dark' ? '#331010' : '#FFEBEE' }]}>

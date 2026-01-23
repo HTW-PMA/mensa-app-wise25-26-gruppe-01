@@ -47,7 +47,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         }
       }
     ],
-    "expo-maps"
+    "expo-maps",
+    "expo-notifications"
   ],
   experiments: {
     typedRoutes: true,

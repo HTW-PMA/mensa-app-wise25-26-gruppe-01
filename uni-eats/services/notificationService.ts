@@ -1,14 +1,43 @@
 ﻿import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { t } from '@/utils/i18n';
 
+let expoPushToken: string | undefined;
+
 /**
- * Initialize notification handler
- * Uses fallback Alert API for local development
- * For full native notifications, use EAS Build (requires Apple Developer account)
+ * Initialize notification handler and register for push notifications
  */
-export async function initializeNotifications(): Promise<void> {
-  console.log('Notification system initialized (Alert API - local development mode)');
+export async function initializeNotifications(): Promise<string | undefined> {
+  try {
+    // Configure how notifications behave when received while the app is foregrounded
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+
+    const token = await registerForPushNotificationsAsync();
+    expoPushToken = token;
+    console.log('Notification system initialized. Token:', token);
+    return token;
+  } catch (error) {
+    console.error('Failed to initialize notifications:', error);
+    return undefined;
+  }
+}
+
+/**
+ * Get the stored Expo Push Token
+ */
+export function getExpoPushToken(): string | undefined {
+  return expoPushToken;
 }
 
 /**
@@ -60,7 +89,7 @@ export async function markNotifiedToday(
 
 /**
  * Send notification when favorite meal is available
- * Uses React Native Alert API for local development
+ * Uses expo-notifications for local notification
  */
 export async function notifyFavoriteMealAvailable(
   mealName: string,
@@ -69,25 +98,61 @@ export async function notifyFavoriteMealAvailable(
   mealId: string
 ): Promise<void> {
   try {
-    Alert.alert(
-      t('notifications.favoriteMealTitle'),
-      t('notifications.favoriteMealMessage', { mealName, canteenName }),
-      [
-        {
-          text: t('common.cancel'),
-          onPress: () => console.log('Notification dismissed'),
-          style: 'cancel',
-        },
-        {
-          text: t('common.view'),
-          onPress: () => {
-            console.log(`User tapped notification for meal: ${mealName} at ${canteenId}`);
-          },
-        },
-      ]
-    );
-    console.log(`Alert notification shown for meal: ${mealName}`);
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: t('notifications.favoriteMealTitle'),
+        body: t('notifications.favoriteMealMessage', { mealName, canteenName }),
+        data: { canteenId, mealId },
+      },
+      trigger: null, // Send immediately
+    });
+    console.log(`Notification scheduled for meal: ${mealName}`);
   } catch (error) {
     console.error('Failed to show notification:', error);
   }
+}
+
+async function registerForPushNotificationsAsync() {
+  let token;
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+
+  if (Device.isDevice) {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') {
+      console.log('Failed to get push token for push notification!');
+      return;
+    }
+    try {
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+      if (!projectId) {
+        throw new Error('Project ID not found');
+      }
+      token = (
+        await Notifications.getExpoPushTokenAsync({
+          projectId,
+        })
+      ).data;
+      console.log(token);
+    } catch (e) {
+      token = `${e}`;
+    }
+  } else {
+    console.log('Must use physical device for Push Notifications');
+  }
+
+  return token;
 }

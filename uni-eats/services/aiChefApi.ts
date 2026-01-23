@@ -647,6 +647,14 @@ export async function getAiChefResponse(
     // Sort by relevance
     filteredMeals = sortMealsByRelevance(filteredMeals, context, search_params);
 
+    // Deduplicate by ID (prevent React key errors and spam)
+    const seenIds = new Set<string>();
+    filteredMeals = filteredMeals.filter((meal) => {
+        if (seenIds.has(meal.id)) return false;
+        seenIds.add(meal.id);
+        return true;
+    });
+
     // Limit to top 10
     filteredMeals = filteredMeals.slice(0, 10);
 
