@@ -26,6 +26,7 @@ import {
 } from '@/utils/translations';
 import { getPriceTypeKeyForStatus, selectPriceForStatus } from '@/utils/priceHelpers';
 import { useTranslation } from '@/hooks/useTranslation';
+import { normalizeGermanString } from '@/utils/stringHelpers';
 
 // Allergen categories with icons and colors
 const ALLERGEN_INFO: Record<string, { icon: string; color: string; category: string }> = {
@@ -83,18 +84,44 @@ const ALLERGEN_CATEGORY_KEYS: Record<string, string> = {
  */
 const getMealImage = (name: string, category?: string): string => {
   // Suche in Name UND Kategorie für bessere Treffer (Partial Match)
-  const searchText = `${name} ${category || ''}`.toLowerCase();
+  const searchText = normalizeGermanString(`${name} ${category || ''}`);
   
   // Die Reihenfolge ist wichtig! Zuerst nach eindeutigen Kategorien suchen (z.B. Suppe),
   // damit "Curry-Suppe" als Suppe erkannt wird und nicht als Curry.
   const imageMap: Record<string, string> = {
     // 1. Eindeutige Formen/Kategorien (höchste Priorität)
+
+    'naturreis': 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=160&h=160&fit=crop',
+    'focaccia': 'https://plus.unsplash.com/premium_photo-1700326967545-91adcec6af2a?w=160&h=160&fit=crop',
+    'zitronenkuchen': 'https://plus.unsplash.com/premium_photo-1714942927757-aeba4c2f4200?w=160&h=160&fit=crop',
+    'brownie': 'https://images.unsplash.com/photo-1636743715220-d8f8dd900b87?w=160&h=160&fit=crop',
+    'obstsalat': 'https://plus.unsplash.com/premium_photo-1664478279991-832059d65835?w=160&h=160&fit=crop',
+    'rotkohl': 'https://images.unsplash.com/photo-1570112686245-ec7e043ad444?w=160&h=160&fit=crop',
+    'linsensuppe': 'https://plus.unsplash.com/premium_photo-1712678665743-15e3833da37e?w=160&h=160&fit=crop',
+    'kaesespaetzle': 'https://images.unsplash.com/photo-1697155406432-29e76141cde6?w=160&h=160&fit=crop',
+    'linseneintopf': 'https://plus.unsplash.com/premium_photo-1712678665724-7c3faa117a2d?w=160&h=160&fit=crop',
+    'risotto': 'https://images.unsplash.com/photo-1637361874063-e5e415d7bcf7?w=160&h=160&fit=crop',
+    'gemuese': 'https://images.unsplash.com/photo-1613743973104-be3de5acbb49?w=160&h=160&fit=crop',
+    'glasnudelsalat': 'https://images.unsplash.com/photo-1757596057470-19d36962705d?w=160&h=160&fit=crop',
+    'rigatoni': 'https://plus.unsplash.com/premium_photo-1664472667313-46bb205215b8?w=160&h=160&fit=crop',
+    'kuerbisbratling': 'https://thecocolife.com.au/wp-content/uploads/2020/02/Pumpkin-Patties-with-Smashed-Chilli-Avo-and-Salad-scaled-e1581018523488.jpg',
+    'brokkoli': 'https://images.unsplash.com/photo-1614336215203-05a588f74627?w=160&h=160&fit=crop',
+    'tomatenreis': 'https://images.unsplash.com/photo-1649510227325-5e40e1d87caa?w=160&h=160&fit=crop',
+    'koefte': 'https://images.unsplash.com/photo-1625147541750-dfecb0a624a5?w=160&h=160&fit=crop',
+    'basmatireis': 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=160&h=160&fit=crop',
+    'prinzessbohnen': 'https://www.koch-mit.de/app/uploads/2023/07/prinzessbohnen-rezept-2.jpg',
+    'baellchen': 'https://palafitfood.com/wp-content/uploads/2021/11/PA281403_bearb_3zu2-1536x1024.jpg',
+
+
+
+
     'suppe': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=160&h=160&fit=crop',
     'stew': 'https://images.unsplash.com/photo-1591386767153-987783380885?w=160&h=160&fit=crop',
     'eintopf': 'https://images.unsplash.com/photo-1608500218987-0f2b3be34b47?w=160&h=160&fit=crop',
     'salat': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=160&h=160&fit=crop',
     'bowl': 'https://images.unsplash.com/photo-1602881917445-0b1ba001addf?w=160&h=160&fit=crop',
     'kuchen': 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=160&h=160&fit=crop',
+    'paella': 'https://images.unsplash.com/photo-1630175860333-5131bda75071?w=160&h=160&fit=crop',
     'pudding': 'https://images.unsplash.com/photo-1734671223988-20df071ab200?w=160&h=160&fit=crop',
     'joghurt': 'https://images.unsplash.com/photo-1564149503905-7fef56abc1f2?w=160&h=160&fit=crop',
     'smoothie': 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=160&h=160&fit=crop',
@@ -125,6 +152,7 @@ const getMealImage = (name: string, category?: string): string => {
     'grill': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=160&h=160&fit=crop',
     'auflauf': 'https://images.unsplash.com/photo-1645453014403-4ad5170a386c?w=160&h=160&fit=crop',
     'pfanne': 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=160&h=160&fit=crop',
+    'kartoffeln': 'https://images.unsplash.com/photo-1645673197548-9adfa2ea55dc?w=160&h=160&fit=crop',
   };
   
   for (const [key, url] of Object.entries(imageMap)) {
@@ -139,7 +167,7 @@ const getMealImage = (name: string, category?: string): string => {
   }
   
   // Default Fallback
-  return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop';
+  return 'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=160&h=160&fit=crop';
 };
 
 /**

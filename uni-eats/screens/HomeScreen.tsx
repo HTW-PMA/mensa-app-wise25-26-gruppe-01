@@ -1,9 +1,9 @@
 import {StyleSheet, ScrollView, View, Text, ActivityIndicator, Pressable, RefreshControl, Platform} from 'react-native';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { mensaApi, type Canteen, type BusinessHour, type Meal } from '@/services/mensaApi';
+import { type Canteen, type BusinessHour } from '@/services/mensaApi';
 import { MensaCard } from '@/components/MensaCard';
 import { Colors, Fonts } from '@/constants/theme';
 import { useGoogleRatings } from '@/hooks/useGoogleRatings';
@@ -11,12 +11,15 @@ import { useLocation, calculateDistance } from '@/hooks/useLocation';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
+import { useMensas } from '@/hooks/useMensas';
+import { useMeals } from '@/hooks/useMeals';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/utils/queryKeys';
 
 // Erweiterter Canteen-Typ mit zusätzlicher Info ob heute Gerichte verfügbar sind
 export interface CanteenWithMeals extends Canteen {
   hasMealsToday?: boolean;
 }
-
 
 /**
  * Prüft ob eine Mensa heute geschlossen ist
@@ -52,13 +55,33 @@ export function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { favoriteMeals } = useFavoritesContext();
-  const [canteens, setCanteens] = useState<CanteenWithMeals[]>([]);
-  const [menusToday, setMenusToday] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Use hooks for data fetching with caching support
+  const { data: canteensData, isLoading: canteensLoading } = useMensas({ loadingtype: 'complete' });
+  const { data: mealsData, isLoading: mealsLoading } = useMeals({ date: new Date().toISOString().split('T')[0] });
 
   // Standort Hook
   const { location, loading: locationLoading } = useLocation();
+
+  const canteens = useMemo(() => {
+    if (!canteensData) return [];
+
+    // Erstelle Set mit Canteen-IDs die heute Gerichte haben
+    const canteensWithMealsToday = new Set<string>();
+    if (mealsData) {
+       mealsData.forEach(meal => {
+           if(meal.canteenId) canteensWithMealsToday.add(meal.canteenId);
+       });
+    }
+
+    // Erweitere Canteens mit hasMealsToday Info
+    return canteensData.map(canteen => ({
+      ...canteen,
+      hasMealsToday: canteensWithMealsToday.has(canteen.id)
+    }));
+  }, [canteensData, mealsData]);
 
   // Google Ratings Hook
   const { enrichCanteensWithRatings } = useGoogleRatings(canteens);
@@ -68,53 +91,14 @@ export function HomeScreen() {
   const iconColor = useThemeColor({}, 'icon');
   const borderColor = useThemeColor({ light: '#E5E7EB', dark: '#333333' }, 'border');
 
-  const loadCanteens = async () => {
-    try {
-      // Lade Canteens und Menüs parallel
-      const [canteenData, menuResponse] = await Promise.all([
-        mensaApi.getCanteens({ loadingtype: 'complete' }),
-        fetch('https://mensa.gregorflachs.de/api/v1/menue?loadingtype=complete', {
-          headers: { 'X-API-KEY': process.env.EXPO_PUBLIC_MENSA_API_KEY || '' }
-        }).then(res => res.json()).catch(() => [])
-      ]);
-
-      // Erstelle Map mit Canteen-IDs die heute Gerichte haben
-      const today = new Date().toISOString().split('T')[0];
-      const canteensWithMealsToday = new Set<string>();
-      
-      const menusRaw = Array.isArray(menuResponse) ? menuResponse : menuResponse?.menue;
-      const menus = Array.isArray(menusRaw) ? menusRaw : [];
-      const menusForToday = menus.filter((menu: any) => menu.date === today);
-      menusForToday.forEach((menu: any) => {
-        if (menu.date === today && menu.meals && menu.meals.length > 0) {
-          canteensWithMealsToday.add(menu.canteenId);
-        }
-      });
-      setMenusToday(menusForToday);
-
-      // Erweitere Canteens mit hasMealsToday Info
-      const enrichedData = canteenData.map(canteen => ({
-        ...canteen,
-        hasMealsToday: canteensWithMealsToday.has(canteen.id)
-      }));
-
-      setCanteens(enrichedData);
-    } catch (err) {
-      console.error('Error loading canteens', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCanteens();
-  }, []);
-
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    loadCanteens();
-  }, []);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.mensas.list({ loadingtype: 'complete' }) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.meals.list({ date: new Date().toISOString().split('T')[0] }) })
+    ]);
+    setRefreshing(false);
+  }, [queryClient]);
 
   // Erweitere Canteens mit Google Ratings und Distanzen, dann sortiere
   const enrichedCanteens = useMemo(() => {
@@ -167,27 +151,19 @@ export function HomeScreen() {
 
   const hasFavoriteMealAvailable = useMemo(() => {
     if (favoriteMeals.length === 0) return false;
-    if (menusToday.length === 0) return false;
+    if (!mealsData || mealsData.length === 0) return false;
 
     const favoriteMealKeySet = new Set(
       favoriteMeals.map((favorite) => `${favorite.canteenId}::${favorite.mealId}`)
     );
 
-    return menusToday.some((menu: any) => {
-      if (!Array.isArray(menu.meals)) return false;
-      return menu.meals.some((meal: any) => {
-        const id =
-          meal?.id ??
-          meal?._id ??
-          meal?.ID ??
-          meal?.mealId ??
-          meal?.mealID;
-        const canteenId = menu?.canteenId ?? menu?.canteenID ?? menu?.canteen_id;
-        if (!id || !canteenId) return false;
-        return favoriteMealKeySet.has(`${String(canteenId)}::${String(id)}`);
-      });
+    return mealsData.some((meal) => {
+        if (!meal.id || !meal.canteenId) return false;
+        return favoriteMealKeySet.has(`${String(meal.canteenId)}::${String(meal.id)}`);
     });
-  }, [menusToday, favoriteMeals]);
+  }, [mealsData, favoriteMeals]);
+
+  const isLoading = canteensLoading || mealsLoading;
 
   return (
       <View style={[styles.container, { backgroundColor }]}>
@@ -226,7 +202,7 @@ export function HomeScreen() {
             {t('home.mensasNearYou')}
           </Text>
 
-          {loading && !refreshing ? (
+          {isLoading && !refreshing ? (
               <View style={styles.centerContainer}>
                 <ActivityIndicator size="large" color={Colors.light.tint} />
               </View>

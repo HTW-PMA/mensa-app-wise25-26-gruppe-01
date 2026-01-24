@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavoritesContext } from '@/contexts/FavoritesContext';
 import { mensaApi } from '@/services/mensaApi';
+import * as notificationService from '@/services/notificationService';
 
 /**
  * Hook to check favorite meals against today's menu and send notifications
@@ -21,7 +22,6 @@ export function useFavoriteMealAlerts() {
 
     const checkFavoriteMeals = async () => {
       try {
-        const notificationService = await import('@/services/notificationService');
         const today = new Date().toISOString().slice(0, 10);
         console.log(`🔍 Checking favorite meals for user ${user.id} on ${today}`);
 

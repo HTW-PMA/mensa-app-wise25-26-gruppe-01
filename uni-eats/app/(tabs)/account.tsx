@@ -94,7 +94,6 @@ export default function AccountScreen() {
   }
 
   const subtitleGrayColor = isDark ? '#9BA1A6' : '#6B7280';
-  const dividerColor = isDark ? '#333333' : '#E5E7EB';
 
   return (
     <SafeAreaView
@@ -327,4 +326,3 @@ const styles = StyleSheet.create({
 
   },
 });
-

@@ -249,7 +249,7 @@ class MensaApiService {
       return [];
     } catch (error) {
       console.error('💥 API Error:', error);
-      return [];
+      throw error;
     }
   }
 

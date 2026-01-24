@@ -72,10 +72,14 @@ Da sich der App-Code im Ordner `uni-eats` befindet, müssen Sie zuerst dorthin n
          ```bash
          npx expo prebuild --platform android --clean
         ```     
-     - **App direkt auf dem Gerät oder Emulator ausführen:**  
+     - **App direkt auf dem Gerät oder Emulator ausführen(Dev):**  
         ```bash
         npx expo run:android --device
         ```
+     - **App direkt auf dem Gerät oder Emulator ausführen(am Ende):**  
+       ```bash
+        npx expo run:android --variant release
+       ```
 4. **App öffnen:**
    - Scannen Sie den QR-Code mit der **Expo Go** App (Android/iOS).
    - Oder drücken Sie `w` für Web, `a` für Android Emulator, `i` für iOS Simulator.

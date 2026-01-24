@@ -1,6 +1,5 @@
 import { Canteen, Meal, University } from '@/services/mensaApi';
 import { t } from '@/utils/i18n';
-import { calculateDistance } from '@/utils/locationUtils';
 
 const API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -26,8 +25,6 @@ export interface AIChefContext {
     universities?: University[];
     lastIntent?: 'question' | 'recommendation' | 'unknown';
     lastTopic?: string;
-    preferredUniversityId?: string;
-    preferredUniversityName?: string;
 }
 
 export type AIChefHistoryMessage = { role: 'user' | 'assistant'; content: string };
@@ -70,27 +67,25 @@ const MOOD_PREFERENCES: Record<string, {
     keywords: string[];
     categories: string[];
     avoidCategories?: string[];
-    avoidKeywords?: string[];
 }> = {
     energy: {
-        keywords: ['schnitzel', 'braten', 'burger', 'meat', 'fleisch', 'steak', 'würstchen', 'chicken', 'hähnchen', 'rind', 'schwein'],
-        categories: ['hauptgericht', 'grill', 'main course', 'fleiscphgerichte', 'meat dishes'],
-        avoidCategories: ['salat', 'dessert', 'salad'],
-        avoidKeywords: ['salat', 'salad', 'bowl'],
+        keywords: ['schnitzel', 'braten', 'burger', 'meat', 'fleisch', 'steak', 'würstchen'],
+        categories: ['Hauptgericht', 'Grill', 'Main Course'],
+        avoidCategories: ['Salat', 'Dessert'],
     },
     light: {
         keywords: ['salat', 'bowl', 'gemüse', 'vegetables', 'smoothie', 'soup', 'suppe'],
-        categories: ['salat', 'bowl', 'vegetarisch', 'vegan', 'salad'],
-        avoidCategories: ['dessert', 'grill'],
+        categories: ['Salat', 'Bowl', 'Vegetarisch', 'Vegan'],
+        avoidCategories: ['Dessert', 'Grill'],
     },
     large: {
         keywords: ['auflauf', 'lasagne', 'schnitzel', 'burger', 'pizza'],
-        categories: ['hauptgericht', 'main course', 'auflauf'],
-        avoidCategories: ['beilage', 'dessert', 'side dish'],
+        categories: ['Hauptgericht', 'Main Course', 'Auflauf'],
+        avoidCategories: ['Beilage', 'Dessert'],
     },
     fast: {
         keywords: ['wrap', 'sandwich', 'burger', 'pizza', 'pasta'],
-        categories: ['snack', 'fast food', 'quick meal'],
+        categories: ['Snack', 'Fast Food', 'Quick Meal'],
         avoidCategories: [],
     },
 };
@@ -135,21 +130,6 @@ function normalizeText(text: string): string {
         .trim();
 }
 
-/**
- * ✅ CHECK: Does a canteen belong to a university (by name matching)
- */
-function canteenBelongsToUniversity(
-    canteenName: string,
-    universityId: string
-): boolean {
-    const keywords = UNI_MENSAS[universityId.toUpperCase()];
-    if (!keywords) return false;
-
-    const normalized = normalizeText(canteenName);
-    return keywords.some((k) =>
-        normalized.includes(normalizeText(k))
-    );
-}
 /**
  * Translate meal content to English (simple keyword-based)
  */
@@ -204,100 +184,37 @@ function hasAllergen(meal: Meal, allergies: string[]): boolean {
 }
 
 /**
- * Check if meal matches diet requirements (FIXED - more permissive)
+ * Check if meal matches diet requirements
  */
 function matchesDiet(meal: Meal, dietType?: 'vegan' | 'vegetarian' | 'pescatarian' | 'none'): boolean {
     if (!dietType || dietType === 'none') return true;
 
     const badges = meal.badges?.map((b) => normalizeText(b.name)) || [];
     const mealText = normalizeText(meal.name);
-    const category = normalizeText(meal.category || '');
-
-    // Combine all searchable text
-    const fullText = `${mealText} ${category} ${badges.join(' ')}`;
 
     switch (dietType) {
         case 'vegan':
-            // Vegan: Must have vegan marker OR no animal products
-            const hasVeganMarker =
-                badges.includes('vegan') ||
-                fullText.includes('vegan');
-
-            // If explicitly marked vegan, allow it
-            if (hasVeganMarker) return true;
-
-            // Otherwise check for animal products (strict blocking)
-            const hasAnimalProducts =
-                fullText.includes('fleisch') ||
-                fullText.includes('meat') ||
-                fullText.includes('fisch') ||
-                fullText.includes('fish') ||
-                fullText.includes('milch') ||
-                fullText.includes('milk') ||
-                fullText.includes('käse') ||
-                fullText.includes('cheese') ||
-                fullText.includes('ei') ||
-                fullText.includes('egg') ||
-                fullText.includes('huhn') ||
-                fullText.includes('chicken') ||
-                fullText.includes('rind') ||
-                fullText.includes('schwein');
-
-            return !hasAnimalProducts;
-
+            return badges.includes('vegan') || mealText.includes('vegan');
         case 'vegetarian':
-            // Vegetarian: Allow vegan + vegetarian + ambiguous dishes
-            const hasVeggieMarker =
-                badges.includes('vegetarisch') ||
+            return (
                 badges.includes('vegetarian') ||
                 badges.includes('vegan') ||
-                fullText.includes('vegetarisch') ||
-                fullText.includes('vegetarian') ||
-                fullText.includes('vegan');
-
-            // If marked veggie/vegan, allow
-            if (hasVeggieMarker) return true;
-
-            // Block only obvious meat (but allow fish for now, pescatarian will filter)
-            const hasMeat =
-                fullText.includes('fleisch') ||
-                fullText.includes('meat') ||
-                fullText.includes('chicken') ||
-                fullText.includes('hähnchen') ||
-                fullText.includes('huhn') ||
-                fullText.includes('rind') ||
-                fullText.includes('beef') ||
-                fullText.includes('schwein') ||
-                fullText.includes('pork') ||
-                fullText.includes('wurst') ||
-                fullText.includes('schnitzel') ||
-                fullText.includes('steak');
-
-            return !hasMeat;
-
+                mealText.includes('vegetarisch') ||
+                mealText.includes('vegetarian')
+            );
         case 'pescatarian':
-            // Pescatarian: Vegetarian OR fish, but NO other meat
+            // Pescatarian: vegetarian + fish
             const hasVeggieOrFish =
-                badges.includes('vegetarisch') ||
                 badges.includes('vegetarian') ||
                 badges.includes('vegan') ||
-                fullText.includes('vegetarisch') ||
-                fullText.includes('vegetarian') ||
-                fullText.includes('vegan') ||
-                fullText.includes('fisch') ||
-                fullText.includes('fish');
-
-            const hasMeatNotFish =
-                fullText.includes('fleisch') ||
-                fullText.includes('meat') ||
-                fullText.includes('chicken') ||
-                fullText.includes('hähnchen') ||
-                fullText.includes('rind') ||
-                fullText.includes('schwein') ||
-                fullText.includes('wurst');
-
-            return hasVeggieOrFish && !hasMeatNotFish;
-
+                mealText.includes('fisch') ||
+                mealText.includes('fish');
+            const hasMeat =
+                mealText.includes('fleisch') ||
+                mealText.includes('meat') ||
+                mealText.includes('chicken') ||
+                mealText.includes('hähnchen');
+            return hasVeggieOrFish && !hasMeat;
         default:
             return true;
     }
@@ -349,7 +266,7 @@ function matchesQuery(meal: Meal, query: string | null): boolean {
 }
 
 /**
- * Score meal based on mood preferences (FIXED)
+ * Score meal based on mood preferences
  */
 function scoreMealByMood(meal: Meal, mood: string | null): number {
     if (!mood) return 0;
@@ -379,24 +296,15 @@ function scoreMealByMood(meal: Meal, mood: string | null): number {
     if (meal.category && moodPref.avoidCategories) {
         const normalizedCategory = normalizeText(meal.category);
         if (moodPref.avoidCategories.some((cat) => normalizedCategory.includes(normalizeText(cat)))) {
-            score -= 5;
+            score -= 3;
         }
-    }
-
-    // Avoid keywords (stronger penalty)
-    if (moodPref.avoidKeywords) {
-        moodPref.avoidKeywords.forEach((keyword) => {
-            if (mealText.includes(normalizeText(keyword))) {
-                score -= 10;
-            }
-        });
     }
 
     return score;
 }
 
 /**
- * Sort meals by relevance (FIXED with location awareness)
+ * Sort meals by relevance (favorites > mood > query match)
  */
 function sortMealsByRelevance(
     meals: Meal[],
@@ -411,58 +319,9 @@ function sortMealsByRelevance(
         if (context.favoriteMealIds?.includes(a.id)) scoreA += 100;
         if (context.favoriteMealIds?.includes(b.id)) scoreB += 100;
 
-
-        // 🔥 STRONG PRIORITY: user's university from profile
-        if (
-            context.preferredUniversityId &&
-            a.canteenId === context.preferredUniversityId
-        ) {
-            scoreA += 80;
-        }
-
-        if (
-            context.preferredUniversityId &&
-            b.canteenId === context.preferredUniversityId
-        ) {
-            scoreB += 80;
-        }
-
         // Favorite canteens
         if (context.favoriteCanteenIds?.includes(a.canteenId || '')) scoreA += 50;
         if (context.favoriteCanteenIds?.includes(b.canteenId || '')) scoreB += 50;
-
-
-        // Location proximity (only if NO university was explicitly mentioned)
-        if (!searchParams.university_target && context.userLocation) {
-            const mensaA = context.mensas.find((m) => m.id === a.canteenId);
-            const mensaB = context.mensas.find((m) => m.id === b.canteenId);
-
-            const geoA = mensaA?.address?.geoLocation;
-            const geoB = mensaB?.address?.geoLocation;
-
-            if (geoA?.latitude && geoA?.longitude && geoB?.latitude && geoB?.longitude) {
-                const distA = calculateDistance(
-                    context.userLocation.latitude,
-                    context.userLocation.longitude,
-                    geoA.latitude,
-                    geoA.longitude
-                );
-                const distB = calculateDistance(
-                    context.userLocation.latitude,
-                    context.userLocation.longitude,
-                    geoB.latitude,
-                    geoB.longitude
-                );
-
-                // Nearby bonus (< 2km)
-                if (distA < 2) scoreA += 30;
-                if (distB < 2) scoreB += 30;
-
-                // Closer is better
-                if (distA < distB) scoreA += 10;
-                if (distB < distA) scoreB += 10;
-            }
-        }
 
         // Mood matching
         scoreA += scoreMealByMood(a, searchParams.mood);
@@ -483,7 +342,7 @@ function sortMealsByRelevance(
 }
 
 /**
- * Generate reason text for meal recommendation (FIXED for English)
+ * Generate reason text for meal recommendation
  */
 function generateReasonText(
     meal: Meal,
@@ -495,48 +354,44 @@ function generateReasonText(
 
     // Favorite
     if (context.favoriteMealIds?.includes(meal.id)) {
-        reasons.push(t(`aiChef.reasons.favorite.${language}`));
+        reasons.push(language === 'de' ? 'Einer deiner Favoriten!' : 'One of your favorites!');
     }
 
     // Mood-based
     if (searchParams.mood) {
-        const moodKey = `aiChef.reasons.mood.${searchParams.mood}.${language}`;
-        reasons.push(t(moodKey));
+        const moodTexts: Record<string, { de: string; en: string }> = {
+            energy: { de: 'Gibt dir Energie', en: 'Gives you energy' },
+            light: { de: 'Leicht und gesund', en: 'Light and healthy' },
+            large: { de: 'Macht richtig satt', en: 'Very filling' },
+            fast: { de: 'Schnell verfügbar', en: 'Quickly available' },
+        };
+        const moodText = moodTexts[searchParams.mood];
+        if (moodText) {
+            reasons.push(language === 'de' ? moodText.de : moodText.en);
+        }
     }
 
     // Query match
     if (searchParams.query) {
-        reasons.push(t(`aiChef.reasons.contains.${language}`, { item: searchParams.query }));
+        reasons.push(
+            language === 'de'
+                ? `Enthält ${searchParams.query}`
+                : `Contains ${searchParams.query}`
+        );
     }
 
     // University
     if (searchParams.university_target) {
-        reasons.push(t(`aiChef.reasons.fromUniversity.${language}`, {
-            university: searchParams.university_target
-        }));
-    }
-
-    // Location proximity
-    if (!searchParams.university_target && context.userLocation) {
-        const mensa = context.mensas.find((m) => m.id === meal.canteenId);
-        const geoLocation = mensa?.address?.geoLocation;
-
-        if (geoLocation?.latitude && geoLocation?.longitude) {
-            const dist = calculateDistance(
-                context.userLocation.latitude,
-                context.userLocation.longitude,
-                geoLocation.latitude,
-                geoLocation.longitude
-            );
-            if (dist < 1) {
-                reasons.push(t(`aiChef.reasons.nearYou.${language}`));
-            }
-        }
+        reasons.push(
+            language === 'de'
+                ? `Von ${searchParams.university_target}`
+                : `From ${searchParams.university_target}`
+        );
     }
 
     // Fallback
     if (reasons.length === 0) {
-        reasons.push(t(`aiChef.reasons.matchesSearch.${language}`));
+        reasons.push(language === 'de' ? 'Passt zu deiner Suche' : 'Matches your search');
     }
 
     return reasons.join(' • ');
@@ -547,7 +402,7 @@ function generateReasonText(
 // ============================================================================
 
 /**
- * Call LLM to analyze user intent and extract structured data (FIXED)
+ * Call LLM to analyze user intent and extract structured data
  */
 async function analyzeIntentWithLLM(
     userMessage: string,
@@ -574,22 +429,20 @@ SEARCH_PARAMS:
 - university_target: Erkannte Uni-Kürzel: "HTW", "FU", "TU", "HU", "ASH", "HWR", "BHT" (nur wenn explizit erwähnt)
 - diet_filter: "vegan", "vegetarian", "pescatarian" (nur wenn explizit erwähnt)
 
-WICHTIG - THEMENWECHSEL:
-- JEDE neue User-Nachricht ist UNABHÄNGIG vom vorherigen Kontext!
-- Wenn User "Wo gibt es Salat?" fragt, VERGISS komplett vorherige Themen wie "Chips" oder "Brokkoli"
-- Setze search_params IMMER NEU basierend auf der aktuellen Nachricht
-- Kontext nur für Affirmationen nutzen ("Ja" bezieht sich auf vorherige Frage)
-
 SPRACHE:
 - Erkenne ob Deutsch oder Englisch
 - reply_text: Antworte in der erkannten Sprache, freundlich und knapp
 
+WICHTIG:
+- Bei Fragen: intent="question", keine search_params
+- Bei Affirmationen: intent="affirmation", extrahiere Topic aus Konversation
+- Bei Standort (z.B. "an der HTW"): university_target setzen
+- Mood nur setzen wenn explizit Stimmung/Bedürfnis genannt
+- Antworte IMMER als valides JSON!
+
 BEISPIELE:
 User: "Was ist Weichkäse?"
 → {"intent": "question", "search_params": {"query": null, "mood": null, "university_target": null, "diet_filter": null}, "detected_language": "de", "reply_text": "Weichkäse ist ein Käse mit hohem Wassergehalt und cremiger Konsistenz, z.B. Camembert oder Brie."}
-
-User: "Wo gibt es Salat?"
-→ {"intent": "recommendation", "search_params": {"query": "salad", "mood": null, "university_target": null, "diet_filter": null}, "detected_language": "de", "reply_text": "Hier sind frische Salate für dich:"}
 
 User: "Ich bin müde und an der HTW"
 → {"intent": "recommendation", "search_params": {"query": null, "mood": "energy", "university_target": "HTW", "diet_filter": null}, "detected_language": "de", "reply_text": "Perfekt! Hier sind deftige Gerichte von der HTW, die dir Energie geben:"}
@@ -611,10 +464,10 @@ User: "Show me vegan pasta"
                 model: MODEL,
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    ...history.slice(-4),
+                    ...history.slice(-4), // Last 4 messages for context
                     { role: 'user', content: userMessage },
                 ],
-                temperature: 0.3,
+                temperature: 0.3, // Low temperature for consistent JSON
                 response_format: { type: 'json_object' },
             }),
         });
@@ -658,6 +511,7 @@ User: "Show me vegan pasta"
     } catch (error) {
         console.error('LLM Intent Analysis Error:', error);
 
+        // Fallback: Simple heuristic
         return {
             intent: 'recommendation',
             search_params: {
@@ -667,7 +521,7 @@ User: "Show me vegan pasta"
                 diet_filter: null,
             },
             detected_language: 'de',
-            reply_text: t('aiChef.errors.couldNotProcess'),
+            reply_text: 'Entschuldigung, ich konnte deine Anfrage nicht verarbeiten. Frag mich nach Gerichten!',
         };
     }
 }
@@ -688,7 +542,6 @@ export async function getAiChefResponse(
     // Step 1: Analyze intent with LLM
     const llmResponse = await analyzeIntentWithLLM(prompt, history);
     const { intent, search_params, detected_language, reply_text } = llmResponse;
-    const preferredUniId: string | undefined = context.preferredUniversityId;
 
     console.log('🧠 LLM Analysis:', {
         intent,
@@ -699,44 +552,57 @@ export async function getAiChefResponse(
     // Step 2: Handle based on intent
     switch (intent) {
         case 'question':
+            // Pure question - no recommendations
             return {
-                text: reply_text + '\n\n' + t(`aiChef.messages.showMatchingDishes.${detected_language}`),
+                text: reply_text + (detected_language === 'de'
+                    ? '\n\nMöchtest du passende Gerichte dazu sehen?'
+                    : '\n\nWould you like to see matching dishes?'),
                 recommendedMeals: [],
             };
 
         case 'smalltalk':
+            // Small talk - no recommendations
             return {
                 text: reply_text,
                 recommendedMeals: [],
             };
 
         case 'affirmation':
+            // User confirmed - extract topic from last assistant message
             const lastAssistantMsg = history
                 ?.slice()
                 .reverse()
                 .find((m) => m.role === 'assistant');
 
-            if (!lastAssistantMsg?.content.includes(t(`aiChef.messages.matchingDishes.${detected_language}`))) {
+            if (!lastAssistantMsg?.content.includes(detected_language === 'de' ? 'passende Gerichte' : 'matching dishes')) {
                 return {
-                    text: t(`aiChef.messages.whatToKnowMore.${detected_language}`),
+                    text: detected_language === 'de'
+                        ? 'Worüber möchtest du mehr erfahren?'
+                        : 'What would you like to know more about?',
                     recommendedMeals: [],
                 };
             }
 
+            // Extract topic from previous conversation
             const topicMatch = lastAssistantMsg.content.match(/^(\w+)\s+(ist|is)/i);
             const topic = topicMatch ? topicMatch[1].toLowerCase() : null;
 
             if (!topic) {
                 return {
-                    text: t(`aiChef.messages.topicNotUnderstood.${detected_language}`),
+                    text: detected_language === 'de'
+                        ? 'Ich habe das Thema nicht verstanden. Frag mich etwas Neues!'
+                        : 'I did not understand the topic. Ask me something new!',
                     recommendedMeals: [],
                 };
             }
 
+            // Use topic as query
             search_params.query = topic;
+            // Continue to recommendation flow below
             break;
 
         case 'recommendation':
+            // Continue to recommendation flow
             break;
 
         default:
@@ -747,58 +613,28 @@ export async function getAiChefResponse(
     }
 
     // Step 3: Generate Recommendations
+    // Get location filter
     let locationIds: string[] = [];
     if (search_params.university_target) {
         locationIds = getMensaIdsForUniversity(search_params.university_target, context.mensas);
 
         if (locationIds.length === 0) {
             return {
-                text: t(`aiChef.errors.universityNotFound.${detected_language}`, {
-                    university: search_params.university_target
-                }),
+                text:
+                    detected_language === 'de'
+                        ? `Ich konnte keine Mensa für ${search_params.university_target} finden. Verfügbare Unis: HTW, FU, TU, HU, ASH, HWR, BHT`
+                        : `I could not find a canteen for ${search_params.university_target}. Available universities: HTW, FU, TU, HU, ASH, HWR, BHT`,
                 recommendedMeals: [],
             };
         }
     }
 
-    function deduplicateRecommendedMeals(
-        meals: { mealId: string; reason: string }[]
-    ) {
-        const seen = new Set<string>();
-        return meals.filter((m) => {
-            if (seen.has(m.mealId)) return false;
-            seen.add(m.mealId);
-            return true;
-        });
-    }
-
-
-    // 🔥 DEDUPLICATION: remove duplicate meals (same mealId + canteen + date)
-    const uniqueMealMap = new Map<string, Meal>();
-
-    for (const meal of context.meals) {
-        const key = `${meal.id}_${meal.canteenId}_${meal.date}`;
-        if (!uniqueMealMap.has(key)) {
-            uniqueMealMap.set(key, meal);
-        }
-    }
-
-    const deduplicatedMeals = Array.from(uniqueMealMap.values());
-
     // Apply hard filters (safety first!)
-    let filteredMeals = applyHardFilters(deduplicatedMeals, context, locationIds);
-
-    console.log('🔍 After hard filters:', filteredMeals.length, 'meals (diet:', context.userPreferences?.dietType, ')');
-
-    // Debug: Show first 3 meal names
-    if (filteredMeals.length > 0) {
-        console.log('📋 Sample meals:', filteredMeals.slice(0, 3).map(m => m.name));
-    }
+    let filteredMeals = applyHardFilters(context.meals, context, locationIds);
 
     // Apply query filter
     if (search_params.query) {
         filteredMeals = filteredMeals.filter((meal) => matchesQuery(meal, search_params.query));
-        console.log('🔍 After query filter:', filteredMeals.length, 'meals');
     }
 
     // Apply diet filter from search params (if different from user prefs)
@@ -806,100 +642,42 @@ export async function getAiChefResponse(
         filteredMeals = filteredMeals.filter((meal) =>
             matchesDiet(meal, search_params.diet_filter || undefined)
         );
-        console.log('🔍 After diet filter:', filteredMeals.length, 'meals');
     }
 
     // Sort by relevance
     filteredMeals = sortMealsByRelevance(filteredMeals, context, search_params);
 
-    // 🔥 FINAL PRIORITY: preferred university from profile
-
-
-    if (preferredUniId) {
-        filteredMeals.sort((a, b) => {
-            const mensaA = context.mensas.find(m => m.id === a.canteenId);
-            const mensaB = context.mensas.find(m => m.id === b.canteenId);
-
-            const isAFromPreferred =
-                mensaA !== undefined &&
-                canteenBelongsToUniversity(mensaA.name, preferredUniId);
-
-            const isBFromPreferred =
-                mensaB !== undefined &&
-                canteenBelongsToUniversity(mensaB.name, preferredUniId);
-
-            if (isAFromPreferred && !isBFromPreferred) return -1;
-            if (!isAFromPreferred && isBFromPreferred) return 1;
-            return 0;
-        });
-    }
-
     // Limit to top 10
     filteredMeals = filteredMeals.slice(0, 10);
 
-    // No results for query, BUT meals exist for next available day
-    if (filteredMeals.length === 0 && context.meals.length > 0) {
-        const usedDate = context.meals[0]?.date;
-        const today = new Date().toISOString().split('T')[0];
-
-        let dateHint = '';
-
-        if (usedDate && usedDate !== today) {
-            const formattedDate = new Date(usedDate).toLocaleDateString(
-                detected_language === 'de' ? 'de-DE' : 'en-US',
-                { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-            );
-
-            dateHint =
-                detected_language === 'de'
-                    ? ` Die nächsten verfügbaren Gerichte sind vom ${formattedDate}.`
-                    : ` The next available dishes are from ${formattedDate}.`;
-        }
-
-        // 🔥 FALLBACK: show all meals of that day
-        const fallbackMeals = sortMealsByRelevance(
-            context.meals,
-            context,
-            search_params
-        ).slice(0, 10);
+    // No results?
+    if (filteredMeals.length === 0) {
+        const locationHint = search_params.university_target
+            ? ` ${detected_language === 'de' ? 'an der' : 'at'} ${search_params.university_target}`
+            : '';
 
         return {
             text:
-                t(`aiChef.errors.noMatchingDishes.${detected_language}`) +
-                dateHint,
-            recommendedMeals: fallbackMeals.map((meal) => ({
-                mealId: meal.id,
-                reason:
-                    detected_language === 'de'
-                        ? 'Verfügbares Gericht am nächsten Öffnungstag'
-                        : 'Available dish on the next opening day',
-            })),
+                detected_language === 'de'
+                    ? `Ich habe leider keine passenden Gerichte${locationHint} gefunden. 😕`
+                    : `Sorry, I could not find any matching dishes${locationHint}. 😕`,
+            recommendedMeals: [],
         };
     }
-
-
 
     // Translate meals if needed
     const translatedMeals = filteredMeals.map((meal) =>
         translateMealContent(meal, detected_language)
     );
 
-// Build recommendations
-    let recommendedMeals = translatedMeals.map((meal) => ({
+    // Generate recommendations with reasons
+    const recommendations = translatedMeals.map((meal) => ({
         mealId: meal.id,
         reason: generateReasonText(meal, context, search_params, detected_language),
     }));
 
-// ✅ FINAL DEDUPLICATION
-    const seen = new Set<string>();
-    recommendedMeals = recommendedMeals.filter((m) => {
-        if (seen.has(m.mealId)) return false;
-        seen.add(m.mealId);
-        return true;
-    });
-
     return {
         text: reply_text,
-        recommendedMeals,
+        recommendedMeals: recommendations,
     };
 }
