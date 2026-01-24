@@ -2,9 +2,9 @@ const API_BASE_URL = 'https://mensa.gregorflachs.de';
 
 // Fallback-Koordinaten für Mensen mit fehlenden geoLocation-Daten
 // Nutzt Substring-Matching für Flexibilität
-const CANTEEN_FALLBACK_COORDINATES: Array<{ 
-  namePattern: string; 
-  coordinates: { latitude: number; longitude: number } 
+const CANTEEN_FALLBACK_COORDINATES: Array<{
+  namePattern: string;
+  coordinates: { latitude: number; longitude: number }
 }> = [
   { namePattern: 'HTW Wilhelminenhof', coordinates: { latitude: 52.45868, longitude: 13.52883 } },
   { namePattern: 'Alt-Friedrichsfelde', coordinates: { latitude: 52.48915, longitude: 13.46788 } },
@@ -23,17 +23,17 @@ const getFallbackCoordinates = (canteenName: string): { latitude: number; longit
 
 const getApiKey = (): string => {
   const apiKey = process.env.EXPO_PUBLIC_MENSA_API_KEY;
-  
+
   if (!apiKey) {
     console.error(
-      '❌ FEHLER: API Key nicht gefunden!\n' +
-      '   Bitte erstelle eine .env Datei im uni-eats Verzeichnis mit:\n' +
-      '   EXPO_PUBLIC_MENSA_API_KEY=dein_api_key\n' +
-      '   Dann starte Expo neu mit: npx expo start --clear'
+        '❌ FEHLER: API Key nicht gefunden!\n' +
+        '   Bitte erstelle eine .env Datei im uni-eats Verzeichnis mit:\n' +
+        '   EXPO_PUBLIC_MENSA_API_KEY=dein_api_key\n' +
+        '   Dann starte Expo neu mit: npx expo start --clear'
     );
     return '';
   }
-  
+
   return apiKey;
 };
 
@@ -196,9 +196,9 @@ class MensaApiService {
         return data.map((item: any) => {
           // Normalisiere Geo-Feld: geolocation -> geoLocation (API nutzt lowercase)
           let geoLocation =
-            item?.address?.geoLocation ??
-            item?.address?.geolocation ??
-            item?.address?.GeoLocation;
+              item?.address?.geoLocation ??
+              item?.address?.geolocation ??
+              item?.address?.GeoLocation;
 
           // Konvertiere Koordinaten zu Zahlen (API gibt manchmal Strings zurück)
           if (geoLocation) {
@@ -225,19 +225,19 @@ class MensaApiService {
           // Rating aus Reviews extrahieren oder Fallback auf direktes rating
           const reviews = item?.canteenReviewData ?? [];
           const avgRating = reviews.length > 0
-            ? reviews.reduce((sum: number, r: any) => sum + (r.averageRating ?? 0), 0) / reviews.length
-            : item?.rating;
+              ? reviews.reduce((sum: number, r: any) => sum + (r.averageRating ?? 0), 0) / reviews.length
+              : item?.rating;
           const reviewCount = reviews.length > 0 ? reviews.length : (item?.reviewCount ?? 0);
 
           return {
             ...item,
             id: item._id || item.id || item.ID,
             address: item.address
-              ? {
+                ? {
                   ...item.address,
                   geoLocation,
                 }
-              : undefined,
+                : undefined,
             rating: avgRating,
             reviewCount,
             canteenReviews: reviews,
@@ -249,7 +249,7 @@ class MensaApiService {
       return [];
     } catch (error) {
       console.error('💥 API Error:', error);
-      throw error;
+      return [];
     }
   }
 
@@ -412,7 +412,7 @@ class MensaApiService {
       }
 
       const data = await response.json();
-      
+
       if (Array.isArray(data)) {
         return data;
       } else if (data.additives && Array.isArray(data.additives)) {
@@ -439,7 +439,7 @@ class MensaApiService {
       }
 
       const data = await response.json();
-      
+
       if (Array.isArray(data)) {
         return data;
       } else if (data.badges && Array.isArray(data.badges)) {
@@ -479,30 +479,30 @@ class MensaApiService {
 
         const data = await response.json();
         const raw =
-          Array.isArray(data)
-            ? data
-            : data?.universities ?? data?.university ?? data?.data ?? [];
+            Array.isArray(data)
+                ? data
+                : data?.universities ?? data?.university ?? data?.data ?? [];
 
         if (!Array.isArray(raw)) {
           return [];
         }
 
         return raw
-          .map((item: any) => {
-            const id = item?._id ?? item?.id ?? item?.ID ?? item?.uuid;
-            const name =
-              item?.name ?? item?.title ?? item?.shortName ?? item?.abbreviation;
+            .map((item: any) => {
+              const id = item?._id ?? item?.id ?? item?.ID ?? item?.uuid;
+              const name =
+                  item?.name ?? item?.title ?? item?.shortName ?? item?.abbreviation;
 
-            if (!id || !name) return null;
+              if (!id || !name) return null;
 
-            return {
-              id: String(id),
-              name: String(name),
-              shortName: item?.shortName ?? item?.abbreviation,
-              city: item?.city ?? item?.location?.city,
-            } as University;
-          })
-          .filter(Boolean) as University[];
+              return {
+                id: String(id),
+                name: String(name),
+                shortName: item?.shortName ?? item?.abbreviation,
+                city: item?.city ?? item?.location?.city,
+              } as University;
+            })
+            .filter(Boolean) as University[];
       } catch (error) {
         lastError = error;
       }
