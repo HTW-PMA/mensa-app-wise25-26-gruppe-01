@@ -130,6 +130,46 @@ export const ALLERGEN_CATEGORY_TRANSLATIONS: Record<string, string> = {
   Sonstiges: 'Other',
 };
 
+// ============================================================================
+// NEW: AI Chef specific translations
+// ============================================================================
+
+// Common UI elements
+export const COMMON_TRANSLATIONS: Record<string, string> = {
+  Mehr: 'More',
+  kcal: 'kcal',
+};
+
+// AI Chef meal card translations
+export const AI_MEAL_CARD_TRANSLATIONS: Record<string, string> = {
+  'Achtung: Enthält': 'Warning: Contains',
+  'Passt zu deiner Suche': 'Matches your search',
+  'In deiner Nähe': 'Near you',
+  'Einer deiner Favoriten!': 'One of your favorites!',
+  'Gibt dir Energie': 'Gives you energy',
+  'Leicht und gesund': 'Light and healthy',
+  'Macht richtig satt': 'Very filling',
+  'Schnell verfügbar': 'Quick meal',
+};
+
+// AI Chef messages
+export const AI_CHEF_MESSAGE_TRANSLATIONS: Record<string, string> = {
+  'Das waren schon alle passenden Gerichte, die ich heute gefunden habe.':
+      'Those were all the matching dishes I found today.',
+  'Wie kann ich dir helfen?': 'How can I help you?',
+  'Worüber möchtest du mehr erfahren?': 'What would you like to know more about?',
+  'Ich habe das Thema nicht verstanden. Frag mich etwas Neues!':
+      'I did not understand the topic. Ask me something new!',
+  'Perfekt! Hier sind deftige Gerichte von der HTW, die dir Energie geben:':
+      'Perfect! Here are hearty dishes from HTW that give you energy:',
+  'Hier sind frische Salate für dich:': 'Here are fresh salads for you:',
+  'Alles klar!': 'Got it!',
+};
+
+// ============================================================================
+// Translation helper functions
+// ============================================================================
+
 /**
  * Translate a category name from German to English
  */
@@ -192,4 +232,28 @@ export const translateAdditive = (additive: string): string => {
 export const translateAllergenCategory = (category: string): string => {
   if (isGermanLocale()) return category;
   return ALLERGEN_CATEGORY_TRANSLATIONS[category] || category;
+};
+
+/**
+ * NEW: Translate common UI elements
+ */
+export const translateCommon = (text: string): string => {
+  if (isGermanLocale()) return text;
+  return COMMON_TRANSLATIONS[text] || text;
+};
+
+/**
+ * NEW: Translate AI meal card text
+ */
+export const translateAIMealCard = (text: string): string => {
+  if (isGermanLocale()) return text;
+  return AI_MEAL_CARD_TRANSLATIONS[text] || text;
+};
+
+/**
+ * NEW: Translate AI Chef messages
+ */
+export const translateAIChefMessage = (text: string): string => {
+  if (isGermanLocale()) return text;
+  return AI_CHEF_MESSAGE_TRANSLATIONS[text] || text;
 };

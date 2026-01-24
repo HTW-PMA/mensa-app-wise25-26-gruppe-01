@@ -10,12 +10,10 @@ import { selectPriceForStatus } from '@/utils/priceHelpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useProfile } from '@/contexts/ProfileContext';
 
-// Helper to get image (reusing logic from MealCard or keeping it simple)
 const getMealImage = (meal: Meal): string => {
     const searchText = `${meal.name} ${meal.category || ''}`.toLowerCase();
 
     const imageMap: Record<string, string> = {
-        // 1. Eindeutige Formen/Kategorien (höchste Priorität)
         suppe: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=160&h=160&fit=crop',
         stew: 'https://images.unsplash.com/photo-1591386767153-987783380885?w=160&h=160&fit=crop',
         eintopf: 'https://images.unsplash.com/photo-1608500218987-0f2b3be34b47?w=160&h=160&fit=crop',
@@ -25,8 +23,6 @@ const getMealImage = (meal: Meal): string => {
         pudding: 'https://images.unsplash.com/photo-1734671223988-20df071ab200?w=160&h=160&fit=crop',
         joghurt: 'https://images.unsplash.com/photo-1564149503905-7fef56abc1f2?w=160&h=160&fit=crop',
         smoothie: 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=160&h=160&fit=crop',
-
-        // 2. Klare Hauptgerichte
         pizza: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=160&h=160&fit=crop',
         burger: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=160&h=160&fit=crop',
         pasta: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=160&h=160&fit=crop',
@@ -37,8 +33,6 @@ const getMealImage = (meal: Meal): string => {
         pommes: 'https://plus.unsplash.com/premium_photo-1683121324474-83460636b0ed?w=160&h=160&fit=crop',
         fries: 'https://plus.unsplash.com/premium_photo-1683121324474-83460636b0ed?w=160&h=160&fit=crop',
         dessert: 'https://plus.unsplash.com/premium_photo-1678715022988-417bbb94e3df?w=160&h=160&fit=crop',
-
-        // 3. Spezifische Zutaten & Gerichte (wird nur geprüft, wenn oben nichts gefunden)
         schnitzel: 'https://images.unsplash.com/photo-1560611588-163f295eb145?w=160&h=160&fit=crop',
         steak: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=160&h=160&fit=crop',
         wurst: 'https://images.unsplash.com/photo-1695089028198-80245e2f5d06?w=160&h=160&fit=crop',
@@ -76,11 +70,8 @@ export const AIMealCard = ({ meal, canteenName, reason }: AIMealCardProps) => {
     const { t } = useTranslation();
     const { profile } = useProfile();
 
-    // 🧠 Allergene prüfen (kompatibel mit deinem Profilmodell)
-    const allergies: string[] =
-        (profile as any)?.userPreferences?.allergies ||
-        (profile as any)?.allergies ||
-        [];
+    // ✅ Allergene prüfen (FIXED)
+    const allergies: string[] = profile?.allergies || [];
 
     const mealText = `${meal.name} ${(meal.additives?.map((a) => a.text).join(' ') ?? '')}`.toLowerCase();
     const detectedAllergens = allergies.filter((a: string) =>
@@ -90,21 +81,17 @@ export const AIMealCard = ({ meal, canteenName, reason }: AIMealCardProps) => {
     const hasAllergenConflict = detectedAllergens.length > 0;
     const allergenText = detectedAllergens.join(', ');
 
-    // 🎨 Dynamische Farben & Texte
-    const reasonBgColor = hasAllergenConflict ? '#FFF4E5' : '#ECFDF5'; // orange vs grün
-    const reasonTextColor = hasAllergenConflict ? '#B45309' : '#065F46'; // orange vs grün
+    // ✅ Dynamische Farben & Texte (FIXED mit Übersetzung)
+    const reasonBgColor = hasAllergenConflict ? '#FFF4E5' : '#ECFDF5';
+    const reasonTextColor = hasAllergenConflict ? '#B45309' : '#065F46';
     const reasonText = hasAllergenConflict
-        ? ` Achtung: Enthält ${allergenText}`
-        : reason || 'Passt zu deiner Suche.';
-
-
+        ? `${t('aiChef.mealCard.allergenWarning')}: ${allergenText}`
+        : reason || t('aiChef.mealCard.defaultReason');
 
     const backgroundColor = useThemeColor({ light: '#FFFFFF', dark: '#1C1C1E' }, 'background');
     const textColor = useThemeColor({ light: '#000000', dark: '#FFFFFF' }, 'text');
     const subTextColor = useThemeColor({ light: '#666666', dark: '#9BA1A6' }, 'text');
     const borderColor = useThemeColor({ light: '#E0E0E0', dark: '#333333' }, 'border');
-    const reasonBg = useThemeColor({ light: '#F0F9F4', dark: '#0D2B16' }, 'background');
-    const reasonColor = useThemeColor({ light: '#027A16', dark: '#4CAF50' }, 'text');
 
     const imageUrl = useMemo(() => getMealImage(meal), [meal.name, meal.category]);
 
@@ -116,7 +103,6 @@ export const AIMealCard = ({ meal, canteenName, reason }: AIMealCardProps) => {
     const priceDisplay =
         selectedPrice.price !== null ? t('common.priceFormat', { value: selectedPrice.price.toFixed(2) }) : '';
 
-    // ✅ Kalorien (neu) – nur berechnet, Layout-Logik bleibt getrennt
     const calories = useMemo(() => {
         if (meal.co2Bilanz) return Math.round(meal.co2Bilanz * 0.8 + 200);
         return 450;
@@ -142,7 +128,7 @@ export const AIMealCard = ({ meal, canteenName, reason }: AIMealCardProps) => {
 
     return (
         <View style={styles.wrapper}>
-            {/* AI Reason Bubble (Chef's Note) */}
+            {/* AI Reason Bubble */}
             {reason && (
                 <View style={[styles.reasonContainer, { backgroundColor: reasonBgColor }]}>
                     <Ionicons
@@ -157,7 +143,7 @@ export const AIMealCard = ({ meal, canteenName, reason }: AIMealCardProps) => {
                 </View>
             )}
 
-            {/* Actual Meal Card */}
+            {/* Meal Card */}
             <Pressable
                 style={({ pressed }) => [
                     styles.cardContainer,
@@ -169,12 +155,10 @@ export const AIMealCard = ({ meal, canteenName, reason }: AIMealCardProps) => {
                 <Image source={{ uri: imageUrl }} style={styles.image} contentFit="cover" transition={200} />
 
                 <View style={styles.content}>
-                    {/* 1. Reihe: Name */}
                     <Text style={[styles.title, { color: textColor }]} numberOfLines={2}>
                         {meal.name}
                     </Text>
 
-                    {/* 2. Reihe: Mensa Standort */}
                     {canteenName ? (
                         <View style={styles.canteenRow}>
                             <Ionicons name="location-sharp" size={12} color={subTextColor} style={{ marginTop: 1 }} />
@@ -184,11 +168,12 @@ export const AIMealCard = ({ meal, canteenName, reason }: AIMealCardProps) => {
                         </View>
                     ) : null}
 
-                    {/* 3. Reihe: Preis + kcal (ohne andere Anzeigen zu beeinflussen) */}
                     <View style={styles.bottomRow}>
                         <View style={styles.kcalRow}>
                             <Ionicons name="flame-outline" size={12} color={subTextColor} />
-                            <Text style={[styles.kcalText, { color: subTextColor }]}>{calories} kcal</Text>
+                            <Text style={[styles.kcalText, { color: subTextColor }]}>
+                                {t('common.caloriesValue', { value: calories })}
+                            </Text>
                         </View>
 
                         {priceDisplay ? <Text style={styles.price}>{priceDisplay}</Text> : null}
@@ -264,8 +249,6 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.bold,
         lineHeight: 20,
     },
-
-    // ✅ 2. Reihe (neu, ersetzt metaRow nur für Standort-Zeile)
     canteenRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -277,8 +260,6 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
         lineHeight: 14,
     },
-
-    // ✅ 3. Reihe: kcal links, Preis rechts
     bottomRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -296,7 +277,6 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
         lineHeight: 14,
     },
-
     price: {
         fontSize: 15,
         fontFamily: Fonts.bold,

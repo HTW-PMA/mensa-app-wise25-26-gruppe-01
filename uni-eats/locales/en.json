@@ -12,8 +12,10 @@
     "priceFormat": "€%{value}",
     "priceUnavailable": "Price unavailable",
     "calories": "%{value} kcal",
+    "caloriesValue": "%{value} kcal",
+    "more": "More",
     "allergens": "Allergens",
-    "separator": "\u2022",
+    "separator": "•",
     "distanceUnavailable": "-- km",
     "timeUnavailable": "-- min",
     "ratingUnavailable": "--",
@@ -213,26 +215,99 @@
     },
     "messages": {
       "greeting": "Hi, I'm your AI Chef.",
-      "prompt": "Ask me about today's meals, diets, or budgets."
+      "prompt": "Ask me about today's meals, diets, or budgets.",
+      "noMoreMeals": "Those were all the matching dishes I found today.",
+      "showMatchingDishes": {
+        "de": "Möchtest du passende Gerichte dazu sehen?",
+        "en": "Would you like to see matching dishes?"
+      },
+      "matchingDishes": {
+        "de": "passende Gerichte",
+        "en": "matching dishes"
+      },
+      "whatToKnowMore": {
+        "de": "Worüber möchtest du mehr erfahren?",
+        "en": "What would you like to know more about?"
+      },
+      "topicNotUnderstood": {
+        "de": "Ich habe das Thema nicht verstanden. Frag mich etwas Neues!",
+        "en": "I did not understand the topic. Ask me something new!"
+      },
+      "atUniversity": {
+        "de": "an der",
+        "en": "at"
+      }
     },
     "suggestions": {
       "title": "Try asking:",
       "vegetarian": "Any vegetarian options today?",
       "pasta": "Show me pasta dishes.",
       "budget": "Meals under 5 euros.",
-      "tired": "I'm tired, suggest something energizing.",
-      "compare": "Compare two meals for me."
+      "tired": "I'm tired, suggest something energizing."
     },
     "preferences": {
       "title": "Preferences",
       "budgetTitle": "Daily budget",
       "budgetPlaceholder": "Max. €/day (e.g. 5.00)"
     },
+    "mealCard": {
+      "allergenWarning": "Warning: Contains",
+      "defaultReason": "Matches your search"
+    },
     "errors": {
       "missingApiKey": "API key is not configured. Please set EXPO_PUBLIC_GROQ_API_KEY.",
       "requestFailed": "API request failed (status %{status}).",
       "invalidResponse": "Received an invalid response from AI.",
-      "generic": "Sorry, something went wrong. Please try again later."
+      "generic": "Sorry, something went wrong. Please try again later.",
+      "couldNotProcess": "Sorry, I could not process your request. Ask me about dishes!",
+      "universityNotFound": {
+        "de": "Ich konnte keine Mensa für %{university} finden. Verfügbare Unis: HTW, FU, TU, HU, ASH, HWR, BHT",
+        "en": "I could not find a canteen for %{university}. Available universities: HTW, FU, TU, HU, ASH, HWR, BHT"
+      },
+      "noMatchingDishes": {
+        "de": "Ich habe leider keine passenden Gerichte gefunden",
+        "en": "Sorry, I could not find any matching dishes"
+      }
+    },
+    "reasons": {
+      "favorite": {
+        "de": "Einer deiner Favoriten!",
+        "en": "One of your favorites!"
+      },
+      "mood": {
+        "energy": {
+          "de": "Gibt dir Energie",
+          "en": "Gives you energy"
+        },
+        "light": {
+          "de": "Leicht und gesund",
+          "en": "Light and healthy"
+        },
+        "large": {
+          "de": "Macht richtig satt",
+          "en": "Very filling"
+        },
+        "fast": {
+          "de": "Schnell verfügbar",
+          "en": "Quick meal"
+        }
+      },
+      "contains": {
+        "de": "Enthält %{item}",
+        "en": "Contains %{item}"
+      },
+      "fromUniversity": {
+        "de": "Von %{university}",
+        "en": "From %{university}"
+      },
+      "nearYou": {
+        "de": "In deiner Nähe",
+        "en": "Near you"
+      },
+      "matchesSearch": {
+        "de": "Passt zu deiner Suche",
+        "en": "Matches your search"
+      }
     }
   },
   "meal": {

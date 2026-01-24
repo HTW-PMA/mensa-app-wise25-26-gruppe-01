@@ -37,6 +37,13 @@ const getApiKey = (): string => {
   return apiKey;
 };
 
+// 🔥 NEW: Helper to get ISO date with offset
+const getNextDateISO = (start: Date, offsetDays: number): string => {
+  const d = new Date(start);
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().split('T')[0];
+};
+
 // Öffnungszeiten eines Tages
 export interface BusinessHour {
   openAt?: string;
@@ -277,6 +284,7 @@ class MensaApiService {
     loadingtype?: 'lazy' | 'complete';
   }): Promise<Meal[]> {
     const startTime = Date.now();
+    const mealMap = new Map<string, Meal>();
     const logStep = (step: string) => {
       const elapsed = Date.now() - startTime;
       console.log(`⏱️  [${elapsed}ms] ${step}`);
@@ -287,14 +295,15 @@ class MensaApiService {
       const params = new URLSearchParams();
       params.append('loadingtype', filters?.loadingtype || 'complete');
 
-      // Step 1: Get menus with meal assignments per canteen and date
-      // Die Menue-API enthält bereits die Meal-Details!
       logStep('Calling menue API...');
-      const menuResponse = await fetch(`${API_BASE_URL}/api/v1/menue?${params.toString()}`, {
-        headers: {
-          'X-API-KEY': getApiKey(),
-        },
-      });
+      const menuResponse = await fetch(
+          `${API_BASE_URL}/api/v1/menue?${params.toString()}`,
+          {
+            headers: {
+              'X-API-KEY': getApiKey(),
+            },
+          }
+      );
 
       if (!menuResponse.ok) {
         throw new Error(`API Error: ${menuResponse.status}`);
@@ -303,8 +312,7 @@ class MensaApiService {
       logStep('Menue API response received');
       const menuData = await menuResponse.json();
       logStep('Menue JSON parsed');
-      
-      // The menue endpoint returns { menue: [ { date, canteenId, meals: [...] }, ... ] }
+
       let menus: any[] = [];
       if (menuData.menue && Array.isArray(menuData.menue)) {
         menus = menuData.menue;
@@ -312,31 +320,58 @@ class MensaApiService {
         menus = menuData;
       }
 
-      // Filter by canteenId if provided
+      // Filter by canteen
       if (filters?.canteenId) {
-        menus = menus.filter((menu: any) => menu.canteenId === filters.canteenId);
+        menus = menus.filter(m => m.canteenId === filters.canteenId);
       }
 
-      // Filter by date if provided (use today's date if not specified)
+      // 🔥 NEW: DATE FALLBACK LOGIC
+      let selectedMenus: any[] = [];
+      let usedDate: string | null = null;
+
       if (filters?.date) {
-        menus = menus.filter((menu: any) => menu.date === filters.date);
+        selectedMenus = menus.filter(m => m.date === filters.date);
+        usedDate = filters.date;
       } else {
-        // Default to today's date
-        const today = new Date().toISOString().split('T')[0];
-        menus = menus.filter((menu: any) => menu.date === today);
+        const today = new Date();
+
+        for (let i = 0; i < 7; i++) {
+          const dateISO = getNextDateISO(today, i);
+          const dayMenus = menus.filter(
+              m => m.date === dateISO && Array.isArray(m.meals) && m.meals.length > 0
+          );
+
+          if (dayMenus.length > 0) {
+            selectedMenus = dayMenus;
+            usedDate = dateISO;
+            console.log(`📅 Using next available menu date WITH MEALS: ${dateISO}`);
+            break;
+          }
+
+        }
       }
 
-      logStep(`Filtered menus: ${menus.length} found for canteen ${filters?.canteenId}`);
+      if (!usedDate || selectedMenus.length === 0) {
+        console.warn('⚠️ No menus found for today or next 7 days');
+        return [];
+      }
 
-      // OPTIMIERUNG: Nutze Meal-Daten direkt aus der Menue-API
-      // Keine separate /meal API Abfrage nötig!
+      logStep(
+          `Filtered menus: ${selectedMenus.length} found for date ${usedDate}`
+      );
+
+      // Extract meals
       const meals: Meal[] = [];
-      for (const menu of menus) {
+      for (const menu of selectedMenus) {
         if (menu.meals && Array.isArray(menu.meals)) {
           for (const mealData of menu.meals) {
             const mealId = mealData.id || mealData._id;
-            if (mealId) {
-              meals.push({
+            if (!mealId) continue;
+
+            const uniqueKey = `${mealId}_${menu.canteenId}`;
+
+            if (!mealMap.has(uniqueKey)) {
+              mealMap.set(uniqueKey, {
                 id: mealId,
                 name: mealData.name,
                 canteenId: menu.canteenId,
@@ -345,22 +380,24 @@ class MensaApiService {
                 additives: mealData.additives,
                 badges: mealData.badges,
                 mealReviews: mealData.mealReviews,
-                date: menu.date,
+                date: usedDate,
                 co2Bilanz: mealData.co2Bilanz,
                 waterBilanz: mealData.waterBilanz,
               });
             }
+
           }
         }
       }
 
-      logStep(`Extracted ${meals.length} meals directly from menue API - COMPLETE`);
-      return meals;
+      logStep(`Extracted ${meals.length} meals - COMPLETE`);
+      return Array.from(mealMap.values());
     } catch (error) {
       console.error('Error fetching meals:', error);
       throw error;
     }
   }
+
 
   async getAdditives(): Promise<Additive[]> {
     try {

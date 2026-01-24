@@ -25,8 +25,7 @@ import { useLocation } from '@/hooks/useLocation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useProfile } from '@/contexts/ProfileContext';
 import { AIMealCard } from '@/components/AIMealCard';
-import {useUniversities} from "@/hooks/useUniversities";
-
+import { useUniversities } from '@/hooks/useUniversities';
 
 type Message = {
   id: string;
@@ -36,7 +35,7 @@ type Message = {
     mealId: string;
     reason: string;
   }>;
-  visibleMealsCount?: number; // ✅ neu
+  visibleMealsCount?: number;
 };
 
 const SUGGESTION_KEYS = [
@@ -44,7 +43,6 @@ const SUGGESTION_KEYS = [
   'aiChef.suggestions.pasta',
   'aiChef.suggestions.budget',
   'aiChef.suggestions.tired',
-  'aiChef.suggestions.compare',
 ];
 
 const MORE_COMMANDS = ['mehr', 'more', 'noch mehr', 'weiter', 'weitere'];
@@ -63,7 +61,6 @@ export default function AiChefScreen() {
       [t]
   );
 
-
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -71,7 +68,6 @@ export default function AiChefScreen() {
   const flatListRef = useRef<FlatList<Message>>(null);
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
-
 
   const { data: mensas, isLoading: isLoadingMensas, isError: isMensasError } = useMensas();
   const { data: meals, isLoading: isLoadingMeals, isError: isMealsError } = useMeals();
@@ -127,11 +123,6 @@ export default function AiChefScreen() {
     return recent.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
   };
 
-  /**
-   * ✅ Local UI-command: "Mehr"
-   * Increases visibleMealsCount on the latest assistant message that contains recommendedMeals.
-   * Does NOT call the API.
-   */
   const showMoreMeals = () => {
     setMessages((prev) => {
       const lastIdx = [...prev].reverse().findIndex(
@@ -147,12 +138,11 @@ export default function AiChefScreen() {
 
       if (total === 0) return prev;
 
-      // already all shown -> add assistant info bubble
       if (current >= total) {
         const infoMsg: Message = {
           id: Date.now().toString(),
           sender: 'assistant',
-          text: 'Das waren schon alle passenden Gerichte, die ich heute gefunden habe.',
+          text: t('aiChef.messages.noMoreMeals'),
         };
         return [...prev, infoMsg];
       }
@@ -171,7 +161,6 @@ export default function AiChefScreen() {
     const finalText = (textToSend ?? inputText).trim();
     if (!finalText || loading || isLoadingContext) return;
 
-    // ✅ Intercept "Mehr" / "More" commands and handle locally
     const lower = finalText.toLowerCase();
     if (MORE_COMMANDS.includes(lower)) {
       if (!textToSend) setInputText('');
@@ -192,7 +181,6 @@ export default function AiChefScreen() {
     setLoading(true);
 
     try {
-      const history = buildHistory();
       const response = await getAiChefResponse(
           finalText,
           {
@@ -202,23 +190,23 @@ export default function AiChefScreen() {
             favoriteCanteenIds,
             favoriteMealIds,
             userLocation: location ?? undefined,
+            preferredUniversityId: profile?.universityId,
+            preferredUniversityName: profile?.universityName,
+            userPreferences: {
+              dietType: profile?.dietType,
+              allergies: profile?.allergies,
+            },
             contextStatus: { isLoadingContext, isErrorContext },
           },
           buildHistory()
       );
-
-
-
-
-      const numberMatch = finalText.match(/(\d+)\s*(Gerichte|Essen|Vorschläge)/i);
-      const requestedCount = numberMatch ? parseInt(numberMatch[1], 10) : 3;
 
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         text: response.text,
         sender: 'assistant',
         recommendedMeals: response.recommendedMeals,
-        visibleMealsCount: 3, // Mindestens 3, oder die gewünschte Zahl
+        visibleMealsCount: 3,
       };
 
       setMessages((prev) => [...prev, aiMsg]);
@@ -244,42 +232,44 @@ export default function AiChefScreen() {
 
     return (
         <View style={{ marginBottom: 12 }}>
-          {/* User Bubble */}
           {isUser && (
               <View style={[styles.messageBubble, styles.userBubble, { backgroundColor: primaryGreen }]}>
                 <Text style={[styles.messageText, { color: '#FFFFFF', includeFontPadding: false }]}>{item.text}</Text>
               </View>
           )}
 
-          {/* AI Meals -> render cards (sliced) + auto "Mehr" button */}
           {!isUser && item.recommendedMeals && item.recommendedMeals.length > 0 && (
               <View>
                 {item.recommendedMeals
-                    .slice(0, item.visibleMealsCount ?? 3) // ✅ only show visible portion
+                    .slice(0, item.visibleMealsCount ?? 3)
                     .map((rec) => {
                       const meal = meals?.find((m) => m.id === rec.mealId);
                       if (!meal) return null;
                       const canteenName = mensas?.find((m) => m.id === meal.canteenId)?.name;
 
                       return (
-                          <AIMealCard key={rec.mealId} meal={meal} canteenName={canteenName} reason={rec.reason} />
+                          <AIMealCard
+                              key={`${item.id}-${rec.mealId}-${meal.canteenId}`}
+                              meal={meal}
+                              canteenName={canteenName}
+                              reason={rec.reason}
+                          />
+
                       );
                     })}
 
-                {/* ✅ "Mehr" button only if there are more meals left */}
                 {(item.visibleMealsCount ?? 3) < item.recommendedMeals.length && (
                     <TouchableOpacity
-                        style={[styles.suggestionChip, { backgroundColor: primaryGreen, alignSelf: 'flex-end', marginTop: 8 }]}
+                        style={[styles.suggestionChip, { backgroundColor: primaryGreen, alignSelf: 'flex-end', marginTop: 8, marginRight: 32 }]}
                         onPress={showMoreMeals}
                         activeOpacity={0.85}
                     >
-                      <Text style={[styles.suggestionText, { color: '#FFFFFF' }]}>Mehr</Text>
+                      <Text style={[styles.suggestionText, { color: '#FFFFFF' }]}>{t('common.more')}</Text>
                     </TouchableOpacity>
                 )}
               </View>
           )}
 
-          {/* AI Text fallback */}
           {!isUser && (!item.recommendedMeals || item.recommendedMeals.length === 0) && (
               <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: aiBubbleColor }]}>
                 <Text style={[styles.messageText, { color: textColor, includeFontPadding: false }]}>{item.text}</Text>

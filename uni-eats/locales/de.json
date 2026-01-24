@@ -12,8 +12,10 @@
     "priceFormat": "%{value} €",
     "priceUnavailable": "Preis nicht verfügbar",
     "calories": "%{value} kcal",
+    "caloriesValue": "%{value} kcal",
+    "more": "Mehr",
     "allergens": "Allergene",
-    "separator": "\u2022",
+    "separator": "•",
     "distanceUnavailable": "-- km",
     "timeUnavailable": "-- min",
     "ratingUnavailable": "--",
@@ -213,26 +215,99 @@
     },
     "messages": {
       "greeting": "Hallo, ich bin dein AI Chef.",
-      "prompt": "Frag mich nach heutigen Gerichten, Diäten oder Budgets."
+      "prompt": "Frag mich nach heutigen Gerichten, Diäten oder Budgets.",
+      "noMoreMeals": "Das waren schon alle passenden Gerichte, die ich heute gefunden habe.",
+      "showMatchingDishes": {
+        "de": "Möchtest du passende Gerichte dazu sehen?",
+        "en": "Would you like to see matching dishes?"
+      },
+      "matchingDishes": {
+        "de": "passende Gerichte",
+        "en": "matching dishes"
+      },
+      "whatToKnowMore": {
+        "de": "Worüber möchtest du mehr erfahren?",
+        "en": "What would you like to know more about?"
+      },
+      "topicNotUnderstood": {
+        "de": "Ich habe das Thema nicht verstanden. Frag mich etwas Neues!",
+        "en": "I did not understand the topic. Ask me something new!"
+      },
+      "atUniversity": {
+        "de": "an der",
+        "en": "at"
+      }
     },
     "suggestions": {
       "title": "Probier mal:",
       "vegetarian": "Gibt es vegetarische Optionen?",
       "pasta": "Zeig mir Pasta-Gerichte.",
       "budget": "Gerichte unter 5 Euro.",
-      "tired": "Ich bin müde, was gibt Energie?",
-      "compare": "Vergleiche zwei Gerichte."
+      "tired": "Ich bin müde, was gibt Energie?"
     },
     "preferences": {
       "title": "Einstellungen",
       "budgetTitle": "Tagesbudget",
       "budgetPlaceholder": "Max. €/Tag (z. B. 5.00)"
     },
+    "mealCard": {
+      "allergenWarning": "Achtung: Enthält",
+      "defaultReason": "Passt zu deiner Suche"
+    },
     "errors": {
       "missingApiKey": "API-Schlüssel ist nicht konfiguriert. Bitte EXPO_PUBLIC_GROQ_API_KEY setzen.",
       "requestFailed": "API-Anfrage fehlgeschlagen (Status %{status}).",
       "invalidResponse": "Ungültige Antwort vom AI-Dienst erhalten.",
-      "generic": "Es gab ein Problem. Bitte später erneut versuchen."
+      "generic": "Es gab ein Problem. Bitte später erneut versuchen.",
+      "couldNotProcess": "Entschuldigung, ich konnte deine Anfrage nicht verarbeiten. Frag mich nach Gerichten!",
+      "universityNotFound": {
+        "de": "Ich konnte keine Mensa für %{university} finden. Verfügbare Unis: HTW, FU, TU, HU, ASH, HWR, BHT",
+        "en": "I could not find a canteen for %{university}. Available universities: HTW, FU, TU, HU, ASH, HWR, BHT"
+      },
+      "noMatchingDishes": {
+        "de": "Ich habe leider keine passenden Gerichte gefunden",
+        "en": "Sorry, I could not find any matching dishes"
+      }
+    },
+    "reasons": {
+      "favorite": {
+        "de": "Einer deiner Favoriten!",
+        "en": "One of your favorites!"
+      },
+      "mood": {
+        "energy": {
+          "de": "Gibt dir Energie",
+          "en": "Gives you energy"
+        },
+        "light": {
+          "de": "Leicht und gesund",
+          "en": "Light and healthy"
+        },
+        "large": {
+          "de": "Macht richtig satt",
+          "en": "Very filling"
+        },
+        "fast": {
+          "de": "Schnell verfügbar",
+          "en": "Quick meal"
+        }
+      },
+      "contains": {
+        "de": "Enthält %{item}",
+        "en": "Contains %{item}"
+      },
+      "fromUniversity": {
+        "de": "Von %{university}",
+        "en": "From %{university}"
+      },
+      "nearYou": {
+        "de": "In deiner Nähe",
+        "en": "Near you"
+      },
+      "matchesSearch": {
+        "de": "Passt zu deiner Suche",
+        "en": "Matches your search"
+      }
     }
   },
   "meal": {
@@ -421,6 +496,3 @@
     "parallaxBody": "Unter iOS erzeugt %{component} einen Parallax-Effekt."
   }
 }
-
-
-
