@@ -18,6 +18,7 @@ export interface UserProfile {
   status: ProfileStatus;
   universityId?: string;
   universityName?: string;
+  universityShort?: string;
 }
 
 interface ProfileContextType {
@@ -49,6 +50,7 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
         if (isMounted) {
           setProfile(null);
           setIsLoading(false);
+
         }
         return;
       }
@@ -58,6 +60,7 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
       if (isMounted) {
         setProfile(saved);
         setIsLoading(false);
+        console.log('👤 PROFILE:', saved);
       }
     };
 

@@ -28,14 +28,16 @@ export interface AIChefContext {
     lastTopic?: string;
     preferredUniversityId?: string;
     preferredUniversityName?: string;
+    preferredUniversityShort?: string;
 }
 
 export type AIChefHistoryMessage = { role: 'user' | 'assistant'; content: string };
 
 export type AIChefResponse = {
     text: string;
-    recommendedMeals?: Array<{ mealId: string; reason: string }>;
+    recommendedMeals?: Array<{ meal: Meal; reason: string }>;
 };
+
 
 // LLM Response Structure
 interface LLMIntentResponse {
@@ -56,13 +58,13 @@ interface LLMIntentResponse {
 
 // University to Canteen Mapping (normalized names for matching)
 const UNI_MENSAS: Record<string, string[]> = {
-    HTW: ['wilhelminenhof', 'treskowallee'],
-    FU: ['dahlem', 'silberlaube'],
-    TU: ['marchstr', 'hauptgebaeude', 'hauptgebäude'],
-    ASH: ['hellersdorf'],
-    HWR: ['lichtenberg', 'schöneberg'],
-    HU: ['adlershof', 'nord', 'süd'],
-    BHT: ['luxemburger', 'platanenstraße'],
+    HTW: ['wilhelminenhof', 'treskowallee', 'htw'],
+    FU: ['dahlem', 'silberlaube', 'fu'],
+    TU: ['marchstr', 'hauptgebaeude', 'hauptgebäude', 'tu'],
+    ASH: ['hellersdorf', 'ash'],
+    HWR: ['lichtenberg', 'schöneberg', 'hwr'],
+    HU: ['adlershof', 'nord', 'süd', 'hu'],
+    BHT: ['luxemburger', 'platanenstraße', 'bht'],
 };
 
 // Mood to Food Category Mapping
@@ -138,17 +140,51 @@ function normalizeText(text: string): string {
 /**
  * ✅ CHECK: Does a canteen belong to a university (by name matching)
  */
+/**
+ * ✅ CHECK: Does a canteen belong to a university (by name matching)
+ */
+// In aiChefApi.ts - Ersetze canteenBelongsToUniversity mit dieser Debug-Version
+
+/**
+ * ✅ CHECK: Does a canteen belong to a university (by name matching)
+ */
 function canteenBelongsToUniversity(
     canteenName: string,
-    universityId: string
+    universityShort: string
 ): boolean {
-    const keywords = UNI_MENSAS[universityId.toUpperCase()];
-    if (!keywords) return false;
-
     const normalized = normalizeText(canteenName);
-    return keywords.some((k) =>
-        normalized.includes(normalizeText(k))
-    );
+    const uniUpper = universityShort.toUpperCase();
+
+    console.log(`🔍 Checking canteen: "${canteenName}"`);
+    console.log(`   Normalized: "${normalized}"`);
+    console.log(`   Looking for: ${uniUpper}`);
+
+    // 1. Direct university shortname in canteen name
+    const uniNormalized = normalizeText(uniUpper);
+    if (normalized.includes(uniNormalized)) {
+        console.log(`   ✅ MATCH: Direct shortname "${uniUpper}" found in name`);
+        return true;
+    }
+
+    // 2. Campus keyword matching
+    const keywords = UNI_MENSAS[uniUpper];
+    if (!keywords || keywords.length === 0) {
+        console.log(`   ❌ NO MATCH: No keywords defined for ${uniUpper}`);
+        return false;
+    }
+
+    console.log(`   Checking keywords:`, keywords);
+
+    for (const keyword of keywords) {
+        const normalizedKeyword = normalizeText(keyword);
+        if (normalized.includes(normalizedKeyword)) {
+            console.log(`   ✅ MATCH: Keyword "${keyword}" found`);
+            return true;
+        }
+    }
+
+    console.log(`   ❌ NO MATCH: No keywords matched for ${uniUpper}`);
+    return false;
 }
 /**
  * Translate meal content to English (simple keyword-based)
@@ -411,21 +447,6 @@ function sortMealsByRelevance(
         if (context.favoriteMealIds?.includes(a.id)) scoreA += 100;
         if (context.favoriteMealIds?.includes(b.id)) scoreB += 100;
 
-
-        // 🔥 STRONG PRIORITY: user's university from profile
-        if (
-            context.preferredUniversityId &&
-            a.canteenId === context.preferredUniversityId
-        ) {
-            scoreA += 80;
-        }
-
-        if (
-            context.preferredUniversityId &&
-            b.canteenId === context.preferredUniversityId
-        ) {
-            scoreB += 80;
-        }
 
         // Favorite canteens
         if (context.favoriteCanteenIds?.includes(a.canteenId || '')) scoreA += 50;
@@ -695,6 +716,7 @@ export async function getAiChefResponse(
         search_params,
         detected_language,
     });
+    console.log('🏫 preferredUniversityShort:', context.preferredUniversityShort);
 
     // Step 2: Handle based on intent
     switch (intent) {
@@ -790,6 +812,40 @@ export async function getAiChefResponse(
 
     console.log('🔍 After hard filters:', filteredMeals.length, 'meals (diet:', context.userPreferences?.dietType, ')');
 
+// ✅ Uni-Filter (User-Intent hat Vorrang vor Profil)
+    const activeUniversity =
+        search_params.university_target ??
+        context.preferredUniversityShort;
+
+    if (activeUniversity) {
+        console.log(`🏫 APPLYING UNIVERSITY FILTER: ${activeUniversity}`);
+
+        const beforeCount = filteredMeals.length;
+
+        filteredMeals = filteredMeals.filter((meal) => {
+            const mensa = context.mensas.find(m => m.id === meal.canteenId);
+            if (!mensa) return false;
+
+            return canteenBelongsToUniversity(mensa.name, activeUniversity);
+        });
+
+        console.log(
+            `🎓 University filter result: ${beforeCount} → ${filteredMeals.length} meals (kept only ${activeUniversity})`
+        );
+
+
+        if (filteredMeals.length > 0) {
+            console.log('📋 Sample meals from', activeUniversity + ':',
+                filteredMeals.slice(0, 3).map(m => ({
+                    name: m.name,
+                    mensa: context.mensas.find(c => c.id === m.canteenId)?.name
+                }))
+            );
+        }
+    }
+
+    console.log('🔍 After hard filters:', filteredMeals.length, 'meals (diet:', context.userPreferences?.dietType, ')');
+
     // Debug: Show first 3 meal names
     if (filteredMeals.length > 0) {
         console.log('📋 Sample meals:', filteredMeals.slice(0, 3).map(m => m.name));
@@ -800,6 +856,7 @@ export async function getAiChefResponse(
         filteredMeals = filteredMeals.filter((meal) => matchesQuery(meal, search_params.query));
         console.log('🔍 After query filter:', filteredMeals.length, 'meals');
     }
+
 
     // Apply diet filter from search params (if different from user prefs)
     if (search_params.diet_filter) {
@@ -812,51 +869,22 @@ export async function getAiChefResponse(
     // Sort by relevance
     filteredMeals = sortMealsByRelevance(filteredMeals, context, search_params);
 
-    // 🔥 FINAL PRIORITY: preferred university from profile
-
-
-    if (preferredUniId) {
-        filteredMeals.sort((a, b) => {
-            const mensaA = context.mensas.find(m => m.id === a.canteenId);
-            const mensaB = context.mensas.find(m => m.id === b.canteenId);
-
-            const isAFromPreferred =
-                mensaA !== undefined &&
-                canteenBelongsToUniversity(mensaA.name, preferredUniId);
-
-            const isBFromPreferred =
-                mensaB !== undefined &&
-                canteenBelongsToUniversity(mensaB.name, preferredUniId);
-
-            if (isAFromPreferred && !isBFromPreferred) return -1;
-            if (!isAFromPreferred && isBFromPreferred) return 1;
-            return 0;
-        });
-    }
-
     // Limit to top 10
     filteredMeals = filteredMeals.slice(0, 10);
 
-    // No results for query, BUT meals exist for next available day
-    if (filteredMeals.length === 0 && context.meals.length > 0) {
-        const usedDate = context.meals[0]?.date;
-        const today = new Date().toISOString().split('T')[0];
-
-        let dateHint = '';
-
-        if (usedDate && usedDate !== today) {
-            const formattedDate = new Date(usedDate).toLocaleDateString(
-                detected_language === 'de' ? 'de-DE' : 'en-US',
-                { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-            );
-
-            dateHint =
-                detected_language === 'de'
-                    ? ` Die nächsten verfügbaren Gerichte sind vom ${formattedDate}.`
-                    : ` The next available dishes are from ${formattedDate}.`;
+    if (filteredMeals.length === 0) {
+        // 🔒 WICHTIG: Wenn Profil-Uni gesetzt → KEIN Cross-Uni-Fallback
+        if (context.preferredUniversityId) {
+            return {
+                text:
+                    detected_language === 'de'
+                        ? 'An deiner Hochschule gibt es aktuell keine passenden Gerichte.'
+                        : 'There are currently no matching dishes at your university.',
+                recommendedMeals: [],
+            };
         }
 
-        // 🔥 FALLBACK: show all meals of that day
+        // 🌍 Nur OHNE Profil-Uni darf es ein globales Fallback geben
         const fallbackMeals = sortMealsByRelevance(
             context.meals,
             context,
@@ -864,39 +892,39 @@ export async function getAiChefResponse(
         ).slice(0, 10);
 
         return {
-            text:
-                t(`aiChef.errors.noMatchingDishes.${detected_language}`) +
-                dateHint,
-            recommendedMeals: fallbackMeals.map((meal) => ({
-                mealId: meal.id,
+            text: t(`aiChef.errors.noMatchingDishes.${detected_language}`),
+            recommendedMeals: fallbackMeals.map(meal => ({
+                meal,
                 reason:
                     detected_language === 'de'
-                        ? 'Verfügbares Gericht am nächsten Öffnungstag'
-                        : 'Available dish on the next opening day',
+                        ? 'Verfügbares Gericht'
+                        : 'Available dish',
             })),
         };
     }
 
 
-
-    // Translate meals if needed
+        // Translate meals if needed
     const translatedMeals = filteredMeals.map((meal) =>
         translateMealContent(meal, detected_language)
     );
 
 // Build recommendations
     let recommendedMeals = translatedMeals.map((meal) => ({
-        mealId: meal.id,
+        meal,
         reason: generateReasonText(meal, context, search_params, detected_language),
     }));
+
 
 // ✅ FINAL DEDUPLICATION
     const seen = new Set<string>();
     recommendedMeals = recommendedMeals.filter((m) => {
-        if (seen.has(m.mealId)) return false;
-        seen.add(m.mealId);
+        const key = `${m.meal.id}_${m.meal.canteenId}_${m.meal.date}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
         return true;
     });
+
 
     return {
         text: reply_text,

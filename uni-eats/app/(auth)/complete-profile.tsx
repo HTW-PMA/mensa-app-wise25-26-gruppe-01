@@ -66,6 +66,9 @@ export default function CompleteProfileScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [universityShort, setUniversityShort] = useState<string | null>(null);
+
+
 
   const backgroundColor = isDark ? Colors.dark.background : Colors.light.background;
   const cardColor = isDark ? '#1C1C1E' : '#F7F7F8';
@@ -80,6 +83,8 @@ export default function CompleteProfileScreen() {
     setStatus(profile.status ?? null);
     setUniversityId(profile.universityId ?? null);
     setUniversityName(profile.universityName ?? null);
+    setUniversityShort(profile.universityShort ?? null);
+
   }, [profile]);
 
   const toggleAllergy = (allergy: string) => {
@@ -102,6 +107,9 @@ export default function CompleteProfileScreen() {
     setError(null);
     setUniversityId(uni.id);
     setUniversityName(uni.name);
+    setUniversityShort(
+        uni.shortName ?? uni.id.toUpperCase()
+    );
   };
 
   const filteredUniversities = useMemo(() => {
@@ -118,22 +126,31 @@ export default function CompleteProfileScreen() {
   const needsUniversity = status === 'student' || status === 'employee';
   const canSave = Boolean(status) && (!needsUniversity || Boolean(universityId));
 
+
   const handleSave = async () => {
     if (!canSave) {
       setError(t('profile.validation.statusAndUniversity'));
       return;
     }
-
     setSaving(true);
     setError(null);
+
     try {
+      console.log('💾 SAVING PROFILE', {
+        universityId,
+        universityName,
+        universityShort,
+      });
+
       await saveProfile({
         allergies,
         dietType,
         status: status as ProfileStatus,
         universityId: universityId ?? undefined,
         universityName: universityName ?? undefined,
+        universityShort: universityShort ?? undefined,
       });
+
       router.replace(isEditMode ? '/profile' as any : '/(tabs)' as any);
     } catch (err) {
       setError(t('profile.validation.saveFailed'));

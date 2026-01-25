@@ -8,6 +8,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from '@/hooks/useTranslation';
 
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t } = useTranslation();

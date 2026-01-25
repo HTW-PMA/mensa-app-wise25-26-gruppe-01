@@ -26,13 +26,16 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useProfile } from '@/contexts/ProfileContext';
 import { AIMealCard } from '@/components/AIMealCard';
 import { useUniversities } from '@/hooks/useUniversities';
+import {Meal} from "@/services/mensaApi";
+
+
 
 type Message = {
   id: string;
   text: string;
   sender: 'user' | 'assistant';
   recommendedMeals?: Array<{
-    mealId: string;
+    meal: Meal;
     reason: string;
   }>;
   visibleMealsCount?: number;
@@ -76,6 +79,8 @@ export default function AiChefScreen() {
 
   const isLoadingContext = isLoadingMensas || isLoadingMeals;
   const isErrorContext = isMensasError || isMealsError;
+
+
 
   const favoriteMealIds = useMemo(
       () => Array.from(new Set(favoriteMeals.map((favorite) => favorite.mealId))),
@@ -192,6 +197,7 @@ export default function AiChefScreen() {
             userLocation: location ?? undefined,
             preferredUniversityId: profile?.universityId,
             preferredUniversityName: profile?.universityName,
+            preferredUniversityShort: profile?.universityShort,
             userPreferences: {
               dietType: profile?.dietType,
               allergies: profile?.allergies,
@@ -227,6 +233,8 @@ export default function AiChefScreen() {
     handleSendMessage(suggestion);
   };
 
+  // In ai-chef.tsx - Füge Debug-Logging im renderItem hinzu
+
   const renderItem = ({ item }: { item: Message }) => {
     const isUser = item.sender === 'user';
 
@@ -240,23 +248,25 @@ export default function AiChefScreen() {
 
           {!isUser && item.recommendedMeals && item.recommendedMeals.length > 0 && (
               <View>
+                {/* ✅ DEBUG: Log welche Meals gerendert werden */}
                 {item.recommendedMeals
                     .slice(0, item.visibleMealsCount ?? 3)
                     .map((rec) => {
-                      const meal = meals?.find((m) => m.id === rec.mealId);
-                      if (!meal) return null;
-                      const canteenName = mensas?.find((m) => m.id === meal.canteenId)?.name;
+                      const meal = rec.meal;
+                      const canteenName = mensas?.find(
+                          (c) => c.id === meal.canteenId
+                      )?.name;
 
                       return (
                           <AIMealCard
-                              key={`${item.id}-${rec.mealId}-${meal.canteenId}`}
+                              key={`${item.id}-${meal.id}-${meal.canteenId}`}
                               meal={meal}
                               canteenName={canteenName}
                               reason={rec.reason}
                           />
-
                       );
-                    })}
+                    })
+                }
 
                 {(item.visibleMealsCount ?? 3) < item.recommendedMeals.length && (
                     <TouchableOpacity

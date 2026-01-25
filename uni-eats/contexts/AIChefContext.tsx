@@ -22,19 +22,12 @@ export interface AIChefContextValue {
     mensas: Canteen[];
     meals: Meal[];
     universities?: University[];
-
-    // User preferences
     userPreferences?: UserPreferences;
-
-    // 🔥 NEW: University from profile (highest priority)
     preferredUniversityId?: string;
     preferredUniversityName?: string;
-
-    // Favorites (optional)
+    preferredUniversityShort?: string;
     favoriteCanteenIds?: string[];
     favoriteMealIds?: string[];
-
-    // Status flags
     isReady: boolean;
 }
 
@@ -78,15 +71,17 @@ export function AIChefProvider({
 
             userPreferences,
 
-            // 🔥 University from profile
             preferredUniversityId: profile?.universityId,
             preferredUniversityName: profile?.universityName,
+            preferredUniversityShort: profile?.universityShort,
+
 
             favoriteCanteenIds,
             favoriteMealIds,
 
             isReady: !isProfileLoading && mensas.length > 0 && meals.length > 0,
         };
+
     }, [
         mensas,
         meals,
