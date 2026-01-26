@@ -218,8 +218,8 @@
       "prompt": "Ask me about today's meals, diets, or budgets.",
       "noMoreMeals": "Those were all the matching dishes I found today.",
       "showMatchingDishes": {
-        "de": "Möchtest du passende Gerichte dazu sehen?",
-        "en": "Would you like to see matching dishes?"
+        "de": "Möchtest du weitere Gerichte sehen?",
+        "en": "Would you like to see more dishes?"
       },
       "matchingDishes": {
         "de": "passende Gerichte",
