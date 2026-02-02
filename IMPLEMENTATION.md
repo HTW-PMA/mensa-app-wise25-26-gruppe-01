@@ -98,3 +98,46 @@ function MyComponent() {
 - **pragmatisch**: OFFLINE_NO_CACHE als Error-Kennzeichnung statt extra Flag
 - **wartbar**: Zentrale Konfiguration, wiederverwendbare Utilities
 - **Kommentare**: Nur wo Logik nicht trivial
+
+---
+
+## Suche (Search Feature) Implementierung
+
+### Erstellte Dateien & Hooks
+
+#### 1. useSearch Hook
+**[hooks/useSearch.ts](hooks/useSearch.ts)**
+- Verwaltet Suchstatus und Logik (Query, Filter).
+- Integriert mit React Query für performantes Daten-Fetching.
+- Bietet "Recent Searches" Funktionalität (persistent gespeichert).
+- Implementiert Debounced Filtering zur Performance-Optimierung.
+
+#### 2. SearchBar Komponente
+**[components/SearchBar.tsx](components/SearchBar.tsx)**
+- Wiederverwendbares Eingabefeld mit Clear-Button.
+- Unterstützung für Dark/Light Mode.
+- Integrierte Such-Icons (Ionicons).
+
+#### 3. Search Helpers
+**[utils/searchHelpers.ts](utils/searchHelpers.ts)**
+- `filterMeals()`: Filtert Mahlzeiten nach Suchanfrage.
+- `filterCanteens()`: Filtert Mensen nach Suchanfrage.
+- `combineSearchResults()`: Zusammenführen und Sortieren der Ergebnisse.
+- `debounce()`: Hilfsfunktion zur Begrenzung der Aufrufhäufigkeit.
+- `POPULAR_SEARCHES`: Vordefinierte Kategorien für den Schnellzugriff.
+
+#### 4. Search Screen
+**[app/(tabs)/search.tsx](app/(tabs)/search.tsx)**
+- Anzeige von "Recent Searches" mit Löschfunktion.
+- "Popular Searches" Bereich mit Kategorie-Tags.
+- Dynamische Ergebnisliste (Mahlzeiten und Mensen).
+- Pull-to-Refresh Support und Error-Handling.
+
+### Search Requirements & Features
+- ✅ Echtzeit-Suche für Mahlzeiten und Mensen.
+- ✅ Persistente Speicherung der letzten 10 Suchanfragen.
+- ✅ Schnellzugriff über beliebte Kategorien.
+- ✅ Debounced API Calls für optimale Performance.
+- ✅ Vollständige Dark/Light Mode Unterstützung.
+- ✅ Offline-Support durch Caching-Integration.
+

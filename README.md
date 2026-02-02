@@ -1,121 +1,155 @@
 # UniEats (Mensa App Berlin)
-UniEats ist eine mobile App für Studierende, die ihnen hilft, schnell und einfach die Speisepläne der umliegenden Mensen zu entdecken.
 
-## 👥 Team & Roles
+UniEats ist eine moderne mobile App für Berliner Studierende, die den Uni-Alltag kulinarisch bereichert. Mit UniEats findest du schnell die besten Mahlzeiten in den Mensen der Stadt, personalisiert durch KI und ergänzt durch nützliche Features wie Standortsuche und Favoriten.
 
-- **Pascal (Product Owner, Developers und Designers)** 🧑‍💻
-- **Dongwoo Kim (Scrum Master, Developers und Designers)** 🧑‍💻
-- **Navid (Developers und Designers)** 🧑‍💻
-- **Viet (Developers und Designers)** 🧑‍💻
+---
+
+## ✨ Hauptfunktionen
+
+- **🔍 Intelligente Suche:** Durchsuche Mahlzeiten und Mensen in Echtzeit mit Verlauf und beliebten Kategorien (Vegan, Pasta, etc.).
+- **📍 Karten-Integration:** Finde Mensen in deiner Nähe mit Google Maps und erhalte Informationen zu Öffnungszeiten und Preisen.
+- **🤖 AI Chef:** Erhalte personalisierte Menü-Empfehlungen basierend auf deinen Vorlieben und Ernährungsbedürfnissen.
+- **⭐ Favoriten:** Speichere deine Lieblingsmensen und -gerichte für den schnellen Zugriff.
+- **🌍 Mehrsprachigkeit:** Vollständige Unterstützung für Deutsch und Englisch.
+- **🌓 Dark/Light Mode:** Adaptives Design, das sich den Systemeinstellungen deines Smartphones anpasst.
+- **🔔 Benachrichtigungen:** Verpasse kein Lieblingsgericht mehr durch individuelle Meal-Alerts.
+
+---
+
+## 👥 Team & Rollen
+
+- **Pascal (The Engine):** API-Anbindung, Caching, State Management & PO.
+- **Dongwoo Kim (The Face):** UI/UX Design, Theme-System, Navigation & Scrum Master.
+- **Navid Gerig (The Navigator):** Google Maps Integration, Standort-Logik & Entwickler.
+- **Viet (The Brain):** KI-Features (Meal-Matcher) & Entwickler.
+
+---
 
 ## 🛠️ Tech-Stack
 
-- **Framework:** React Native mit Expo (Managed Workflow)
-- **Sprache:** TypeScript
-- **Navigation:** Expo Router (File-based Routing)
-- **State Management:** React Context API / React Hooks
-- **API:** [Gregors Mensa API](https://mensa.gregorflachs.de/)
-- **Code-Stil:** ESLint mit Konventionen für funktionale Komponenten und Hooks.
+- **Framework:** [React Native](https://reactnative.dev/) mit [Expo](https://expo.dev/) (Managed Workflow)
+- **Sprache:** [TypeScript](https://www.typescriptlang.org/)
+- **Navigation:** [Expo Router](https://docs.expo.dev/router/introduction/) (File-based Routing)
+- **Data Fetching:** [TanStack Query (React Query)](https://tanstack.com/query/latest)
+- **Backend/Auth:** [Firebase](https://firebase.google.com/)
+- **API:** [Gregors Mensa API](https://mensa.gregorflachs.de/) & Google Places API
+- **Styling:** Custom Theme System mit Dark/Light Mode Unterstützung
 
-## 🎨 Design & Corporate Identity
-
-- **Markenname:** UniEats
-- **Primärfarbe:** `#02AA20` (UniEats Grün)
-- **Akzentfarben:** `#000000` (Schwarz), `#FFFFFF` (Reinweiß), `#FFCC00` (Gelb)
-- **Typografie:** Hauptschriftart "Google Sans", Ausweichschrift "Arial"
-- **UI-Stil:** Modern, clean, mit abgerundeten Ecken und hoher Lesbarkeit.
+---
 
 ## 🚀 Erste Schritte
 
 ### Voraussetzungen
 
-- [Node.js](https://nodejs.org/) (LTS)
-- [Expo Go App](https://expo.dev/go) auf einem physischen Gerät (iOS oder Android) oder ein Simulator.
+- [Node.js](https://nodejs.org/) (LTS Version empfohlen)
+- [Expo Go App](https://expo.dev/go) auf deinem Smartphone (iOS/Android) oder ein installierter Emulator (Android Studio / Xcode).
 
-### Installation & Start
+### Installation
 
-Da sich der App-Code im Ordner `uni-eats` befindet, müssen Sie zuerst dorthin navigieren.
+1. **Repository klonen:**
+   ```bash
+   git clone https://github.com/HTW-PMA/mensa-app-wise25-26-gruppe-01.git
+   cd mensa-app-wise25-26-gruppe-01
+   ```
 
-1. **In das Projektverzeichnis wechseln:**
-    ```bash
-    cd uni-eats
-    ```
-2. **Abhängigkeiten installieren:**
-    ```bash
-    npm install
-    ```
-3. **App starten:**
+2. **In das App-Verzeichnis wechseln und Abhängigkeiten installieren:**
+   ```bash
+   cd uni-eats
+   npm install
+   ```
 
-   - **Standard (Expo Go Android):**
-       ```bash
-       npx expo start --clear
-       ```
-   - **Standard (Expo Go IOS):**
-       ```bash
-       npx expo start --tunnel --clear
-       ```
-        
-     - **Bei Änderungen an der Konfiguration oder an der Neuinstallation** 
-     - **Alternative (Native Android Build):** *Falls die App bereits installiert wurde und Cache-Probleme auftreten:*
-         ```bash
-         # Build-Cache löschen und neu vorkonfigurieren
-         cd uni-eats/android
-         ``` 
-         ```bash
-         rm -rf app/build
-         rm -rf app/.cxx
-         ```  
-         ```bash
-         # zurück mensa-app-wise25-26-gruppe-01
-         cd ..
-         ```
-         ```bash
-         npx expo prebuild --platform android --clean
-        ```     
-     - **App direkt auf dem Gerät oder Emulator ausführen(Dev):**  
-        ```bash
-        npx expo run:android --device
-        ```
-     - **App direkt auf dem Gerät oder Emulator ausführen(am Ende):**  
-       ```bash
-        npx expo run:android --variant release
-       ```
-4. **App öffnen:**
-   - Scannen Sie den QR-Code mit der **Expo Go** App (Android/iOS).
-   - Oder drücken Sie `w` für Web, `a` für Android Emulator, `i` für iOS Simulator.
+3. **Umgebungsvariablen einrichten:**
+   Erstelle eine Datei namens `.env` im Ordner `uni-eats/` (nutze `.env.example` als Vorlage):
+   ```bash
+   cp .env.example .env
+   ```
+   *Hinweis: Du benötigst einen API-Key von [mensa.gregorflachs.de](https://mensa.gregorflachs.de/) und ein Firebase-Projekt für die Authentifizierung.*
+
+### App starten & Entwickeln
+
+#### 🍎 iOS (iPhone)
+Aufgrund von Sicherheitsbeschränkungen im lokalen Netzwerk wird ein Tunnel benötigt:
+```bash
+npx expo start --tunnel --clear
+```
+Scanne dann den QR-Code mit der Kamera-App.
+
+#### 🤖 Android
+Hier gibt es zwei Modi, je nach Anwendungszweck:
+
+**1. Entwicklungs-Modus (Empfohlen zum Testen):**
+Ideal für schnelles Feedback. Änderungen am Code werden sofort in der App reflektiert (Hot Reloading).
+```bash
+npx expo run:android
+```
+*Dies erfordert, dass der Metro Server (Expo Go) im Hintergrund läuft.*
+
+**2. Release-Modus (Vollständige Installation):**
+Installiert die App als eigenständige APK auf dem Gerät. Dies entspricht der echten App-Erfahrung ohne Abhängigkeit vom Development Server.
+```bash
+npx expo run:android --variant release
+```
+
+#### 🌐 Web
+```bash
+npx expo start --web
+```
+*Hinweis: Karten- und Standortfunktionen sind im Web eingeschränkt.*
+
+---
 
 ## 🏗️ Projektstruktur
-
-Die Codebasis befindet sich im Ordner `uni-eats` und folgt einer modularen Struktur:
 
 ```text
 uni-eats/
 ├── app/                  # Screens und Navigation (Expo Router)
-│   ├── (tabs)/           # Haupt-Tabs (index, explore, map, etc.)
-│   ├── mensa-detail.tsx  # Detailansicht einer Mensa
-│   └── _layout.tsx       # Globales Layout
-├── assets/               # Statische Dateien (Bilder, Schriftarten)
-├── components/           # Wiederverwendbare UI-Komponenten
-│   ├── MensaCard.tsx     # Karte für die Mensa-Liste
-│   └── ...
-├── constants/            # Globale Einstellungen (Theme, Farben)
-├── hooks/                # Custom React Hooks
-├── screens/              # Screen-Logik (z.B. HomeScreen.tsx)
-├── services/             # API-Dienste
-│   └── mensaApi.ts       # Verbindung zur Mensa API
-└── ...
+│   ├── (auth)/           # Login, Registrierung, Profilvervollständigung
+│   ├── (tabs)/           # Hauptnavigation (Home, Explore, Map, AI, Search, Account)
+│   └── ...               # Detailseiten (Mensa, Mahlzeiten)
+├── assets/               # Bilder, Fonts und Logos
+├── components/           # Wiederverwendbare UI-Komponenten (Atomic Design Ansatz)
+├── config/               # Firebase & API Konfigurationen
+├── contexts/             # React Context für globalen State (Auth, Favoriten, AI)
+├── hooks/                # Custom React Hooks für Logik-Kapselung
+├── locales/              # Übersetzungsdateien (DE/EN)
+├── services/             # API-Clients (Mensa, Google, AI)
+└── utils/                # Hilfsfunktionen und Validierungen
 ```
 
-## 👥 Rollenverteilung (Detailliert)
+---
 
-- **Pascal (The Engine):** API-Anbindung (Axios/Fetch), Caching, State Management.
-- **Dongwoo Kim (The Face):** UI/UX Design, Theme-System, Navigation-Setup.
-- **Navid Gerig (The Navigator):** Google Maps Integration, Standort-Logik.
-- **Viet (The Brain):** KI-Features (z.B. Meal-Matcher).
+## 🔧 Fehlerbehebung & Clean Install
+
+Falls die App beim Starten abstürzt oder alte Daten aus dem Cache Probleme verursachen (z.B. nach einem Pull von Änderungen), führe einen kompletten Reset durch:
+
+**Android Cache & Build bereinigen:**
+```bash
+# 1. Android-Ordner löschen (entfernt alte Builds vollständig)
+rm -rf android
+
+# 2. Native Dateien sauber neu generieren
+npx expo prebuild --platform android --clean
+
+# 3. App neu installieren (wähle dev oder release)
+npx expo run:android
+```
+
+---
+
+## 💡 Hinweise zum Testen
+
+- **Standort:** Für die Kartenfunktion wird ein Standort benötigt. Im Emulator kann dieser manuell gesetzt werden. Auf echten Geräten muss GPS aktiviert sein.
+- **Authentifizierung:** Einige Funktionen (Favoriten, AI-Chef Verlauf) erfordern einen Login. Du kannst dich einfach mit einer Test-E-Mail registrieren.
+- **Cache löschen (Allgemein):**
+  ```bash
+  npx expo start --clear
+  ```
+
+---
 
 ## 🤝 Code-Konventionen
 
-- **Benennung:** Englisch für Variablen, Funktionen und Komponenten (z.B. `HomeScreen`, `loadCanteens`).
-- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (z.B. `feat: add mensa card`, `fix: layout issue`).
-- **Komponenten:** Funktionale Komponenten mit Hooks.
-- **Sicherheit:** Keine API-Keys im Code committen (`.env` nutzen).
+- **Sprache:** Code und Kommentare sind in Englisch.
+- **Commits:** Wir nutzen [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (z.B. `feat:`, `fix:`, `refactor:`).
+- **Architektur:** Strikte Trennung von Logik (Hooks) und Darstellung (Komponenten).
+- **Sicherheit:** Sensible Daten gehören ausschließlich in die `.env` Datei.
