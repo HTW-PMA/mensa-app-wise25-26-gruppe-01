@@ -1,3 +1,5 @@
+
+
 import { Canteen, Meal, University } from '@/services/mensaApi';
 import { t } from '@/utils/i18n';
 import { calculateDistance } from '@/utils/locationUtils';
@@ -77,9 +79,11 @@ interface LLMIntentResponse {
         mood: 'energy' | 'large' | 'light' | 'fast' | null;
         university_target: string | null;
         diet_filter: 'vegan' | 'vegetarian' | 'pescatarian' | null;
+        max_price?: number | null;
     };
     detected_language: 'de' | 'en';
     reply_text: string;
+    llmCrashed?: boolean; // 👈 NEU
 }
 
 // ============================================================================
@@ -173,6 +177,29 @@ function normalizeText(text: string): string {
         .replace(/ß/g, 'ss')
         .replace(/[^a-z0-9\s]/g, '')
         .trim();
+}
+
+/**
+ * 🛟 Fallback query extraction
+ * ONLY used when LLM crashes
+ */
+function extractQueryFallback(prompt: string): string | null {
+    const text = normalizeText(prompt);
+
+    if (text.includes('reis')) return 'rice';
+    if (text.includes('salat')) return 'salad';
+    if (text.includes('nudel') || text.includes('pasta')) return 'pasta';
+    if (text.includes('burger')) return 'burger';
+    if (text.includes('suppe')) return 'soup';
+    if (text.includes('fisch')) return 'fish';
+    if (text.includes('fleisch')) return 'meat';
+
+    return null;
+}
+function extractMaxPriceFallback(prompt: string): number | null {
+    const match = prompt.match(/unter\s*(\d+(?:[.,]\d+)?)/i);
+    if (!match) return null;
+    return Number(match[1].replace(',', '.'));
 }
 
 /**
@@ -646,6 +673,14 @@ Wenn der User ein KONKRETES GERICHT oder eine ZUTAT nennt, setze immer "query" (
 - university_target: Erkannte Uni-Kürzel: "HTW", "FU", "TU", "HU", "ASH", "HWR", "BHT" (nur wenn explizit erwähnt)
 - diet_filter: "vegan", "vegetarian", "pescatarian" (nur wenn explizit erwähnt)
 
+- max_price: number (Euro)
+  * NUR setzen, wenn User ein Budget nennt
+  * Beispiele:
+    - "unter 1€" → max_price: 1
+    - "maximal 3 Euro" → max_price: 3
+    - "bis 5€" → max_price: 5
+
+
 WICHTIG - THEMENWECHSEL:
 - JEDE neue User-Nachricht ist UNABHÄNGIG vom vorherigen Kontext!
 - Wenn User "Wo gibt es Salat?" fragt, VERGISS komplett vorherige Themen wie "Chips" oder "Brokkoli"
@@ -678,8 +713,13 @@ User: "Ich brauche was Leichtes"
 User: "Ja, gerne"
 → {"intent": "affirmation", "search_params": {"query": null, "mood": null, "university_target": null, "diet_filter": null}, "detected_language": "de", "reply_text": "Alles klar!"}
 
+User: "Zeig mir Gerichte unter 1€"
+→ {"intent": "recommendation", "search_params": {"query": null, "mood": null, "university_target": null, "diet_filter": null, "max_price": 1}, "detected_language": "de", "reply_text": "Hier sind günstige Gerichte unter 1€:"}
+
 User: "Show me vegan pasta"
 → {"intent": "recommendation", "search_params": {"query": "pasta", "mood": null, "university_target": null, "diet_filter": "vegan"}, "detected_language": "en", "reply_text": "Great! Here are vegan pasta dishes:"}`;
+
+
     log('🤖 [LLM] Analyzing user intent for message:', userMessage);
 
     try {
@@ -758,6 +798,7 @@ User: "Show me vegan pasta"
             search_params: { query: null, mood: null, university_target: null, diet_filter: null },
             detected_language: 'de',
             reply_text: t('aiChef.errors.couldNotProcess'),
+            llmCrashed: true,
         };
     }
 }
@@ -786,6 +827,48 @@ export async function getAiChefResponse(
 
     const previousIntent = context.lastIntent;
     const previousTopic = context.lastTopic;
+
+    // =======================================================
+// 🛟 FALLBACK – ONLY if LLM CRASHED
+// =======================================================
+    if (llmResponse.llmCrashed === true) {
+        log('🧯 LLM fallback active');
+        const fallbackQuery = extractQueryFallback(prompt);
+        const fallbackPrice = extractMaxPriceFallback(prompt);
+
+        if (fallbackQuery) {
+            log('🛟 LLM crashed → applying deterministic fallback:', fallbackQuery);
+            search_params.query = fallbackQuery;
+        }
+        if (fallbackPrice != null) {
+            log('🛟 LLM crashed → applying deterministic fallback:', fallbackPrice);
+            search_params.max_price = fallbackPrice;
+        }
+    }
+
+    // =======================================================
+// 🔁 HARD STOP: User says "No" after a question
+// =======================================================
+    const normalizedPrompt = normalizeText(prompt);
+
+    const NEGATIONS = ['nein', 'no', 'nop', 'nee', 'ne'];
+
+    if (
+        NEGATIONS.includes(normalizedPrompt) &&
+        (context.lastIntent === 'question' || intent === 'affirmation')
+    ) {
+        // Reset conversation context
+        context.lastIntent = undefined;
+        context.lastTopic = undefined;
+
+        return {
+            text:
+                detected_language === 'de'
+                    ? 'Alles klar 🙂 Wie kann ich dir sonst helfen?'
+                    : 'Alright 🙂 How else can I help you?',
+            recommendedMeals: [],
+        };
+    }
 
     // Reset context logic
     if (intent !== 'affirmation') {
@@ -920,7 +1003,25 @@ export async function getAiChefResponse(
     let filteredMeals = applyHardFilters(deduplicatedMeals, context, locationIds);
     log('🔒 After hard safety filters:', filteredMeals.length);
 
-    // 2️⃣ University Filter
+    // 2️⃣ Price Filter (HARD)
+    if (search_params.max_price != null) {
+        const beforePrice = filteredMeals.length;
+
+        filteredMeals = filteredMeals.filter(meal => {
+            if (!meal.prices || meal.prices.length === 0) return false;
+
+            // Student price bevorzugen
+            const studentPrice =
+                meal.prices.find(p => p.priceType === 'student') ??
+                meal.prices[0];
+
+            return studentPrice.price <= search_params.max_price!;
+        });
+
+        log(`💰 Price filter (<= ${search_params.max_price}€): ${beforePrice} → ${filteredMeals.length}`);
+    }
+
+    // 3️⃣ University Filter
     const activeUniversity = search_params.university_target ?? context.preferredUniversityShort;
     if (activeUniversity) {
         log(`🎓 APPLYING UNIVERSITY FILTER: ${activeUniversity}`);
@@ -945,12 +1046,64 @@ export async function getAiChefResponse(
         log('🎓 After university filter:', filteredMeals.length);
     }
 
-    // 3️⃣ ✅ NEW: Mood Hard Filter (block contradicting dishes)
+    // 4️⃣ ✅ NEW: Mood Hard Filter (block contradicting dishes)
     if (search_params.mood) {
         const beforeMood = filteredMeals.length;
         filteredMeals = applyMoodHardFilter(filteredMeals, search_params.mood);
         log(`🎭 Mood filter (${search_params.mood}): ${beforeMood} → ${filteredMeals.length}`);
     }
+
+    // =======================================================
+// 🥩 Meat query detection (central switch)
+// =======================================================
+
+    if (search_params.query === 'meat') {
+        log('🥩 Applying universal meat filter');
+        const originalLength = filteredMeals.length;
+
+        filteredMeals = filteredMeals.filter(meal => {
+            const text = normalizeText(
+                `${meal.name} ${meal.category || ''}`
+            );
+            const badges = meal.badges?.map(b => normalizeText(b.name)) || [];
+
+            // 1️⃣ ABSOLUTE AUSSCHLUSSREGEL
+            const isVeggie =
+                badges.some(b =>
+                    b.includes('vegan') ||
+                    b.includes('vegetarisch') ||
+                    b.includes('vegetarian')
+                ) ||
+                text.includes('vegan') ||
+                text.includes('vegetarisch') ||
+                text.includes('vegetarian') ||
+                text.includes('plantbased') ||
+                text.includes('plant-based');
+
+            if (isVeggie) return false;
+
+            // 2️⃣ ECHTE FLEISCH-INDIKATOREN
+            const meatKeywords = [
+                'fleisch', 'meat',
+                'rind', 'beef', 'steak', 'roastbeef',
+                'schwein', 'pork', 'wurst', 'salami', 'schinken', 'bacon', 'speck',
+                'huhn', 'haehnchen', 'hähnchen', 'chicken',
+                'pute', 'turkey', 'truthahn',
+                'ente', 'duck', 'gans', 'goose',
+                'lamm', 'lamb', 'kalb', 'veal',
+                'wild', 'reh', 'hirsch', 'venison',
+                'hackfleisch', 'schnitzel'
+            ];
+
+            return meatKeywords.some(k => text.includes(k));
+        });
+
+        search_params.query = null; // Verhindert späteren Text-Match
+        log(`🥩 Meat filter: ${filteredMeals.length}/${originalLength} meals matched`);
+    }
+
+
+
 
     // 4️⃣ ✅ CRITICAL: Query Text Matching (STRICT - must appear in name)
     if (search_params.query) {
@@ -1146,7 +1299,7 @@ export async function getAiChefResponse(
                     ? 'Das war bereits alles, was es dazu aktuell gibt 🙂 Möchtest du etwas Ähnliches?'
                     : 'That is everything available for this right now 🙂 Want something similar?',
                 recommendedMeals: [],
-        };
+            };
         }
     }
 
